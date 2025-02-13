@@ -19,7 +19,24 @@ const refreshTokenValidationSchema = z.object({
   }),
 });
 
+const facebookZodValidationSchema = z.object({
+  body: z.object({
+    token: z.string({
+      required_error: 'token is required!',
+    }),
+  }),
+});
+const googleZodValidationSchema = z.object({
+  body: z.object({
+    token: z.string({
+      required_error: 'token is required!',
+    }),
+  }),
+});
+
 export const authValidation = {
   refreshTokenValidationSchema,
   loginZodValidationSchema,
+  facebookZodValidationSchema,
+  googleZodValidationSchema,
 };

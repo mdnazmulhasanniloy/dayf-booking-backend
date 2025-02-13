@@ -2,7 +2,7 @@ import { Error, Query, Schema, model } from 'mongoose';
 import config from '../../config';
 import bcrypt from 'bcrypt';
 import { IUser, UserModel } from './user.interface';
-import { Role, USER_ROLE } from './user.constants';
+import { REGISTER_WITH, registerWith, Role, USER_ROLE } from './user.constants';
 
 const userSchema: Schema<IUser> = new Schema(
   {
@@ -23,8 +23,6 @@ const userSchema: Schema<IUser> = new Schema(
     },
     phoneNumber: {
       type: String,
-      required: true,
-      default: null,
     },
     password: {
       type: String,
@@ -39,11 +37,16 @@ const userSchema: Schema<IUser> = new Schema(
       type: String,
       default: null,
     },
-    isGoogleLogin: {
-      type: Boolean,
-      default: false,
+    registerWith: {
+      type: String,
+      enum: registerWith,
+      default: REGISTER_WITH.credentials,
     },
     image: {
+      type: String,
+      default: null,
+    },
+    nationality: {
       type: String,
       default: null,
     },
@@ -88,7 +91,7 @@ const userSchema: Schema<IUser> = new Schema(
 userSchema.pre('save', async function (next) {
   // eslint-disable-next-line @typescript-eslint/no-this-alias
   const user = this;
-  if (!user?.isGoogleLogin) {
+  if (user?.registerWith === REGISTER_WITH.credentials) {
     user.password = await bcrypt.hash(
       user.password,
       Number(config.bcrypt_salt_rounds),
@@ -107,25 +110,6 @@ userSchema.post(
   },
 );
 
-userSchema.pre<Query<IUser[], IUser>>('find', function (next) {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  //@ts-ignore
-  this.find({ isDeleted: { $ne: true } });
-  next();
-});
-
-userSchema.pre<Query<IUser | null, IUser>>('findOne', function (next) {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  //@ts-ignore
-  this.find({ isDeleted: { $ne: true } });
-  next();
-});
-
-userSchema.pre('aggregate', function (next) {
-  this.pipeline().unshift({ $match: { isDeleted: { $ne: true } } });
-  next();
-});
-
 userSchema.statics.isUserExist = async function (email: string) {
   return await User.findOne({ email: email }).select('+password');
 };
@@ -133,6 +117,12 @@ userSchema.statics.isUserExist = async function (email: string) {
 userSchema.statics.IsUserExistId = async function (id: string) {
   return await User.findById(id).select('+password');
 };
+userSchema.statics.IsUserExistPhoneNumber = async function (
+  phoneNumber: string,
+) {
+  return await User.findOne({ phoneNumber: phoneNumber }).select('+password');
+};
+
 userSchema.statics.isPasswordMatched = async function (
   plainTextPassword,
   hashedPassword,

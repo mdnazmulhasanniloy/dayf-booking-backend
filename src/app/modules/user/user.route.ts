@@ -33,6 +33,7 @@ router.patch(
     USER_ROLE.sub_admin,
     USER_ROLE.super_admin,
     USER_ROLE.user,
+    USER_ROLE.hotel_owner,
   ),
   upload.single('image'),
   parseData(),
@@ -46,6 +47,7 @@ router.delete(
     USER_ROLE.sub_admin,
     USER_ROLE.super_admin,
     USER_ROLE.user,
+    USER_ROLE.hotel_owner,
   ),
   userController.deleteMYAccount,
 );
@@ -62,6 +64,7 @@ router.get(
     USER_ROLE.sub_admin,
     USER_ROLE.super_admin,
     USER_ROLE.user,
+    USER_ROLE.hotel_owner,
   ),
   userController.getMyProfile,
 );

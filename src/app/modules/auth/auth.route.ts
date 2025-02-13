@@ -12,6 +12,16 @@ router.post(
   validateRequest(authValidation.loginZodValidationSchema),
   authControllers.login,
 );
+router.post(
+  '/facebook',
+  validateRequest(authValidation.facebookZodValidationSchema),
+  authControllers.registerWithFacebook,
+);
+router.post(
+  '/google',
+  validateRequest(authValidation.googleZodValidationSchema),
+  authControllers.registerWithGoogle,
+);
 
 router.post(
   '/refresh-token',
@@ -25,7 +35,8 @@ router.patch(
     USER_ROLE.super_admin,
     USER_ROLE.sub_admin,
     USER_ROLE.admin,
-    USER_ROLE.user, 
+    USER_ROLE.user,
+    USER_ROLE.hotel_owner,
   ),
   authControllers.changePassword,
 );

@@ -5,7 +5,6 @@ export interface IUser {
   // [x: string]: any;
   _id?: Types.ObjectId;
   status: string;
-  username: string;
   name: string;
   email: string;
   phoneNumber: string;
@@ -14,8 +13,9 @@ export interface IUser {
   dateOfBirth: string;
   image: string;
   role: string;
-  isGoogleLogin: boolean;
+  registerWith: string;
   address?: string;
+  nationality: string;
   needsPasswordChange: boolean;
   passwordChangedAt?: Date;
   isDeleted: boolean;
@@ -29,7 +29,7 @@ export interface IUser {
 export interface UserModel extends Model<IUser> {
   isUserExist(email: string): Promise<IUser>;
   IsUserExistId(id: string): Promise<IUser>;
-  IsUserExistUserName(userName: string): Promise<IUser>;
+  IsUserExistPhoneNumber(phoneNumber: string): Promise<IUser>;
 
   isPasswordMatched(
     plainTextPassword: string,
