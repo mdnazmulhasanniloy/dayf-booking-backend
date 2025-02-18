@@ -20,6 +20,8 @@ export interface IApartment {
   othersFacilities: string[];
   policy: string;
   isDeleted: boolean;
+  avgRating: number;
+  reviews: ObjectId;
 }
 
 export type IApartmentModules = Model<IApartment, Record<string, unknown>>;

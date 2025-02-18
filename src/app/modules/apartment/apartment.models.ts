@@ -76,7 +76,7 @@ const apartmentSchema = new Schema<IApartment>(
     othersFacilities: [
       {
         type: String,
-        required: false, 
+        required: false,
       },
     ],
     policy: {
@@ -84,6 +84,17 @@ const apartmentSchema = new Schema<IApartment>(
       required: false,
       default: null,
     },
+    avgRating: {
+      type: Number,
+      default: 0,
+    },
+    reviews: [
+      {
+        type: Types.ObjectId,
+        ref: 'Review',
+        required: true,
+      },
+    ],
     isDeleted: {
       type: Boolean,
       default: false,
