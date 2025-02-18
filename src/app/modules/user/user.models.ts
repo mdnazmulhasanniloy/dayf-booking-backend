@@ -42,7 +42,7 @@ const userSchema: Schema<IUser> = new Schema(
       enum: registerWith,
       default: REGISTER_WITH.credentials,
     },
-    image: {
+    profile: {
       type: String,
       default: null,
     },

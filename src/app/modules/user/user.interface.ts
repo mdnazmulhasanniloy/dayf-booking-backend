@@ -11,7 +11,7 @@ export interface IUser {
   password: string;
   gender: 'Male' | 'Female' | 'Others';
   dateOfBirth: string;
-  image: string;
+  profile: string;
   role: string;
   registerWith: string;
   address?: string;

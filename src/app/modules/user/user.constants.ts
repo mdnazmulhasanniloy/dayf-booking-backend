@@ -3,7 +3,7 @@ export const USER_ROLE = {
   sub_admin: 'sub_admin',
   admin: 'admin',
   user: 'user',
-  hotel_owner: 'hotel_owner',
+  hotel_owner: 'hotel_admin',
 };
 
 export const REGISTER_WITH = {
@@ -18,7 +18,7 @@ export const Role = [
   'super_admin',
   'sub_admin',
   'user',
-  'hotel_owner',
+  'hotel_admin',
 ];
 export const registerWith = [
   REGISTER_WITH.google,
