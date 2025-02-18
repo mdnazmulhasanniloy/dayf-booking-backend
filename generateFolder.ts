@@ -51,7 +51,7 @@ const create${capitalizeFirstLetter(folderName)} = async (payload: I${capitalize
 const getAll${capitalizeFirstLetter(folderName)} = async (query: Record<string, any>) => {
 query["isDeleted"] = false;
   const ${folderName}Model = new QueryBuilder(${capitalizeFirstLetter(folderName)}.find(), query)
-    .search([])
+    .search([""])
     .filter()
     .paginate()
     .sort()
@@ -68,8 +68,8 @@ query["isDeleted"] = false;
 
 const get${capitalizeFirstLetter(folderName)}ById = async (id: string) => {
   const result = await ${capitalizeFirstLetter(folderName)}.findById(id);
-  if (!result && result?.isDeleted) {
-    throw new Error('${capitalizeFirstLetter(folderName)} not found!');
+  if (!result || result?.isDeleted) {
+    throw new AppError(httpStatus.BAD_REQUEST,'${capitalizeFirstLetter(folderName)} not found!');
   }
   return result;
 };
@@ -77,7 +77,7 @@ const get${capitalizeFirstLetter(folderName)}ById = async (id: string) => {
 const update${capitalizeFirstLetter(folderName)} = async (id: string, payload: Partial<I${capitalizeFirstLetter(folderName)}>) => {
   const result = await ${capitalizeFirstLetter(folderName)}.findByIdAndUpdate(id, payload, { new: true });
   if (!result) {
-    throw new Error('Failed to update ${capitalizeFirstLetter(folderName)}');
+   throw new AppError(httpStatus.BAD_REQUEST,'Failed to update ${capitalizeFirstLetter(folderName)}');
   }
   return result;
 };
@@ -201,29 +201,14 @@ import { I${capitalizeFirstLetter(folderName)}, I${capitalizeFirstLetter(folderN
 
 const ${folderName}Schema = new Schema<I${capitalizeFirstLetter(folderName)}>(
   {
-    isDeleted: { type: 'boolean', default: false },
+    isDeleted: { type: Boolean, default: false },
   },
   {
     timestamps: true,
   }
 );
 
-//${folderName}Schema.pre('find', function (next) {
-//  //@ts-ignore
-//  this.find({ isDeleted: { $ne: true } });
-//  next();
-//});
-
-//${folderName}Schema.pre('findOne', function (next) {
-  //@ts-ignore
-  //this.find({ isDeleted: { $ne: true } });
- // next();
-//});
-
-${folderName}Schema.pre('aggregate', function (next) {
-  this.pipeline().unshift({ $match: { isDeleted: { $ne: true } } });
-  next();
-});
+ 
 
 const ${capitalizeFirstLetter(folderName)} = model<I${capitalizeFirstLetter(folderName)}, I${capitalizeFirstLetter(folderName)}Modules>(
   '${capitalizeFirstLetter(folderName)}',

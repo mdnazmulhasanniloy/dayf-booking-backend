@@ -11,6 +11,7 @@ export interface ILocations {
 }
 
 export interface IProperty {
+  id: string;
   deleteKey?: string[];
   author: ObjectId;
   images: IImage[];
@@ -22,7 +23,7 @@ export interface IProperty {
   facility: ObjectId[];
   Other: string[];
   avgRating: number;
-  ratings: ObjectId[];
+  reviews: ObjectId[];
   rooms: ObjectId[];
   isDeleted: boolean;
 }

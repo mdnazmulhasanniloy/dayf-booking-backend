@@ -46,7 +46,7 @@ const getAllProperty = async (query: Record<string, any>) => {
   }
 
   if (filtersData?.ratings) {
-    filtersData['ratings'] = new Types.ObjectId(filtersData?.ratings);
+    filtersData['reviews'] = new Types.ObjectId(filtersData?.ratings);
   }
 
   // Initialize the aggregation pipeline
@@ -160,7 +160,7 @@ const getAllProperty = async (query: Record<string, any>) => {
 
         {
           $lookup: {
-            from: 'facilities',
+            from: 'Facilities',
             localField: 'facility',
             foreignField: '_id',
             as: 'facility',
@@ -168,10 +168,10 @@ const getAllProperty = async (query: Record<string, any>) => {
         },
         {
           $lookup: {
-            from: 'ratings',
-            localField: 'ratings',
+            from: 'reviews',
+            localField: 'reviews',
             foreignField: '_id',
-            as: 'ratings',
+            as: 'reviews',
           },
         },
 
@@ -197,12 +197,11 @@ const getAllProperty = async (query: Record<string, any>) => {
   };
 };
 
-
 const getPropertyById = async (id: string) => {
   const result = await Property.findById(id).populate([
     { path: 'author', select: 'name email profile phoneNumber address' },
     { path: 'rooms' },
-    { path: 'ratings' },
+    { path: 'reviews' },
     { path: 'facility' },
   ]);
   if (!result || result?.isDeleted) {

@@ -5,6 +5,7 @@ import {
   IProperty,
   IPropertyModules,
 } from './property.interface';
+import generateCryptoString from '../../utils/generateCryptoString';
 
 const ImageSchema = new Schema<IImage>({
   key: { type: String, required: true },
@@ -23,6 +24,13 @@ const propertySchema = new Schema<IProperty>(
       ref: 'User',
       required: true,
     },
+    id: {
+      type: String,
+      unique: true,
+      default: () => {
+        return generateCryptoString(10);
+      },
+    },
     images: { type: [ImageSchema], required: true },
     name: { type: String, required: true },
     length: { type: Number, required: true },
@@ -30,14 +38,13 @@ const propertySchema = new Schema<IProperty>(
     address: { type: String, required: true },
     location: { type: LocationSchema, required: true },
     facility: [
-      { type: Schema.Types.ObjectId, ref: 'Facility', required: true },
+      { type: Schema.Types.ObjectId, ref: 'Facilities', required: true },
     ],
     Other: [{ type: String, required: true }],
     avgRating: { type: Number, default: 0 },
-    ratings: [{ type: Schema.Types.ObjectId, ref: 'Rating' }],
+    reviews: [{ type: Schema.Types.ObjectId, ref: 'reviews' }],
     rooms: [{ type: Schema.Types.ObjectId, ref: 'Rooms' }],
 
-    
     isDeleted: { type: Boolean, default: false },
   },
   {
