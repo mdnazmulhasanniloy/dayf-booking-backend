@@ -244,13 +244,13 @@ const updateProperty = async (
     }
 
     await Property.findByIdAndUpdate(id, {
-      $pull: { banner: { key: { $in: deleteKey } } },
+      $pull: { images: { key: { $in: deleteKey } } },
     });
   }
 
   if (payload?.images && payload.images.length > 0) {
     await Property.findByIdAndUpdate(id, {
-      $push: { banner: { $each: payload.images } },
+      $push: { images: { $each: payload.images } },
     });
   }
 

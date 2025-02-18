@@ -21,6 +21,7 @@ export interface IProperty {
   address: string;
   location: ILocations;
   facility: ObjectId[];
+  coverImage: string;
   Other: string[];
   avgRating: number;
   reviews: ObjectId[];

@@ -6,6 +6,7 @@ import {
   IPropertyModules,
 } from './property.interface';
 import generateCryptoString from '../../utils/generateCryptoString';
+import generateRandomHexColor from '../../utils/generateRandomHexColor';
 
 const ImageSchema = new Schema<IImage>({
   key: { type: String, required: true },
@@ -27,9 +28,11 @@ const propertySchema = new Schema<IProperty>(
     id: {
       type: String,
       unique: true,
-      default: () => {
-        return generateCryptoString(10);
-      },
+      default: () => generateCryptoString(10),
+    },
+    coverImage: {
+      type: String,
+      default: () => generateRandomHexColor(),
     },
     images: { type: [ImageSchema], required: true },
     name: { type: String, required: true },
