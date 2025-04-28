@@ -12,6 +12,8 @@ import { apartmentRoutes } from '../modules/apartment/apartment.route';
 import { bookingsRoutes } from '../modules/bookings/bookings.route';
 import { chatRoutes } from '../modules/chat/chat.route';
 import { messagesRoutes } from '../modules/messages/messages.route';
+import stripeRoute from '../modules/stripe/stripe.route';
+import { paymentsRoutes } from '../modules/payments/payments.route';
 
 const router = Router();
 const moduleRoutes = [
@@ -67,6 +69,14 @@ const moduleRoutes = [
   {
     path: '/messages',
     route: messagesRoutes,
+  },
+  {
+    path: '/stripe',
+    route: stripeRoute,
+  },
+  {
+    path: '/payments',
+    route: paymentsRoutes,
   },
 ];
 moduleRoutes.forEach(route => router.use(route.path, route.route));

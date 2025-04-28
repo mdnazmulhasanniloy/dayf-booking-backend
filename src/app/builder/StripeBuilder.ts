@@ -133,9 +133,9 @@ class StripeServices<T> {
     product: IProducts,
     success_url: string,
     cancel_url: string,
+    customer: string = '', // Optional: customer ID for Stripe
     currency: string = 'usd',
     payment_method_types: Array<'card' | 'paypal' | 'ideal'> = ['card'],
-    customer: string = '', // Optional: customer ID for Stripe
   ) {
     try {
       if (!product?.name || !product?.amount || !product?.quantity) {
@@ -181,6 +181,21 @@ class StripeServices<T> {
       });
     } catch (error) {
       this.handleError(error, 'Error creating checkout session');
+    }
+  }
+
+  public async createCustomer(email: string, name: string) {
+    try {
+      return await this.stripe().customers.create({
+        email,
+        name,
+        //   description: 'HandyHub.pro Customer', // Optional: for dashboard reference
+        //   metadata: {
+        //     platform: 'HandyHub.pro', // Custom metadata for tracking
+        //   },
+      });
+    } catch (error) {
+      this.handleError(error, 'customer creation failed');
     }
   }
   public getStripe() {

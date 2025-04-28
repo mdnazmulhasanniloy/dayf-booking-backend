@@ -17,6 +17,7 @@ import { USER_ROLE } from '../user/user.constants';
 import { notificationServices } from '../notification/notification.service';
 import { IUser } from '../user/user.interface';
 import { modeType } from '../notification/notification.interface';
+import StripeService from '../../builder/StripeBuilder';
 
 const stripe = new Stripe(config.stripe?.stripe_api_secret as string, {
   apiVersion: '2024-06-20',
@@ -75,18 +76,34 @@ const checkout = async (payload: IPayments) => {
   if (!paymentData)
     throw new AppError(httpStatus.BAD_REQUEST, 'payment not found');
 
-  const checkoutSession = await createCheckoutSession({
-    // customerId: customer.id,
-    product: {
-      amount: paymentData?.amount,
-      //@ts-ignore
-      name: bookings?.reference?.name,
-      quantity: 1,
-    },
-
+  const product = {
+    amount: paymentData?.amount,
     //@ts-ignore
-    paymentId: paymentData?._id,
-  });
+    name: bookings?.reference?.name,
+    quantity: 1,
+  };
+  let customerId = '';
+  const user = await User.IsUserExistId(paymentData?.user?.toString());
+  if (user?.customerId) {
+    customerId = user?.customerId;
+  } else {
+    const customer = await StripeService.createCustomer(
+      user?.email,
+      user?.name,
+    );
+    customerId = customer?.id;
+  }
+
+  const success_url = `${config.server_url}/payments/confirm-payment?sessionId={CHECKOUT_SESSION_ID}&paymentId=${paymentData?._id}`;
+
+  const cancel_url = `${config.server_url}/payments/confirm-payment?sessionId={CHECKOUT_SESSION_ID}&paymentId=${paymentData?._id}`;
+
+  const checkoutSession = await StripeService.getCheckoutSession(
+    product,
+    success_url,
+    cancel_url,
+    customerId,
+  );
 
   return checkoutSession?.url;
 };
