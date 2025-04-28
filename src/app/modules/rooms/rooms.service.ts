@@ -4,34 +4,72 @@ import Rooms from './rooms.models';
 import QueryBuilder from '../../builder/QueryBuilder';
 import AppError from '../../error/AppError';
 import { deleteManyFromS3, uploadManyToS3 } from '../../utils/s3';
+import Property from '../property/property.models';
+import { startSession } from 'mongoose';
 
 const createRooms = async (payload: IRooms, files: any) => {
-  if (files) {
-    const { images } = files;
+  // Start a session for the transaction
+  const session = await startSession();
 
-    if (images?.length) {
-      const imgsArray: { file: any; path: string; key?: string }[] = [];
+  try {
+    // Start the transaction
+    session.startTransaction();
 
-      images?.map(async (image: any) => {
-        imgsArray.push({
-          file: image,
-          path: `images/property`,
+    if (files) {
+      const { images } = files;
+
+      if (images?.length) {
+        const imgsArray: { file: any; path: string; key?: string }[] = [];
+
+        images?.map(async (image: any) => {
+          imgsArray.push({
+            file: image,
+            path: `images/property`,
+          });
         });
-      });
 
-      payload.images = await uploadManyToS3(imgsArray);
+        payload.images = await uploadManyToS3(imgsArray); // Upload to S3
+      }
     }
+
+    // Create the room
+    const result = await Rooms.create([payload], { session });
+
+    if (!result) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create rooms');
+    }
+
+    // Update the property with the new room
+    await Property.findByIdAndUpdate(
+      result[0]?.property,
+      { rooms: [result[0]?._id] },
+      { session },
+    );
+
+    // Commit the transaction if everything is successful
+    await session.commitTransaction();
+
+    return result[0];
+  } catch (error: any) {
+    // If any error occurs, abort the transaction (rollback)
+    await session.abortTransaction();
+    throw new AppError(httpStatus.BAD_REQUEST, error?.message);
+  } finally {
+    // End the session
+    session.endSession();
   }
-  const result = await Rooms.create(payload);
-  if (!result) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create rooms');
-  }
-  return result;
 };
 
 const getAllRooms = async (query: Record<string, any>) => {
   query['isDeleted'] = false;
-  const roomsModel = new QueryBuilder(Rooms.find(), query)
+  const roomsModel = new QueryBuilder(
+    Rooms.find().populate([
+      { path: 'property' },
+      { path: 'author', select: 'name email phoneNumber profile role' },
+      { path: 'facilities' },
+    ]),
+    query,
+  )
     .search([''])
     .filter()
     .paginate()
@@ -48,7 +86,11 @@ const getAllRooms = async (query: Record<string, any>) => {
 };
 
 const getRoomsById = async (id: string) => {
-  const result = await Rooms.findById(id);
+  const result = await Rooms.findById(id).populate([
+    { path: 'property' },
+    { path: 'author', select: 'name email phoneNumber profile role' },
+    { path: 'facilities' },
+  ]);
   if (!result || result?.isDeleted) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Rooms not found!');
   }

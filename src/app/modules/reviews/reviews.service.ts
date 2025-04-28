@@ -8,7 +8,6 @@ import Apartment from '../apartment/apartment.models';
 import Property from '../property/property.models';
 import { ClientSession, startSession } from 'mongoose';
 
- 
 const createReviews = async (payload: IReviews) => {
   const session: ClientSession = await startSession();
   session.startTransaction();
@@ -71,7 +70,13 @@ const createReviews = async (payload: IReviews) => {
 };
 
 const getAllReviews = async (query: Record<string, any>) => {
-  const reviewsModel = new QueryBuilder(Reviews.find(), query)
+  const reviewsModel = new QueryBuilder(
+    Reviews.find().populate([
+      { path: 'reference' },
+      { path: 'user', select: 'name email phoneNumber profile' },
+    ]),
+    query,
+  )
     .search([''])
     .filter()
     .paginate()
@@ -88,7 +93,10 @@ const getAllReviews = async (query: Record<string, any>) => {
 };
 
 const getReviewsById = async (id: string) => {
-  const result = await Reviews.findById(id);
+  const result = await Reviews.findById(id).populate([
+    { path: 'reference' },
+    { path: 'user', select: 'name email phoneNumber profile' },
+  ]);
   if (!result) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Reviews not found!');
   }

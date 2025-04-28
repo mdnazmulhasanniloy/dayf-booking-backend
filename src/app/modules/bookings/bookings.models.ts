@@ -63,5 +63,7 @@ const bookingsSchema = new Schema<IBookings>(
   },
 );
 
+bookingsSchema.index({  }, { expireAfterSeconds: 259200 });
+
 const Bookings = model<IBookings, IBookingsModules>('Bookings', bookingsSchema);
 export default Bookings;

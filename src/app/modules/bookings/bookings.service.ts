@@ -11,21 +11,28 @@ import moment from 'moment';
 import { BOOKING_STATUS } from './bookings.constants';
 import { notificationServices } from '../notification/notification.service';
 import { modeType } from '../notification/notification.interface';
+import { IApartment } from '../apartment/apartment.interface';
+import { IRooms } from '../rooms/rooms.interface';
 
 const createBookings = async (payload: IBookings) => {
   switch (payload.modelType) {
     case BOOKING_MODEL_TYPE.Rooms:
-      const room: IBookings | null = await Rooms.findById(payload.reference);
+      const room: IRooms | null = await Rooms.findById(payload.reference);
       if (!room) {
         throw new AppError(httpStatus.BAD_REQUEST, 'Room not found!');
       }
+      //@ts-ignore
       payload['author'] = room?.author;
       //@ts-ignore
       payload['reference'] = room?._id;
-      payload['totalPrice'] = room?.totalPrice;
+      const day = moment(payload.endDate).diff(
+        moment(payload?.startDate),
+        'days',
+      );
+      payload['totalPrice'] = room?.pricePerNight * day;
       break;
     case BOOKING_MODEL_TYPE.Apartment:
-      const apartment: IBookings | null = await Apartment.findById(
+      const apartment: IApartment | null = await Apartment.findById(
         payload.reference,
       );
       if (!apartment) {
@@ -34,7 +41,11 @@ const createBookings = async (payload: IBookings) => {
       payload['author'] = apartment?.author;
       //@ts-ignore
       payload['reference'] = apartment?._id;
-      payload['totalPrice'] = apartment?.totalPrice;
+      const durationDay = moment(payload.endDate).diff(
+        moment(payload?.startDate),
+        'days',
+      );
+      payload['totalPrice'] = apartment?.price * durationDay;
 
       break;
     default:
@@ -178,37 +189,38 @@ const getAllBookings = async (query: Record<string, any>) => {
           },
         },
 
+    
         {
           $lookup: {
-            from: {
-              $cond: {
-                if: { $eq: ['$modelType', BOOKING_MODEL_TYPE.Rooms] },
-                then: BOOKING_MODEL_TYPE.Rooms,
-                else: BOOKING_MODEL_TYPE.Apartment,
-              },
-            },
-            // from: 'reference',
+            from: 'apartments',
             localField: 'reference',
             foreignField: '_id',
-            as: 'reference',
-            pipeline: [
-              {
-                $con: {
-                  if: { $eq: ['$modelType', BOOKING_MODEL_TYPE.Rooms] },
-                  then: {
-                    $lookup: {
-                      from: 'property',
-                      localField: 'property',
-                      foreignField: '_id',
-                      as: 'property',
-                    },
-                    $addFields: {
-                      property: { $arrayElemAt: ['$property', 0] },
-                    },
-                  },
-                },
+            as: 'apartmentDetails',
+          },
+        },
+        {
+          $lookup: {
+            from: 'rooms',
+            localField: 'reference',
+            foreignField: '_id',
+            as: 'roomDetails',
+          },
+        },
+        {
+          $addFields: {
+            reference: {
+              $cond: {
+                if: { $eq: ['$modelType', BOOKING_MODEL_TYPE.Apartment] },
+                then: '$apartmentDetails',
+                else: '$roomDetails',
               },
-            ],
+            },
+          },
+        },
+        {
+          $project: {
+            apartmentDetails: 0,
+            roomDetails: 0, 
           },
         },
 

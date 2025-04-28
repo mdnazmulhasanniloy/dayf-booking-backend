@@ -2,14 +2,15 @@ import httpStatus from 'http-status';
 import { IProperty } from './property.interface';
 import Property from './property.models';
 import AppError from '../../error/AppError';
-import { deleteManyFromS3, uploadManyToS3 } from '../../utils/s3';
+import { deleteManyFromS3, uploadManyToS3, uploadToS3 } from '../../utils/s3';
 import pickQuery from '../../utils/pickQuery';
 import { Types } from 'mongoose';
 import { paginationHelper } from '../../helpers/pagination.helpers';
+import generateCryptoString from '../../utils/generateCryptoString';
 
 const createProperty = async (payload: IProperty, files: any) => {
   if (files) {
-    const { images } = files;
+    const { images, coverImage } = files;
 
     if (images?.length) {
       const imgsArray: { file: any; path: string; key?: string }[] = [];
@@ -22,6 +23,13 @@ const createProperty = async (payload: IProperty, files: any) => {
       });
 
       payload.images = await uploadManyToS3(imgsArray);
+    }
+
+    if (coverImage) {
+      payload.coverImage = (await uploadToS3({
+        file: coverImage[0],
+        fileName: `images/property/cover/${generateCryptoString(5)}`,
+      })) as string;
     }
   }
 
@@ -160,12 +168,21 @@ const getAllProperty = async (query: Record<string, any>) => {
 
         {
           $lookup: {
-            from: 'Facilities',
+            from: 'facilities',
             localField: 'facility',
             foreignField: '_id',
             as: 'facility',
           },
         },
+        {
+          $lookup: {
+            from: 'rooms',
+            localField: 'rooms',
+            foreignField: '_id',
+            as: 'rooms',
+          },
+        },
+        
         {
           $lookup: {
             from: 'reviews',
@@ -220,7 +237,7 @@ const updateProperty = async (
   const update: any = { ...updateData };
 
   if (files) {
-    const { images } = files;
+    const { images, coverImage } = files;
 
     if (images?.length) {
       const imgsArray: { file: any; path: string; key?: string }[] = [];
@@ -233,6 +250,13 @@ const updateProperty = async (
       );
 
       payload.images = await uploadManyToS3(imgsArray);
+    }
+
+    if (coverImage) {
+      payload.coverImage = (await uploadToS3({
+        file: coverImage[0],
+        fileName: `images/property/cover/${generateCryptoString(5)}`,
+      })) as string;
     }
   }
 

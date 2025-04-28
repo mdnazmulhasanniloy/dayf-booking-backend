@@ -91,7 +91,7 @@ const apartmentSchema = new Schema<IApartment>(
     reviews: [
       {
         type: Types.ObjectId,
-        ref: 'Review',
+        ref: 'Reviews',
         required: true,
       },
     ],
@@ -104,7 +104,6 @@ const apartmentSchema = new Schema<IApartment>(
     timestamps: true,
   },
 );
-
 
 apartmentSchema.index({ location: '2dsphere' });
 const Apartment = model<IApartment, IApartmentModules>(

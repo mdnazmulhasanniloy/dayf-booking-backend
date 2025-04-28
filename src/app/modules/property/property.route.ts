@@ -12,14 +12,20 @@ const upload = multer({ storage });
 router.post(
   '/',
   auth(USER_ROLE.hotel_owner),
-  upload.fields([{ name: 'images', maxCount: 10 }]),
+  upload.fields([
+    { name: 'images', maxCount: 10 },
+    { name: 'coverImage', maxCount: 1 },
+  ]),
   parseData(),
   propertyController.createProperty,
 );
 router.patch(
   '/:id',
   auth(USER_ROLE.hotel_owner),
-  upload.fields([{ name: 'images', maxCount: 10 }]),
+  upload.fields([
+    { name: 'images', maxCount: 10 },
+    { name: 'coverImage', maxCount: 1 },
+  ]),
   parseData(),
   propertyController.updateProperty,
 );

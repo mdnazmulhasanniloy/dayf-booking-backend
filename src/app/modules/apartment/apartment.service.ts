@@ -1,6 +1,6 @@
 import httpStatus from 'http-status';
 import { IApartment } from './apartment.interface';
-import Apartment from './apartment.models'; 
+import Apartment from './apartment.models';
 import AppError from '../../error/AppError';
 import { deleteManyFromS3, uploadManyToS3, uploadToS3 } from '../../utils/s3';
 import pickQuery from '../../utils/pickQuery';
@@ -173,10 +173,10 @@ const getAllApartment = async (query: Record<string, any>) => {
 
         {
           $lookup: {
-            from: 'Facilities',
-            localField: 'facility',
+            from: 'facilities',
+            localField: 'facilities',
             foreignField: '_id',
-            as: 'facility',
+            as: 'facilities',
           },
         },
         {
@@ -211,7 +211,11 @@ const getAllApartment = async (query: Record<string, any>) => {
 };
 
 const getApartmentById = async (id: string) => {
-  const result = await Apartment.findById(id);
+  const result = await Apartment.findById(id).populate([
+    { path: 'author', select: 'name email phoneNumber profile role' },
+    { path: 'facilities' },
+    { path: 'reviews' },
+  ]);
   if (!result || result?.isDeleted) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Apartment not found!');
   }

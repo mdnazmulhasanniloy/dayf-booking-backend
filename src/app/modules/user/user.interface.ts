@@ -15,6 +15,7 @@ export interface IUser {
   role: string;
   registerWith: string;
   address?: string;
+  stripeAccountId?: string;
   nationality: string;
   needsPasswordChange: boolean;
   passwordChangedAt?: Date;

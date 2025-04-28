@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import catchAsync from '../../utils/catchAsync';
 import { propertyService } from './property.service';
-import sendResponse from '../../utils/sendResponse'; 
+import sendResponse from '../../utils/sendResponse';
 
 const createProperty = catchAsync(async (req: Request, res: Response) => {
   req.body['author'] = req?.user?.userId;
@@ -36,6 +36,7 @@ const getMyProperty = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getPropertyById = catchAsync(async (req: Request, res: Response) => {
+ 
   const result = await propertyService.getPropertyById(req.params.id);
   sendResponse(res, {
     statusCode: 200,

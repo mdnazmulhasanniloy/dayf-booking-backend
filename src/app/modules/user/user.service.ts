@@ -5,6 +5,7 @@ import AppError from '../../error/AppError';
 import { IUser } from './user.interface';
 import { User } from './user.models';
 import QueryBuilder from '../../builder/QueryBuilder';
+import { USER_ROLE } from './user.constants';
 export type IFilter = {
   searchTerm?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -19,12 +20,17 @@ const createUser = async (payload: IUser): Promise<IUser> => {
       'User already exists with this email',
     );
   }
- 
-  
-    if (!payload.password) {
-      throw new AppError(httpStatus.BAD_REQUEST, 'Password is required');
-    }
 
+  if (!payload.password) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Password is required');
+  }
+  if (payload?.role === USER_ROLE.admin) {
+    console.log(payload.role, USER_ROLE.user);
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'Only hotel owner and user can create account',
+    );
+  }
   const user = await User.create(payload);
   if (!user) {
     throw new AppError(httpStatus.BAD_REQUEST, 'User creation failed');

@@ -26,6 +26,7 @@ import { REGISTER_WITH } from '../user/user.constants';
 
 // Login
 const login = async (payload: TLogin) => {
+  payload.email = payload?.email?.trim().toLowerCase()
   const user: IUser | null = await User.isUserExist(payload?.email);
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
