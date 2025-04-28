@@ -89,11 +89,16 @@ class StripeServices<T> {
     }
   }
 
-  public async refund(payment_intent: string, amount: number) {
+  public async refund(payment_intent: string, amount?: number) {
     try {
+      if (amount) {
+        return await this.stripe().refunds.create({
+          payment_intent: payment_intent,
+          amount: Math.round(amount),
+        });
+      }
       return await this.stripe().refunds.create({
         payment_intent: payment_intent,
-        amount: Math.round(amount),
       });
     } catch (error) {
       this.handleError(error, 'Error processing refund');
@@ -108,10 +113,9 @@ class StripeServices<T> {
     }
   }
 
-  public async getPaymentStatus(session_id: string) {
+  public async getPaymentSession(session_id: string) {
     try {
-      return (await this.stripe().checkout.sessions.retrieve(session_id))
-        .status;
+      return await this.stripe().checkout.sessions.retrieve(session_id);
       // return (await this.stripe().paymentIntents.retrieve(intents_id)).status;
     } catch (error) {
       this.handleError(error, 'Error retrieving payment status');

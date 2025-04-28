@@ -19,11 +19,6 @@ import { IUser } from '../user/user.interface';
 import { modeType } from '../notification/notification.interface';
 import StripeService from '../../builder/StripeBuilder';
 
-const stripe = new Stripe(config.stripe?.stripe_api_secret as string, {
-  apiVersion: '2024-06-20',
-  typescript: true,
-});
-
 const checkout = async (payload: IPayments) => {
   const tranId = generateRandomString(10);
   let paymentData: IPayments;
@@ -111,10 +106,10 @@ const checkout = async (payload: IPayments) => {
 const confirmPayment = async (query: Record<string, any>) => {
   const { sessionId, paymentId } = query;
   const session = await startSession();
-  const PaymentSession = await stripe.checkout.sessions.retrieve(sessionId);
+  const PaymentSession = await StripeService.getPaymentSession(sessionId);
   const paymentIntentId = PaymentSession.payment_intent as string;
 
-  if (PaymentSession.status !== 'complete') {
+  if (!(await StripeService.isPaymentSuccess(sessionId))) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
       'Payment session is not completed',
@@ -176,9 +171,10 @@ const confirmPayment = async (query: Record<string, any>) => {
 
     if (paymentIntentId) {
       try {
-        await stripe.refunds.create({
-          payment_intent: paymentIntentId,
-        });
+        await StripeService.refund(paymentId)
+        //  stripe.refunds.create({
+        //   payment_intent: paymentIntentId,
+        // });
       } catch (refundError: any) {
         console.error('Error processing refund:', refundError.message);
       }
