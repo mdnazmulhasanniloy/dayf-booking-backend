@@ -14,6 +14,7 @@ import { chatRoutes } from '../modules/chat/chat.route';
 import { messagesRoutes } from '../modules/messages/messages.route';
 import stripeRoute from '../modules/stripe/stripe.route';
 import { paymentsRoutes } from '../modules/payments/payments.route';
+import { bookMarkRoutes } from '../modules/bookMark/bookMark.route';
 
 const router = Router();
 const moduleRoutes = [
@@ -77,6 +78,10 @@ const moduleRoutes = [
   {
     path: '/payments',
     route: paymentsRoutes,
+  },
+  {
+    path: '/bookmark',
+    route: bookMarkRoutes,
   },
 ];
 moduleRoutes.forEach(route => router.use(route.path, route.route));

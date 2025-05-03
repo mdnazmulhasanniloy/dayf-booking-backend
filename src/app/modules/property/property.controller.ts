@@ -45,6 +45,16 @@ const getPropertyById = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const getHamePageData = catchAsync(async (req: Request, res: Response) => {
+ 
+  const result = await propertyService.getHamePageData();
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Home Page Data fetched successfully',
+    data: result,
+  });
+});
 
 const updateProperty = catchAsync(async (req: Request, res: Response) => {
   const result = await propertyService.updateProperty(
@@ -76,5 +86,5 @@ export const propertyController = {
   getPropertyById,
   updateProperty,
   deleteProperty,
-  getMyProperty,
+  getMyProperty,getHamePageData
 };

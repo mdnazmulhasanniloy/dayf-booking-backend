@@ -45,6 +45,7 @@ router.get(
   auth(USER_ROLE.hotel_owner),
   propertyController.getMyProperty,
 );
+router.get("/home-page-data", propertyController.getHamePageData)
 router.get('/:id', propertyController.getPropertyById);
 router.get('/', propertyController.getAllProperty);
 

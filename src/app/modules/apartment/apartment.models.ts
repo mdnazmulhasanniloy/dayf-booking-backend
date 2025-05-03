@@ -66,6 +66,10 @@ const apartmentSchema = new Schema<IApartment>(
       type: LocationSchema,
       required: true,
     },
+    address: {
+      type: String,
+      default:null
+    },
     facilities: [
       {
         type: Schema.Types.ObjectId,

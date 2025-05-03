@@ -17,6 +17,8 @@ export interface IRooms {
   otherFacilities: string[];
   customerChoices: string;
   descriptions: string;
+  shortDescriptions: string;   
+  policy: string;
   isDeleted: boolean;
   images: IImage[];
 }

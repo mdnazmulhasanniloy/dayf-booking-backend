@@ -15,6 +15,7 @@ export interface IApartment {
   availability: number;
   shortDescription: string;
   description: string;
+  address:string
   location: ILocations;
   facilities: IFacilities;
   othersFacilities: string[];

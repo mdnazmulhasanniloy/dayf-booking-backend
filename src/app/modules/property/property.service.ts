@@ -7,6 +7,8 @@ import pickQuery from '../../utils/pickQuery';
 import { Types } from 'mongoose';
 import { paginationHelper } from '../../helpers/pagination.helpers';
 import generateCryptoString from '../../utils/generateCryptoString';
+import Rooms from '../rooms/rooms.models';
+import Apartment from '../apartment/apartment.models';
 
 const createProperty = async (payload: IProperty, files: any) => {
   if (files) {
@@ -50,7 +52,7 @@ const getAllProperty = async (query: Record<string, any>) => {
   }
 
   if (filtersData?.facility) {
-    filtersData['facility'] = new Types.ObjectId(filtersData?.facility);
+    filtersData['facilities'] = new Types.ObjectId(filtersData?.facilities);
   }
 
   if (filtersData?.ratings) {
@@ -169,9 +171,9 @@ const getAllProperty = async (query: Record<string, any>) => {
         {
           $lookup: {
             from: 'facilities',
-            localField: 'facility',
+            localField: 'facilities',
             foreignField: '_id',
-            as: 'facility',
+            as: 'facilities',
           },
         },
         {
@@ -219,7 +221,7 @@ const getPropertyById = async (id: string) => {
     { path: 'author', select: 'name email profile phoneNumber address' },
     { path: 'rooms' },
     { path: 'reviews' },
-    { path: 'facility' },
+    { path: 'facilities' },
   ]);
   if (!result || result?.isDeleted) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Property not found!');
@@ -296,11 +298,76 @@ const deleteProperty = async (id: string) => {
   }
   return result;
 };
+const getHamePageData = async () => {
+ 
+// const topProperties = await Property.find({}).populate("facilities")
+//     .sort({ avgRating: -1 })
+//     .limit(10)
+//     .lean();
+const topProperties = await Property.aggregate([
+  // Step 1: Match non-deleted properties
+  { $match: { isDeleted: false } },
+
+  // Step 2: Lookup rooms related to each property
+  {
+    $lookup: {
+      from: "rooms", // matches collection name in MongoDB (lowercase plural)
+      localField: "_id",
+      foreignField: "property",
+      as: "rooms",
+    },
+  },
+
+  // Step 3: Lookup and populate facilities
+  {
+    $lookup: {
+      from: "facilities",
+      localField: "facilities",
+      foreignField: "_id",
+      as: "facilities",
+    },
+  },
+
+  // Step 4: Add fields for priceRange based on rooms
+  {
+    $addFields: {
+      priceRange: {
+        $cond: {
+          if: { $gt: [{ $size: "$rooms" }, 0] },
+          then: {
+            min: { $min: "$rooms.pricePerNight" },
+            max: { $max: "$rooms.pricePerNight" },
+          },
+          else: null,
+        },
+      },
+    },
+  },
+
+  // Step 5: Sort by avgRating descending
+  { $sort: { avgRating: -1 } },
+
+  // Step 6: Limit result
+  { $limit: 10 },
+]);
+
+  const topHotelRooms = await Apartment.find({}).populate("facilities")
+    .sort({ avgRating: -1 })
+    .limit(10)
+    .lean();
+
+  // Combine and shuffle using Array.sort and Math.random
+  const mixedData = [...topProperties, ...topHotelRooms].sort(() => 0.5 - Math.random());
+
+  return mixedData;
+ 
+
+};
 
 export const propertyService = {
   createProperty,
   getAllProperty,
   getPropertyById,
   updateProperty,
-  deleteProperty,
+  deleteProperty,getHamePageData
 };

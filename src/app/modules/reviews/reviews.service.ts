@@ -15,7 +15,7 @@ const createReviews = async (payload: IReviews) => {
   try {
     // Create the review
     const result: IReviews[] = await Reviews.create([payload], { session });
-    if (!result || result.length === 0) {
+    if (!result || result?.length === 0) {
       throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create review');
     }
 
