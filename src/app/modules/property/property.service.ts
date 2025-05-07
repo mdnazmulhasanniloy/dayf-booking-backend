@@ -201,6 +201,23 @@ const getAllProperty = async (query: Record<string, any>) => {
             // ratings: { $arrayElemAt: ['$ratings', 0] },
           },
         },
+
+ {
+    $addFields: {
+      priceRange: {
+        $cond: {
+          if: { $gt: [{ $size: "$rooms" }, 0] },
+          then: {
+            min: { $min: "$rooms.pricePerNight" },
+            max: { $max: "$rooms.pricePerNight" },
+          },
+          else: null,
+        },
+      },
+    },
+  },
+
+
       ],
     },
   });

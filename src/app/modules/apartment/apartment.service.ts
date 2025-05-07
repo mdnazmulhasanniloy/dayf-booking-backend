@@ -214,7 +214,12 @@ const getApartmentById = async (id: string) => {
   const result = await Apartment.findById(id).populate([
     { path: 'author', select: 'name email phoneNumber profile role' },
     { path: 'facilities' },
-    { path: 'reviews' },
+    {
+      path: 'reviews',
+      populate: [
+        { path: 'user', select: 'name email phoneNumber profile role' },
+      ],
+    },
   ]);
   if (!result || result?.isDeleted) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Apartment not found!');

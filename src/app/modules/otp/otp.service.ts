@@ -71,43 +71,45 @@ const verifyOtp = async (token: string, otp: string | number) => {
 };
 
 const resendOtp = async (email: string) => {
-  const user = await User.findOne({ email });
+  console.log(email);
+  try {
+    const user = await User.findOne({ email });
 
-  if (!user) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'User not found');
-  }
+    if (!user) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'User not found');
+    }
 
-  const otp = generateOtp();
-  const expiresAt = moment().add(3, 'minute');
+    const otp = generateOtp();
+    const expiresAt = moment().add(3, 'minute');
 
-  const updateOtp = await User.findByIdAndUpdate(
-    user?._id,
-    {
-      $set: {
-        verification: {
-          otp,
-          expiresAt,
-          status: false,
+    const updateOtp = await User.findByIdAndUpdate(
+      user?._id,
+      {
+        $set: {
+          verification: {
+            otp,
+            expiresAt,
+            status: false,
+          },
         },
       },
-    },
-    { new: true },
-  );
-
-  if (!updateOtp) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      'Failed to resend OTP. Please try again later',
+      { new: true },
     );
-  }
 
-  const jwtPayload = {
-    email: user?.email,
-    userId: user?._id,
-  };
-  const token = jwt.sign(jwtPayload, config.jwt_access_secret as Secret, {
-    expiresIn: '3m',
-  });
+    if (!updateOtp) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'Failed to resend OTP. Please try again later',
+      );
+    }
+
+    const jwtPayload = {
+      email: user?.email,
+      userId: user?._id,
+    };
+    const token = jwt.sign(jwtPayload, config.jwt_access_secret as Secret, {
+      expiresIn: '3m',
+    });
 
     const otpEmailPath = path.join(
       __dirname,
@@ -123,20 +125,11 @@ const resendOtp = async (email: string) => {
         .replace('{{email}}', user?.email),
     );
 
-
-  // await sendEmail(
-  //   user?.email,
-  //   'Your One Time OTP',
-  //   `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-  //     <h2 style="color: #4CAF50;">Your One Time OTP</h2>
-  //     <div style="background-color: #f2f2f2; padding: 20px; border-radius: 5px;">
-  //       <p style="font-size: 16px;">Your OTP is: <strong>${otp}</strong></p>
-  //       <p style="font-size: 14px; color: #666;">This OTP is valid until: ${expiresAt.toLocaleString()}</p>
-  //     </div>
-  //   </div>`,
-  // );
-
-  return { token };
+    return { token };
+  } catch (error: any) {
+    console.log(error);
+    throw new AppError(httpStatus.BAD_GATEWAY, error?.message);
+  }
 };
 
 export const otpServices = {
