@@ -6,6 +6,9 @@ import { deleteManyFromS3, uploadManyToS3, uploadToS3 } from '../../utils/s3';
 import pickQuery from '../../utils/pickQuery';
 import { Types } from 'mongoose';
 import { paginationHelper } from '../../helpers/pagination.helpers';
+import Bookings from '../bookings/bookings.models';
+import { BOOKING_MODEL_TYPE } from '../bookings/bookings.interface';
+import moment from 'moment';
 
 const createApartment = async (payload: IApartment, files: any) => {
   if (files) {
@@ -48,7 +51,20 @@ const createApartment = async (payload: IApartment, files: any) => {
 const getAllApartment = async (query: Record<string, any>) => {
   const { filters, pagination } = await pickQuery(query);
 
-  const { searchTerm, latitude, longitude, ...filtersData } = filters;
+  const {
+    searchTerm,
+    latitude,
+    longitude,
+    facilities,
+    priceRange,
+    ratingsFilter,
+    adults,
+    children,
+    infants,
+    startDate,
+    endDate,
+    ...filtersData
+  } = filters;
 
   if (filtersData?.author) {
     filtersData['author'] = new Types.ObjectId(filtersData?.author);
@@ -102,8 +118,83 @@ const getAllApartment = async (query: Record<string, any>) => {
     });
   }
 
-  // Add custom filters (filtersData) to the aggregation pipeline
+  if (priceRange) {
+    const [low, high] = priceRange.split('-').map(Number);
+
+    pipeline.push({
+      $match: {
+        price: { $gte: low, $lte: high },
+      },
+    });
+  }
+
+  if (ratingsFilter) {
+    const ratingsArray = ratingsFilter?.split(',').map(Number);
+    pipeline.push({
+      $match: {
+        avgRating: { $in: ratingsArray },
+      },
+    });
+  }
+
+  if (facilities) {
+    const facilitiesArray = facilities
+      ?.split(',')
+      .map((facility: string) => new Types.ObjectId(facility));
+    pipeline.push({
+      $match: {
+        facilities: { $in: facilitiesArray },
+      },
+    });
+  }
+
+  if (startDate && endDate) {
+    const bookedApartments = await Bookings.aggregate([
+      {
+        $match: {
+          modelType: BOOKING_MODEL_TYPE.Apartment,
+          isDeleted: false,
+          startDate: { $lte: moment(endDate).utc().toDate() }, // booking start <= searchEndDate
+          endDate: { $gte: moment(startDate).utc().toDate() }, // booking end >= searchStartDate
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          ids: { $push: { $toString: '$reference' } },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          ids: 1,
+        },
+      },
+    ]);
+    const idArray =
+      bookedApartments[0]?.ids?.map((id: string) => new Types.ObjectId(id)) ||
+      [];
+    console.log(idArray);
+    pipeline.push({
+      $match: {
+        _id: { $nin: idArray },
+      },
+    });
+  }
+
+  if (adults || children || infants) {
+    pipeline.push({
+      $match: {
+        guests: {
+          adult: adults ? { $gte: adults } : { $gte: 0 },
+          children: children ? { $gte: children } : { $gte: 0 },
+          infants: infants ? { $gte: infants } : { $gte: 0 },
+        },
+      },
+    });
+  }
   if (Object.entries(filtersData).length) {
+    // Add custom filters (filtersData) to the aggregation pipeline
     Object.entries(filtersData).map(([field, value]) => {
       if (/^\[.*?\]$/.test(value)) {
         const match = value.match(/\[(.*?)\]/);

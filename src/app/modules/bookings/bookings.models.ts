@@ -5,7 +5,8 @@ import {
   IBookingsModules,
 } from './bookings.interface';
 import generateCryptoString from '../../utils/generateCryptoString';
-import { BOOKING_STATUS, PAYMENT_STATUS } from './bookings.constants'; 
+import { BOOKING_STATUS, PAYMENT_STATUS } from './bookings.constants';
+import moment from 'moment';
 
 const bookingsSchema = new Schema<IBookings>(
   {
@@ -39,6 +40,16 @@ const bookingsSchema = new Schema<IBookings>(
       ref: 'User',
       required: true,
     },
+    additionalInfo: {
+      name: {
+        type: String,
+        default: null,
+      },
+      phoneNumber: {
+        type: String,
+        default: null,
+      },
+    },
     user: {
       type: Types.ObjectId,
       ref: 'User',
@@ -48,6 +59,14 @@ const bookingsSchema = new Schema<IBookings>(
       type: Date,
       required: true,
     },
+    expireAt: {
+      type: Date,
+      default: () => {
+        const expireAt = new Date();
+        expireAt.setHours(expireAt.getHours() + 3); // add 3 hours
+        return expireAt;
+      },
+    },
     endDate: {
       type: Date,
       required: true,
@@ -55,7 +74,7 @@ const bookingsSchema = new Schema<IBookings>(
     totalPrice: {
       type: Number,
       required: true,
-    }, 
+    },
     isDeleted: { type: Boolean, default: false },
   },
   {
@@ -63,7 +82,15 @@ const bookingsSchema = new Schema<IBookings>(
   },
 );
 
-bookingsSchema.index({  }, { expireAfterSeconds: 259200 });
+bookingsSchema.pre('save', function (next) {
+  if (this.startDate && this.endDate && this.startDate >= this.endDate) {
+    return next(new Error('Start date must be before end date'));
+  }
+
+  this.startDate = moment(this.startDate).utc().toDate();
+  this.endDate = moment(this.endDate).utc().toDate();
+});
+bookingsSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
 
 const Bookings = model<IBookings, IBookingsModules>('Bookings', bookingsSchema);
 export default Bookings;

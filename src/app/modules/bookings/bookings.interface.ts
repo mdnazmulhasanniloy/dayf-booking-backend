@@ -6,13 +6,18 @@ export enum BOOKING_MODEL_TYPE {
 export interface IBookings {
   _id?: ObjectId | string;
   id: string;
-  modelType: string; 
+  modelType: string;
   reference: ObjectId;
   paymentStatus: 'pending' | 'paid' | 'refunded' | 'failed';
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   tranId: string;
   author: ObjectId;
   user: ObjectId;
+  additionalInfo: {
+    name: string;
+    phoneNumber: string;
+  };
+  expireAt: Date;
   startDate: Date;
   endDate: Date;
   totalPrice: number;

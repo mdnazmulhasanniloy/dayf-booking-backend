@@ -11,11 +11,13 @@ export interface IApartment {
   price: number;
   images: IImage[];
   name: string;
+  guests: { adult: number; children: number; infants: number };
   roomSize: number;
   availability: number;
+  isAvailable: boolean;
   shortDescription: string;
   description: string;
-  address:string
+  address: string;
   location: ILocations;
   facilities: IFacilities;
   othersFacilities: string[];

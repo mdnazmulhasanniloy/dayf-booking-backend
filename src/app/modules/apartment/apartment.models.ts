@@ -2,6 +2,7 @@ import { model, Schema, Types } from 'mongoose';
 import { IApartment, IApartmentModules } from './apartment.interface';
 import generateRandomHexColor from '../../utils/generateRandomHexColor';
 import generateCryptoString from '../../utils/generateCryptoString';
+import { max } from 'moment';
 
 const LocationSchema = new Schema({
   type: { type: String, required: true },
@@ -65,10 +66,31 @@ const apartmentSchema = new Schema<IApartment>(
     location: {
       type: LocationSchema,
       required: true,
-    },  
+    },
+    guests: {
+      adult: {
+        type: Number,
+        required: true,
+        max: 10,
+        min: 1,
+      },
+      children: {
+        type: Number,
+        required: true,
+        max: 10,
+        min: 2,
+      },
+      infants: {
+        type: Number,
+        required: true,
+        max: 2,
+        min: 0,
+      },
+    },
+
     address: {
       type: String,
-      default:null
+      default: null,
     },
     facilities: [
       {
