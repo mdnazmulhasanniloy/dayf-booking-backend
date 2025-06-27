@@ -54,7 +54,7 @@ const propertySchema = new Schema<IProperty>(
     Other: [{ type: String, required: true }],
     avgRating: { type: Number, default: 0 },
     reviews: [{ type: Schema.Types.ObjectId, ref: 'Reviews' }],
-    rooms: [{ type: Schema.Types.ObjectId, ref: 'Rooms' }],
+    // rooms: [{ type: Schema.Types.ObjectId, ref: 'Rooms' }],
 
     isDeleted: { type: Boolean, default: false },
   },

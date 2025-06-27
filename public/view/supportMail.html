@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Contact Us Message</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #eef2f7;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
+      .email-wrapper {
+        max-width: 620px;
+        margin: 40px auto;
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+      }
+      .email-header {
+        background: linear-gradient(135deg, #007acc, #00b4d8);
+        color: white;
+        padding: 24px 30px;
+        text-align: center;
+      }
+      .email-header h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+      }
+      .email-body {
+        padding: 30px;
+      }
+      .email-body h2 {
+        margin-top: 0;
+        font-size: 20px;
+        color: #333;
+      }
+      .info-table {
+        width: 100%;
+        margin-top: 20px;
+        border-collapse: collapse;
+      }
+      .info-table td {
+        padding: 12px 8px;
+        border-bottom: 1px solid #f0f0f0;
+      }
+      .info-table td.label {
+        font-weight: 600;
+        color: #555;
+        width: 30%;
+      }
+      .info-table td.value {
+        color: #333;
+      }
+      .message-box {
+        margin-top: 20px;
+        background-color: #f8f9fc;
+        border-left: 4px solid #007acc;
+        padding: 16px;
+        border-radius: 6px;
+        color: #444;
+        font-size: 14.5px;
+        white-space: pre-line;
+      }
+      .email-footer {
+        text-align: center;
+        font-size: 13px;
+        color: #999;
+        padding: 20px 30px;
+        background-color: #f1f3f6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-wrapper">
+      <div class="email-header">
+        <h1>📨 New Contact Message</h1>
+      </div>
+      <div class="email-body">
+        <h2>Hello Admin,</h2>
+        <p>You have received a new contact message. Here are the details:</p>
+
+        <table class="info-table">
+          <tr>
+            <td class="label">Name</td>
+            <td class="value">{{name}}</td>
+          </tr>
+          <tr>
+            <td class="label">Subject</td>
+            <td class="value">{{subject}}</td>
+          </tr>
+          <tr>
+            <td class="label">Email</td>
+            <td class="value">{{email}}</td>
+          </tr>
+        </table>
+
+        <div class="message-box">{{description}}</div>
+      </div>
+      <div class="email-footer">
+        &copy; 2025 Your Company Name — All rights reserved.
+      </div>
+    </div>
+  </body>
+</html>

@@ -3,70 +3,22 @@ import { IRooms } from './rooms.interface';
 import Rooms from './rooms.models';
 import QueryBuilder from '../../builder/QueryBuilder';
 import AppError from '../../error/AppError';
-import { deleteManyFromS3, uploadManyToS3 } from '../../utils/s3';
-import Property from '../property/property.models';
-import { startSession } from 'mongoose';
+import { IRoomTypes } from '../roomTypes/roomTypes.interface';
 
-const createRooms = async (payload: IRooms, files: any) => {
-  // Start a session for the transaction
-  const session = await startSession();
-
-  try {
-    // Start the transaction
-    session.startTransaction();
-
-    if (files) {
-      const { images } = files;
-
-      if (images?.length) {
-        const imgsArray: { file: any; path: string; key?: string }[] = [];
-
-        images?.map(async (image: any) => {
-          imgsArray.push({
-            file: image,
-            path: `images/property`,
-          });
-        });
-
-        payload.images = await uploadManyToS3(imgsArray); // Upload to S3
-      }
-    }
-
-    // Create the room
-    const result = await Rooms.create([payload], { session });
-
-    if (!result) {
-      throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create rooms');
-    }
-
-    // Update the property with the new room
-    await Property.findByIdAndUpdate(
-      result[0]?.property,
-      { rooms: [result[0]?._id] },
-      { session },
-    );
-
-    // Commit the transaction if everything is successful
-    await session.commitTransaction();
-
-    return result[0];
-  } catch (error: any) {
-    // If any error occurs, abort the transaction (rollback)
-    await session.abortTransaction();
-    throw new AppError(httpStatus.BAD_REQUEST, error?.message);
-  } finally {
-    // End the session
-    session.endSession();
+const createRooms = async (payload: IRoomTypes) => {
+  const result = await Rooms.create(payload);
+  if (!result) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Room creation failed');
   }
+
+  return result;
 };
 
 const getAllRooms = async (query: Record<string, any>) => {
-  query['isDeleted'] = false;
-  const roomsModel = new QueryBuilder(
-    Rooms.find().populate([
+  const notificationModel = new QueryBuilder(
+    Rooms.find({ isDeleted: true }).populate([
       { path: 'property' },
-      { path: 'author', select: 'name email phoneNumber profile role' },
-      { path: 'facilities' },
+      { path: 'roomCategory' },
     ]),
     query,
   )
@@ -76,9 +28,8 @@ const getAllRooms = async (query: Record<string, any>) => {
     .sort()
     .fields();
 
-  const data = await roomsModel.modelQuery;
-  const meta = await roomsModel.countTotal();
-
+  const data = await notificationModel.modelQuery;
+  const meta = await notificationModel.countTotal();
   return {
     data,
     meta,
@@ -88,60 +39,16 @@ const getAllRooms = async (query: Record<string, any>) => {
 const getRoomsById = async (id: string) => {
   const result = await Rooms.findById(id).populate([
     { path: 'property' },
-    { path: 'author', select: 'name email phoneNumber profile role' },
-    { path: 'facilities' },
+    { path: 'roomCategory' },
   ]);
-  if (!result || result?.isDeleted) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Rooms not found!');
+  if (result?.isDeleted) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'This items is deleted');
   }
   return result;
 };
 
-const updateRooms = async (
-  id: string,
-  payload: Partial<IRooms>,
-  files: any,
-) => {
-  const { deleteKey, ...updateData } = payload;
-
-  const update: any = { ...updateData };
-
-  if (files) {
-    const { images } = files;
-
-    if (images?.length) {
-      const imgsArray: { file: any; path: string; key?: string }[] = [];
-
-      images.map((image: any) =>
-        imgsArray.push({
-          file: image,
-          path: `images/rooms`,
-        }),
-      );
-
-      payload.images = await uploadManyToS3(imgsArray);
-    }
-  }
-
-  if (deleteKey && deleteKey.length > 0) {
-    const newKey: string[] = [];
-    deleteKey.map((key: any) => newKey.push(`images/rooms${key}`));
-    if (newKey?.length > 0) {
-      await deleteManyFromS3(newKey);
-    }
-
-    await Rooms.findByIdAndUpdate(id, {
-      $pull: { banner: { key: { $in: deleteKey } } },
-    });
-  }
-
-  if (payload?.images && payload.images.length > 0) {
-    await Rooms.findByIdAndUpdate(id, {
-      $push: { banner: { $each: payload.images } },
-    });
-  }
-
-  const result = await Rooms.findByIdAndUpdate(id, update, { new: true });
+const updateRooms = async (id: string, payload: Partial<IRooms>) => {
+  const result = await Rooms.findByIdAndUpdate(id, payload, { new: true });
   if (!result) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Failed to update Rooms');
   }

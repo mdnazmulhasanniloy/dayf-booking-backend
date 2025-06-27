@@ -69,6 +69,9 @@ const getAllApartment = async (query: Record<string, any>) => {
   if (filtersData?.author) {
     filtersData['author'] = new Types.ObjectId(filtersData?.author);
   }
+  if (filtersData?._id) {
+    filtersData['_id'] = new Types.ObjectId(filtersData?._id);
+  }
 
   if (filtersData?.facility) {
     filtersData['facility'] = new Types.ObjectId(filtersData?.facility);
@@ -108,7 +111,7 @@ const getAllApartment = async (query: Record<string, any>) => {
   if (searchTerm) {
     pipeline.push({
       $match: {
-        $or: ['name', 'Other'].map(field => ({
+        $or: ['name', 'othersFacilities'].map(field => ({
           [field]: {
             $regex: searchTerm,
             $options: 'i',

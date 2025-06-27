@@ -45,18 +45,25 @@ const createProperty = async (payload: IProperty, files: any) => {
 const getAllProperty = async (query: Record<string, any>) => {
   const { filters, pagination } = await pickQuery(query);
 
-  const { searchTerm, latitude, longitude, ...filtersData } = filters;
+  const {
+    searchTerm,
+    latitude,
+    longitude,
+    ratingsFilter,
+    facilities,
+    ...filtersData
+  } = filters;
 
   if (filtersData?.author) {
     filtersData['author'] = new Types.ObjectId(filtersData?.author);
   }
 
-  if (filtersData?.facility) {
+  if (filtersData?.facilities) {
     filtersData['facilities'] = new Types.ObjectId(filtersData?.facilities);
   }
 
-  if (filtersData?.ratings) {
-    filtersData['reviews'] = new Types.ObjectId(filtersData?.ratings);
+  if (filtersData?.reviews) {
+    filtersData['reviews'] = new Types.ObjectId(filtersData?.reviews);
   }
 
   // Initialize the aggregation pipeline
@@ -77,7 +84,25 @@ const getAllProperty = async (query: Record<string, any>) => {
       },
     });
   }
+  if (ratingsFilter) {
+    const ratingsArray = ratingsFilter?.split(',').map(Number);
+    pipeline.push({
+      $match: {
+        avgRating: { $in: ratingsArray },
+      },
+    });
+  }
 
+  if (facilities) {
+    const facilitiesArray = facilities
+      ?.split(',')
+      .map((facility: string) => new Types.ObjectId(facility));
+    pipeline.push({
+      $match: {
+        facilities: { $in: facilitiesArray },
+      },
+    });
+  }
   // Add a match to exclude deleted documents
   pipeline.push({
     $match: {
@@ -176,15 +201,15 @@ const getAllProperty = async (query: Record<string, any>) => {
             as: 'facilities',
           },
         },
-        {
-          $lookup: {
-            from: 'rooms',
-            localField: 'rooms',
-            foreignField: '_id',
-            as: 'rooms',
-          },
-        },
-        
+        // {
+        //   $lookup: {
+        //     from: 'rooms',
+        //     localField: 'rooms',
+        //     foreignField: '_id',
+        //     as: 'rooms',
+        //   },
+        // },
+
         {
           $lookup: {
             from: 'reviews',
@@ -202,22 +227,20 @@ const getAllProperty = async (query: Record<string, any>) => {
           },
         },
 
- {
-    $addFields: {
-      priceRange: {
-        $cond: {
-          if: { $gt: [{ $size: "$rooms" }, 0] },
-          then: {
-            min: { $min: "$rooms.pricePerNight" },
-            max: { $max: "$rooms.pricePerNight" },
-          },
-          else: null,
-        },
-      },
-    },
-  },
-
-
+        // {
+        // $addFields: {
+        // priceRange: {
+        //   $cond: {
+        //     if: { $gt: [{ $size: '$rooms' }, 0] },
+        //     then: {
+        //       min: { $min: '$rooms.pricePerNight' },
+        //       max: { $max: '$rooms.pricePerNight' },
+        //     },
+        //     else: null,
+        //   },
+        // },
+        // },
+        // },
       ],
     },
   });
@@ -236,7 +259,7 @@ const getAllProperty = async (query: Record<string, any>) => {
 const getPropertyById = async (id: string) => {
   const result = await Property.findById(id).populate([
     { path: 'author', select: 'name email profile phoneNumber address' },
-    { path: 'rooms' },
+    // { path: 'rooms' },
     { path: 'reviews' },
     { path: 'facilities' },
   ]);
@@ -316,69 +339,69 @@ const deleteProperty = async (id: string) => {
   return result;
 };
 const getHamePageData = async () => {
- 
-// const topProperties = await Property.find({}).populate("facilities")
-//     .sort({ avgRating: -1 })
-//     .limit(10)
-//     .lean();
-const topProperties = await Property.aggregate([
-  // Step 1: Match non-deleted properties
-  { $match: { isDeleted: false } },
+  // const topProperties = await Property.find({}).populate("facilities")
+  //     .sort({ avgRating: -1 })
+  //     .limit(10)
+  //     .lean();
+  const topProperties = await Property.aggregate([
+    // Step 1: Match non-deleted properties
+    { $match: { isDeleted: false } },
 
-  // Step 2: Lookup rooms related to each property
-  {
-    $lookup: {
-      from: "rooms", // matches collection name in MongoDB (lowercase plural)
-      localField: "_id",
-      foreignField: "property",
-      as: "rooms",
-    },
-  },
+    // Step 2: Lookup rooms related to each property
+    // {
+    //   $lookup: {
+    //     from: 'rooms', // matches collection name in MongoDB (lowercase plural)
+    //     localField: '_id',
+    //     foreignField: 'property',
+    //     as: 'rooms',
+    //   },
+    // },
 
-  // Step 3: Lookup and populate facilities
-  {
-    $lookup: {
-      from: "facilities",
-      localField: "facilities",
-      foreignField: "_id",
-      as: "facilities",
-    },
-  },
-
-  // Step 4: Add fields for priceRange based on rooms
-  {
-    $addFields: {
-      priceRange: {
-        $cond: {
-          if: { $gt: [{ $size: "$rooms" }, 0] },
-          then: {
-            min: { $min: "$rooms.pricePerNight" },
-            max: { $max: "$rooms.pricePerNight" },
-          },
-          else: null,
-        },
+    // Step 3: Lookup and populate facilities
+    {
+      $lookup: {
+        from: 'facilities',
+        localField: 'facilities',
+        foreignField: '_id',
+        as: 'facilities',
       },
     },
-  },
 
-  // Step 5: Sort by avgRating descending
-  { $sort: { avgRating: -1 } },
+    // Step 4: Add fields for priceRange based on rooms
+    // {
+    //   $addFields: {
+    //     priceRange: {
+    //       $cond: {
+    //         if: { $gt: [{ $size: '$rooms' }, 0] },
+    //         then: {
+    //           min: { $min: '$rooms.pricePerNight' },
+    //           max: { $max: '$rooms.pricePerNight' },
+    //         },
+    //         else: null,
+    //       },
+    //     },
+    //   },
+    // },
 
-  // Step 6: Limit result
-  { $limit: 10 },
-]);
+    // Step 5: Sort by avgRating descending
+    { $sort: { avgRating: -1 } },
 
-  const topHotelRooms = await Apartment.find({}).populate("facilities")
+    // Step 6: Limit result
+    { $limit: 10 },
+  ]);
+
+  const topHotelRooms = await Apartment.find({})
+    .populate('facilities')
     .sort({ avgRating: -1 })
     .limit(10)
     .lean();
 
   // Combine and shuffle using Array.sort and Math.random
-  const mixedData = [...topProperties, ...topHotelRooms].sort(() => 0.5 - Math.random());
+  const mixedData = [...topProperties, ...topHotelRooms].sort(
+    () => 0.5 - Math.random(),
+  );
 
   return mixedData;
- 
-
 };
 
 export const propertyService = {
@@ -386,5 +409,6 @@ export const propertyService = {
   getAllProperty,
   getPropertyById,
   updateProperty,
-  deleteProperty,getHamePageData
+  deleteProperty,
+  getHamePageData,
 };

@@ -15,6 +15,7 @@ import { messagesRoutes } from '../modules/messages/messages.route';
 import stripeRoute from '../modules/stripe/stripe.route';
 import { paymentsRoutes } from '../modules/payments/payments.route';
 import { bookMarkRoutes } from '../modules/bookMark/bookMark.route';
+import { roomTypesRoutes } from '../modules/roomTypes/roomTypes.route';
 
 const router = Router();
 const moduleRoutes = [
@@ -49,6 +50,10 @@ const moduleRoutes = [
   {
     path: '/properties',
     route: propertyRoutes,
+  },
+  {
+    path: '/property-types',
+    route: roomTypesRoutes,
   },
   {
     path: '/rooms',

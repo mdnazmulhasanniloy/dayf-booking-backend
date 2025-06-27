@@ -34,6 +34,16 @@ const getContentsById = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+// Get contents by ID
+const supportMessage = catchAsync(async (req: Request, res: Response) => {
+  const result = await contentsService.supportMessage(req.body);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Message send successfully',
+    data: result,
+  });
+});
 
 // Update contents
 const updateContents = catchAsync(async (req: Request, res: Response) => {
@@ -73,4 +83,5 @@ export const contentsController = {
   updateContents,
   deleteContents,
   deleteBanner,
+  supportMessage,
 };

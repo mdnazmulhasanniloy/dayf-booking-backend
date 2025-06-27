@@ -32,6 +32,7 @@ class StripeServices<T> {
     refreshUrl: string,
     accountId: string,
   ) {
+    console.log({ returnUrl, refreshUrl, accountId });
     try {
       const accountLink = await this.stripe().accountLinks.create({
         account: accountId,

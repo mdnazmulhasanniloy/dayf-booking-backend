@@ -1,13 +1,16 @@
 import { Model, ObjectId } from 'mongoose';
+import { IRoomTypes } from './../roomTypes/roomTypes.interface';
+import { IApartment } from '../apartment/apartment.interface';
 export enum BOOKING_MODEL_TYPE {
   Apartment = 'Apartment',
-  Rooms = 'Rooms',
+  Rooms = 'RoomTypes',
 }
 export interface IBookings {
   _id?: ObjectId | string;
   id: string;
   modelType: string;
-  reference: ObjectId;
+  reference: ObjectId | IRoomTypes | IApartment;
+  totalRooms: number;
   paymentStatus: 'pending' | 'paid' | 'refunded' | 'failed';
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   tranId: string;

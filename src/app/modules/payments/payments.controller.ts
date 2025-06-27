@@ -17,14 +17,20 @@ const checkout = catchAsync(async (req: Request, res: Response) => {
 });
 
 const confirmPayment = catchAsync(async (req: Request, res: Response) => {
+  console.log(req.originalUrl);
   const result = await paymentsService.confirmPayment(req?.query);
-  // res.redirect(`${config.success_url}?subscriptionId=${result?.subscription}`);
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    data: result,
-    message: 'payment successful',
-  });
+  if (result?.redirectType === 'website') {
+    res.redirect(
+      `${config.client_Url}?/booking/success?bookingId=${result?.bookings}`,
+    );
+  } else {
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      data: result,
+      message: 'payment successful',
+    });
+  }
 });
 
 const createPayments = catchAsync(async (req: Request, res: Response) => {

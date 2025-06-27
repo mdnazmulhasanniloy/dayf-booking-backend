@@ -2,12 +2,10 @@ import { Request, Response } from 'express';
 import catchAsync from '../../utils/catchAsync';
 import { roomsService } from './rooms.service';
 import sendResponse from '../../utils/sendResponse';
-import { storeFile } from '../../utils/fileHelper';
-import { uploadToS3 } from '../../utils/s3';
 
 const createRooms = catchAsync(async (req: Request, res: Response) => {
   req.body.author = req.user.userId;
-  const result = await roomsService.createRooms(req.body, req.files);
+  const result = await roomsService.createRooms(req.body);
   sendResponse(res, {
     statusCode: 201,
     success: true,
@@ -25,15 +23,6 @@ const getAllRooms = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
-// const getRoomsByPropertyId = catchAsync(async (req: Request, res: Response) => {
-//   const result = await roomsService.getAllRooms(req.query);
-//   sendResponse(res, {
-//     statusCode: 200,
-//     success: true,
-//     message: 'All rooms fetched successfully',
-//     data: result,
-//   });
-// });
 
 const getRoomsById = catchAsync(async (req: Request, res: Response) => {
   const result = await roomsService.getRoomsById(req.params.id);
@@ -45,11 +34,7 @@ const getRoomsById = catchAsync(async (req: Request, res: Response) => {
   });
 });
 const updateRooms = catchAsync(async (req: Request, res: Response) => {
-  const result = await roomsService.updateRooms(
-    req.params.id,
-    req.body,
-    req.files,
-  );
+  const result = await roomsService.updateRooms(req.params.id, req.body);
   sendResponse(res, {
     statusCode: 200,
     success: true,

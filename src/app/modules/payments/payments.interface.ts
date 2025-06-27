@@ -3,6 +3,7 @@ import { IBookings } from '../bookings/bookings.interface';
 import { IUser } from './../user/user.interface';
 
 export interface IPayments {
+  redirectType: string;
   _id?: string;
   user: ObjectId | IUser;
   author: ObjectId | IUser;

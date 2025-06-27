@@ -30,6 +30,10 @@ const bookingsSchema = new Schema<IBookings>(
       enum: Object.values(BOOKING_STATUS),
       default: BOOKING_STATUS.pending,
     },
+    totalRooms: {
+      type: Number,
+      default: 1,
+    },
     reference: {
       type: Types.ObjectId,
       refPath: 'modelType',
@@ -89,8 +93,11 @@ bookingsSchema.pre('save', function (next) {
 
   this.startDate = moment(this.startDate).utc().toDate();
   this.endDate = moment(this.endDate).utc().toDate();
+  next();
 });
-bookingsSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
 
+bookingsSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
+bookingsSchema.index({ startDate: 1, endDate: 1 });
+bookingsSchema.index({ modelType: 1, reference: 1 });
 const Bookings = model<IBookings, IBookingsModules>('Bookings', bookingsSchema);
 export default Bookings;

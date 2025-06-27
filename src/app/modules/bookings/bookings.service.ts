@@ -13,49 +13,138 @@ import { notificationServices } from '../notification/notification.service';
 import { modeType } from '../notification/notification.interface';
 import { IApartment } from '../apartment/apartment.interface';
 import { IRooms } from '../rooms/rooms.interface';
+import { IRoomTypes } from '../roomTypes/roomTypes.interface';
+import RoomTypes from '../roomTypes/roomTypes.models';
+
+// const createBookings = async (payload: IBookings) => {
+//   switch (payload.modelType) {
+//     case BOOKING_MODEL_TYPE.Rooms:
+//       const room: IRooms | null = await Rooms.findById(payload.reference);
+//       if (!room) {
+//         throw new AppError(httpStatus.BAD_REQUEST, 'Room not found!');
+//       }
+//       //@ts-ignore
+//       payload['author'] = room?.author;
+//       //@ts-ignore
+//       payload['reference'] = room?._id;
+//       const day = moment(payload.endDate).diff(
+//         moment(payload?.startDate),
+//         'days',
+//       );
+//       payload['totalPrice'] = room?.pricePerNight * day;
+//       break;
+//     case BOOKING_MODEL_TYPE.Apartment:
+//       const apartment: IApartment | null = await Apartment.findById(
+//         payload.reference,
+//       );
+//       if (!apartment) {
+//         throw new AppError(httpStatus.BAD_REQUEST, 'Apartment not found!');
+//       }
+//       payload['author'] = apartment?.author;
+//       //@ts-ignore
+//       payload['reference'] = apartment?._id;
+//       const durationDay = moment(payload.endDate).diff(
+//         moment(payload?.startDate),
+//         'days',
+//       );
+//       payload['totalPrice'] = apartment?.price * durationDay;
+
+//       break;
+//     default:
+//       throw new AppError(httpStatus.BAD_REQUEST, 'booking model type invalid');
+//   }
+
+//     const result = await Bookings.create(payload);
+
+//   if (!result) {
+//     throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create bookings');
+//   }
+//   return result;
+// };
 
 const createBookings = async (payload: IBookings) => {
+  let referenceItem: IRoomTypes | IApartment | null = null;
+  let pricePerDay = 0;
+  const startDateUTC = moment(payload.startDate).utc().toDate();
+  const endDateUTC = moment(payload.endDate).utc().toDate();
   switch (payload.modelType) {
     case BOOKING_MODEL_TYPE.Rooms:
-      const room: IRooms | null = await Rooms.findById(payload.reference);
-      if (!room) {
+      referenceItem = await RoomTypes.findById(payload.reference);
+      if (!referenceItem) {
         throw new AppError(httpStatus.BAD_REQUEST, 'Room not found!');
       }
-      //@ts-ignore
-      payload['author'] = room?.author;
-      //@ts-ignore
-      payload['reference'] = room?._id;
-      const day = moment(payload.endDate).diff(
-        moment(payload?.startDate),
-        'days',
-      );
-      payload['totalPrice'] = room?.pricePerNight * day;
+
+      // Step 1: Check for overlapping bookings in UTC
+      const overlappingBookings = await Bookings.aggregate([
+        {
+          $match: {
+            modelType: BOOKING_MODEL_TYPE.Rooms,
+            reference: new Types.ObjectId((referenceItem as IRoomTypes)?._id),
+            isDeleted: false,
+            startDate: { $lte: endDateUTC },
+            endDate: { $gte: startDateUTC },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalBooked: { $sum: '$totalRooms' },
+          },
+        },
+      ]);
+
+      const alreadyBooked = overlappingBookings[0]?.totalBooked || 0;
+      const availableRooms =
+        (referenceItem as IRoomTypes).totalRooms - alreadyBooked;
+
+      if (payload.totalRooms > availableRooms) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          `Only ${availableRooms} room(s) are available for the selected date range.`,
+        );
+      }
+
+      pricePerDay =
+        (referenceItem as IRoomTypes).pricePerNight * payload?.totalRooms;
       break;
+
+    //Apartment type booking
     case BOOKING_MODEL_TYPE.Apartment:
-      const apartment: IApartment | null = await Apartment.findById(
-        payload.reference,
-      );
-      if (!apartment) {
+      referenceItem = await Apartment.findById(payload.reference);
+      if (!referenceItem) {
         throw new AppError(httpStatus.BAD_REQUEST, 'Apartment not found!');
       }
-      payload['author'] = apartment?.author;
-      //@ts-ignore
-      payload['reference'] = apartment?._id;
-      const durationDay = moment(payload.endDate).diff(
-        moment(payload?.startDate),
-        'days',
-      );
-      payload['totalPrice'] = apartment?.price * durationDay;
-
+      pricePerDay = (referenceItem as IApartment).price;
       break;
+
     default:
-      throw new AppError(httpStatus.BAD_REQUEST, 'booking model type invalid');
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'Booking model type is invalid',
+      );
   }
+
+  const days = moment(payload.endDate).diff(moment(payload.startDate), 'days');
+  if (days <= 0) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'End date must be after start date',
+    );
+  }
+
+  //@ts-ignore
+  payload.author = referenceItem.author;
+  //@ts-ignore
+  payload.reference = referenceItem?._id;
+  payload.totalPrice = pricePerDay * days;
 
   const result = await Bookings.create(payload);
+  console.log('🚀 ~ createBookings ~ result:', result);
+
   if (!result) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create bookings');
+    throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create booking');
   }
+
   return result;
 };
 
@@ -189,7 +278,6 @@ const getAllBookings = async (query: Record<string, any>) => {
           },
         },
 
-    
         {
           $lookup: {
             from: 'apartments',
@@ -200,7 +288,7 @@ const getAllBookings = async (query: Record<string, any>) => {
         },
         {
           $lookup: {
-            from: 'rooms',
+            from: 'roomtypes',
             localField: 'reference',
             foreignField: '_id',
             as: 'roomDetails',
@@ -216,11 +304,11 @@ const getAllBookings = async (query: Record<string, any>) => {
               },
             },
           },
-        },
+        }, 
         {
           $project: {
             apartmentDetails: 0,
-            roomDetails: 0, 
+            roomDetails: 0,
           },
         },
 

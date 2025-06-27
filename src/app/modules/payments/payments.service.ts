@@ -8,7 +8,6 @@ import config from '../../config';
 import generateRandomString from '../../utils/generateRandomString';
 import Bookings from '../bookings/bookings.models';
 import { BOOKING_MODEL_TYPE, IBookings } from '../bookings/bookings.interface';
-import { createCheckoutSession } from './payments.utils';
 import { startSession } from 'mongoose';
 import { PAYMENT_STATUS } from './payments.constants';
 import { User } from '../user/user.models';
@@ -22,13 +21,14 @@ import StripeService from '../../builder/StripeBuilder';
 const checkout = async (payload: IPayments) => {
   const tranId = generateRandomString(10);
   let paymentData: IPayments;
-
+  console.log(payload);
   const bookings: IBookings | null = await Bookings?.findById(
     payload?.bookings,
   ).populate('reference');
+  console.log('🚀 ~ checkout ~ bookings:', bookings);
 
   if (!bookings) {
-    throw new AppError(httpStatus.NOT_FOUND, 'subscription Not Found!');
+    throw new AppError(httpStatus.NOT_FOUND, 'Booking Not Found!');
   }
 
   const isExistPayment: IPayments | null = await Payments.findOne({
@@ -89,10 +89,10 @@ const checkout = async (payload: IPayments) => {
     customerId = customer?.id;
   }
 
-  const success_url = `${config.server_url}/payments/confirm-payment?sessionId={CHECKOUT_SESSION_ID}&paymentId=${paymentData?._id}`;
+  const success_url = `${config.server_url}/payments/confirm-payment?sessionId={CHECKOUT_SESSION_ID}&paymentId=${paymentData?._id}&device=${payload?.redirectType ? payload?.redirectType : ''}`;
 
-  const cancel_url = `${config.server_url}/payments/confirm-payment?sessionId={CHECKOUT_SESSION_ID}&paymentId=${paymentData?._id}`;
-
+  const cancel_url = `${config.server_url}/payments/confirm-payment?sessionId={CHECKOUT_SESSION_ID}&paymentId=${paymentData?._id}&device=${payload?.redirectType ? payload?.redirectType : ''}`;
+  console.log({ success_url, cancel_url });
   const checkoutSession = await StripeService.getCheckoutSession(
     product,
     success_url,
@@ -104,7 +104,7 @@ const checkout = async (payload: IPayments) => {
 };
 
 const confirmPayment = async (query: Record<string, any>) => {
-  const { sessionId, paymentId } = query;
+  const { sessionId, paymentId, redirectType } = query;
   const session = await startSession();
   const PaymentSession = await StripeService.getPaymentSession(sessionId);
   const paymentIntentId = PaymentSession.payment_intent as string;
@@ -134,7 +134,7 @@ const confirmPayment = async (query: Record<string, any>) => {
       payment?.bookings,
       {
         paymentStatus: PAYMENT_STATUS?.paid,
-        status: BOOKING_STATUS?.completed,
+        status: BOOKING_STATUS?.confirmed,
         tranId: payment?.tranId,
       },
       { new: true, session },
@@ -146,32 +146,32 @@ const confirmPayment = async (query: Record<string, any>) => {
       receiver: (payment?.user as IUser)?._id, // User
       message: 'Your booking payment was successful!',
       description: `Your payment for booking ID #${bookings?.id} has been successfully processed. Thank you for choosing us!`,
-      reference: payment?._id,
+      refference: payment?._id,
       model_type: modeType?.payments,
     });
     notificationServices.insertNotificationIntoDb({
       receiver: (payment?.author as IUser)?._id,
       message: 'A new booking payment has been received!',
       description: `User ${(payment?.user as IUser)?.name} has completed payment for booking ID #${bookings?.id} in your property.`,
-      reference: payment?._id,
+      refference: payment?._id,
       model_type: modeType?.payments,
     });
     notificationServices.insertNotificationIntoDb({
       receiver: admin?._id, // System Admin
       message: 'A new booking payment has been processed!',
       description: `Payment with ID ${bookings?.id} for a hotel/apartment booking has been successfully processed.`,
-      reference: payment?._id,
+      refference: payment?._id,
       model_type: modeType?.payments,
     });
 
     await session.commitTransaction();
-    return payment;
+    return { ...payment.toObject(), redirectType };
   } catch (error: any) {
     await session.abortTransaction();
 
     if (paymentIntentId) {
       try {
-        await StripeService.refund(paymentId)
+        await StripeService.refund(paymentId);
         //  stripe.refunds.create({
         //   payment_intent: paymentIntentId,
         // });

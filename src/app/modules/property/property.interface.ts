@@ -27,8 +27,7 @@ export interface IProperty {
   policy: string;
   Other: string[];
   avgRating: number;
-  reviews: ObjectId[];
-  rooms: ObjectId[];
+  reviews: ObjectId[]; 
   isDeleted: boolean;
 }
 
