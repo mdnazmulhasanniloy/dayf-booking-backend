@@ -1,15 +1,11 @@
-import httpStatus from 'http-status';
-import { MonthlyIncome, MonthlyUsers } from './dashboard.interface';
-import QueryBuilder from '../../builder/QueryBuilder';
-import AppError from '../../error/AppError';
+import { MonthlyIncome, MonthlyUsers } from './dashboard.interface'; 
 import Payments from '../payments/payments.models';
 import moment from 'moment';
 import { PAYMENT_STATUS } from '../bookings/bookings.constants';
 import { initializeMonthlyData } from './dashboard.utils';
 import { Types } from 'mongoose';
 import Bookings from '../bookings/bookings.models';
-import { BOOKING_MODEL_TYPE } from '../bookings/bookings.interface';
-import { pipeline } from 'nodemailer/lib/xoauth2';
+import { BOOKING_MODEL_TYPE } from '../bookings/bookings.interface'; 
 import pickQuery from '../../utils/pickQuery';
 import { paginationHelper } from '../../helpers/pagination.helpers';
 import { User } from '../user/user.models';
