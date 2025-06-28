@@ -2,8 +2,7 @@ import httpStatus from 'http-status';
 import { IPayments } from './payments.interface';
 import Payments from './payments.models';
 import QueryBuilder from '../../builder/QueryBuilder';
-import AppError from '../../error/AppError';
-import Stripe from 'stripe';
+import AppError from '../../error/AppError'; 
 import config from '../../config';
 import generateRandomString from '../../utils/generateRandomString';
 import Bookings from '../bookings/bookings.models';
@@ -17,15 +16,19 @@ import { notificationServices } from '../notification/notification.service';
 import { IUser } from '../user/user.interface';
 import { modeType } from '../notification/notification.interface';
 import StripeService from '../../builder/StripeBuilder';
+import { IApartment } from '../apartment/apartment.interface';
+import { IRoomTypes } from '../roomTypes/roomTypes.interface';
+import { IProperty } from '../property/property.interface';
+import RoomTypes from '../roomTypes/roomTypes.models';
 
 const checkout = async (payload: IPayments) => {
   const tranId = generateRandomString(10);
   let paymentData: IPayments;
-  console.log(payload);
+  let name: string;
+
   const bookings: IBookings | null = await Bookings?.findById(
     payload?.bookings,
-  ).populate('reference');
-  console.log('🚀 ~ checkout ~ bookings:', bookings);
+  ).populate([{ path: 'reference'}]);
 
   if (!bookings) {
     throw new AppError(httpStatus.NOT_FOUND, 'Booking Not Found!');
@@ -47,13 +50,18 @@ const checkout = async (payload: IPayments) => {
     paymentData = payment as IPayments;
   } else {
     if (bookings?.modelType === BOOKING_MODEL_TYPE.Rooms) {
+      const roomType: IRoomTypes | null = await RoomTypes?.findById(
+        bookings?.reference,
+      ).populate([{ path: 'property', select: 'name' }]);
+
+      name = (roomType?.property as IProperty)?.name;
       payload.adminAmount = bookings?.totalPrice * 0.08;
-      payload.adminAmount = bookings?.totalPrice * 0.92;
+      payload.hotelOwnerAmount = bookings?.totalPrice * 0.92;
     } else if (bookings?.modelType === BOOKING_MODEL_TYPE.Apartment) {
       payload.adminAmount = bookings?.totalPrice * 0.1;
-      payload.adminAmount = bookings?.totalPrice * 0.9;
+      payload.hotelOwnerAmount = bookings?.totalPrice * 0.9;
+      name = (bookings?.reference as IApartment)?.name;
     }
-
     payload.tranId = tranId;
     payload.author = bookings?.author;
     payload.amount = bookings?.totalPrice;
@@ -74,7 +82,7 @@ const checkout = async (payload: IPayments) => {
   const product = {
     amount: paymentData?.amount,
     //@ts-ignore
-    name: bookings?.reference?.name,
+    name: name ?? 'A Booking Payment',
     quantity: 1,
   };
   let customerId = '';

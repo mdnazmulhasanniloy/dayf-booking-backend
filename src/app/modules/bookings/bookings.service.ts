@@ -15,6 +15,7 @@ import { IApartment } from '../apartment/apartment.interface';
 import { IRooms } from '../rooms/rooms.interface';
 import { IRoomTypes } from '../roomTypes/roomTypes.interface';
 import RoomTypes from '../roomTypes/roomTypes.models';
+import { pipeline } from 'nodemailer/lib/xoauth2';
 
 // const createBookings = async (payload: IBookings) => {
 //   switch (payload.modelType) {
@@ -110,6 +111,21 @@ const createBookings = async (payload: IBookings) => {
 
     //Apartment type booking
     case BOOKING_MODEL_TYPE.Apartment:
+      //check apartment are available or not
+      const booking = await Bookings.find({
+        isDeleted: false,
+        reference: payload?.reference,
+        modelType: BOOKING_MODEL_TYPE.Apartment,
+        startDate: { $lte: moment(payload?.endDate).utc().toDate() }, // booking start <= searchEndDate
+        endDate: { $gte: moment(payload?.startDate).utc().toDate() }, // booking end >= searchStartDate
+      });
+      if (booking?.length > 0) {
+        throw new AppError(
+          httpStatus?.BAD_REQUEST,
+          'This apartment already booked in this timeline',
+        );
+      }
+
       referenceItem = await Apartment.findById(payload.reference);
       if (!referenceItem) {
         throw new AppError(httpStatus.BAD_REQUEST, 'Apartment not found!');
@@ -139,7 +155,6 @@ const createBookings = async (payload: IBookings) => {
   payload.totalPrice = pricePerDay * days;
 
   const result = await Bookings.create(payload);
-  console.log('🚀 ~ createBookings ~ result:', result);
 
   if (!result) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create booking');
@@ -304,7 +319,7 @@ const getAllBookings = async (query: Record<string, any>) => {
               },
             },
           },
-        }, 
+        },
         {
           $project: {
             apartmentDetails: 0,

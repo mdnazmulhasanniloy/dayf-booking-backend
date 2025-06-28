@@ -10,6 +10,8 @@ import notFound from './app/middleware/notfound';
 import router from './app/routes';
 import RoomTypes from './app/modules/roomTypes/roomTypes.models';
 import Property from './app/modules/property/property.models';
+import Payments from './app/modules/payments/payments.models';
+import { IPayments } from './app/modules/payments/payments.interface';
 // import axios from 'axios';
 // import archiver from 'archiver';
 const app: Application = express();
@@ -33,21 +35,6 @@ app.use(
 
 // application routes
 app.use('/api/v1', router);
-
-// app.get('/nn', async (req, res) => {
-//   const roomTypes = await RoomTypes.find({});
-//   for (let roomType of roomTypes) {
-//     const property = await Property.findById(roomType?.property);
-//     const nn = await RoomTypes.findByIdAndUpdate(
-//       roomType?._id,
-//       {
-//         location: property?.location,
-//       },
-//       { upsert: false },
-//     );
-//     console.log(nn);
-//   }
-// });
 
 // app.get('/download', async (req, res) => {
 //   const fileUrl = req.query.url; // Pass your view URL as ?url=

@@ -197,8 +197,7 @@ const getAllApartment = async (query: Record<string, any>) => {
     });
   }
   if (Object.entries(filtersData).length) {
-    // Add custom filters (filtersData) to the aggregation pipeline
-    Object.entries(filtersData).map(([field, value]) => {
+    Object.entries(filtersData).forEach(([field, value]) => {
       if (/^\[.*?\]$/.test(value)) {
         const match = value.match(/\[(.*?)\]/);
         const queryValue = match ? match[1] : value;
@@ -208,6 +207,11 @@ const getAllApartment = async (query: Record<string, any>) => {
           },
         });
         delete filtersData[field];
+      } else {
+        // 🔁 Convert to number if numeric string
+        if (!isNaN(value)) {
+          filtersData[field] = Number(value);
+        }
       }
     });
 

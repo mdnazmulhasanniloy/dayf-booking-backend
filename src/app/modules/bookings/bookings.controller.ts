@@ -26,6 +26,19 @@ const getAllBookingsWithReference = catchAsync(
     });
   },
 );
+const getBookingsForHotelOwner = catchAsync(
+  async (req: Request, res: Response) => {
+    req.query['author'] = req.user.userId;
+    const result = await bookingsService.getAllBookings(req.query);
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: 'All bookings with reference fetched successfully',
+      data: result,
+    });
+  },
+);
+
 const getMyBookings = catchAsync(async (req: Request, res: Response) => {
   req.query['user'] = req.user.userId;
   const result = await bookingsService.getAllBookings(req.query);
@@ -118,4 +131,5 @@ export const bookingsController = {
   getMyBookings,
   completeBooking,
   cancelBooking,
+  getBookingsForHotelOwner,
 };

@@ -24,6 +24,11 @@ router.get(
   bookingsController.getMyBookings,
 );
 router.get(
+  '/hotel-owner',
+  auth(USER_ROLE.hotel_owner),
+  bookingsController.getBookingsForHotelOwner,
+);
+router.get(
   '/reference/:referenceId',
   auth(
     USER_ROLE.admin,

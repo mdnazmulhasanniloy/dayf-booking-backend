@@ -16,6 +16,7 @@ import stripeRoute from '../modules/stripe/stripe.route';
 import { paymentsRoutes } from '../modules/payments/payments.route';
 import { bookMarkRoutes } from '../modules/bookMark/bookMark.route';
 import { roomTypesRoutes } from '../modules/roomTypes/roomTypes.route';
+import { dashboardRoutes } from '../modules/dashboard/dashboard.route';
 
 const router = Router();
 const moduleRoutes = [
@@ -87,6 +88,10 @@ const moduleRoutes = [
   {
     path: '/bookmark',
     route: bookMarkRoutes,
+  },
+  {
+    path: '/dashboard',
+    route: dashboardRoutes,
   },
 ];
 moduleRoutes.forEach(route => router.use(route.path, route.route));
