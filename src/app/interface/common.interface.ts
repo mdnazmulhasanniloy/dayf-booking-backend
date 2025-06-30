@@ -3,6 +3,8 @@ export interface UploadedFiles {
   image?: Express.Multer.File[];
   banner?: Express.Multer.File[];
   images?: Express.Multer.File[];
+  topSectionImage?: Express.Multer.File[];
+  whyChooseUsSectionImage?: Express.Multer.File[];
   frontSide?: Express.Multer.File[];
   backSide?: Express.Multer.File[];
   videos?: Express.Multer.File[];

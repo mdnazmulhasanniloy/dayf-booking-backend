@@ -34,18 +34,21 @@ const propertySchema = new Schema<IProperty>(
       type: String,
       default: () => generateRandomHexColor(),
     },
+    profile: {
+      type: String,
+    },
     images: { type: [ImageSchema], required: true },
     name: { type: String, required: true },
     length: { type: Number, required: true },
     description: { type: String, required: true },
     address: { type: String, required: true },
     descriptions: { type: String, required: false, default: null },
-   shortDescription: {
+    shortDescription: {
       type: String,
       required: false,
       default: null,
     },
-    
+
     policy: { type: String, required: false, default: null },
     location: { type: LocationSchema, required: true },
     facilities: [

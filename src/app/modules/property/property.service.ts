@@ -7,12 +7,11 @@ import pickQuery from '../../utils/pickQuery';
 import { Types } from 'mongoose';
 import { paginationHelper } from '../../helpers/pagination.helpers';
 import generateCryptoString from '../../utils/generateCryptoString';
-import Rooms from '../rooms/rooms.models';
 import Apartment from '../apartment/apartment.models';
 
-const createProperty = async (payload: IProperty, files: any) => {
+const createProperty = async (payload: IProperty, files: any) => { 
   if (files) {
-    const { images, coverImage } = files;
+    const { images, coverImage, profile } = files;
 
     if (images?.length) {
       const imgsArray: { file: any; path: string; key?: string }[] = [];
@@ -31,6 +30,12 @@ const createProperty = async (payload: IProperty, files: any) => {
       payload.coverImage = (await uploadToS3({
         file: coverImage[0],
         fileName: `images/property/cover/${generateCryptoString(5)}`,
+      })) as string;
+    }
+    if (profile) {
+      payload.profile = (await uploadToS3({
+        file: profile[0],
+        fileName: `images/property/profile/${generateCryptoString(5)}`,
       })) as string;
     }
   }
@@ -208,8 +213,8 @@ const getAllProperty = async (query: Record<string, any>) => {
         {
           $lookup: {
             from: 'roomtypes',
-            localField: '_id',  
-            foreignField: 'property',  
+            localField: '_id',
+            foreignField: 'property',
             as: 'roomTypes',
             pipeline: [
               { $match: { isDeleted: false } },

@@ -1,4 +1,3 @@
-
 import httpStatus from 'http-status';
 import { IBookMark, MODEL_TYPE } from './bookMark.interface';
 import BookMark from './bookMark.models';
@@ -8,28 +7,39 @@ import Apartment from '../apartment/apartment.models';
 import Property from '../property/property.models';
 
 const createBookMark = async (payload: IBookMark) => {
-  const isExist = await BookMark.isBookMarkExist(payload?.user?.toString(), payload?.reference?.toString())
-  if(isExist){
-   return await BookMark.findByIdAndDelete(isExist?._id)
+  const isExist = await BookMark.isBookMarkExist(
+    payload?.user?.toString(),
+    payload?.reference?.toString(),
+  );
+  if (isExist) {
+    const result = await BookMark.findByIdAndDelete(isExist?._id);
+    return { ...result?.toObject(), isDeleted: true };
   }
-
-  if(payload.modelType === MODEL_TYPE.apartment){
-    const apartment = await Apartment.findById(payload?.reference)
-    if(!apartment) throw new AppError(httpStatus?.NOT_FOUND, "Apartment is not found!")
-  }else{
- const property = await Property.findById(payload?.reference)
-    if(!property) throw new AppError(httpStatus?.NOT_FOUND, "Property is not found!")
-}
+  if (payload.modelType === MODEL_TYPE.apartment) {
+    const apartment = await Apartment.findById(payload?.reference);
+    if (!apartment)
+      throw new AppError(httpStatus?.NOT_FOUND, 'Apartment is not found!');
+  } else {
+    const property = await Property.findById(payload?.reference);
+    if (!property)
+      throw new AppError(httpStatus?.NOT_FOUND, 'Property is not found!');
+  }
   const result = await BookMark.create(payload);
   if (!result) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create bookMark');
   }
-  return result;
+  return { ...result?.toObject(), isDeleted: false };
 };
 
-const getAllBookMark = async (query: Record<string, any>) => { 
-  const bookMarkModel = new QueryBuilder(BookMark.find().populate([{path:"user", select:"name email profile phoneNumber"},{path:"reference"}]), query)
-    .search([""])
+const getAllBookMark = async (query: Record<string, any>) => {
+  const bookMarkModel = new QueryBuilder(
+    BookMark.find().populate([
+      { path: 'user', select: 'name email profile phoneNumber' },
+      { path: 'reference' },
+    ]),
+    query,
+  )
+    .search([''])
     .filter()
     .paginate()
     .sort()
@@ -45,9 +55,12 @@ const getAllBookMark = async (query: Record<string, any>) => {
 };
 
 const getBookMarkById = async (id: string) => {
-  const result = await BookMark.findById(id).populate([{path:"user", select:"name email profile phoneNumber"},{path:"reference"}]);
+  const result = await BookMark.findById(id).populate([
+    { path: 'user', select: 'name email profile phoneNumber' },
+    { path: 'reference' },
+  ]);
   if (!result) {
-    throw new AppError(httpStatus.BAD_REQUEST,'BookMark not found!');
+    throw new AppError(httpStatus.BAD_REQUEST, 'BookMark not found!');
   }
   return result;
 };
@@ -55,14 +68,13 @@ const getBookMarkById = async (id: string) => {
 const updateBookMark = async (id: string, payload: Partial<IBookMark>) => {
   const result = await BookMark.findByIdAndUpdate(id, payload, { new: true });
   if (!result) {
-   throw new AppError(httpStatus.BAD_REQUEST,'Failed to update BookMark');
+    throw new AppError(httpStatus.BAD_REQUEST, 'Failed to update BookMark');
   }
   return result;
 };
 
 const deleteBookMark = async (id: string) => {
-  const result = await BookMark.findByIdAndDelete(
-    id );
+  const result = await BookMark.findByIdAndDelete(id);
   if (!result) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Failed to delete bookMark');
   }

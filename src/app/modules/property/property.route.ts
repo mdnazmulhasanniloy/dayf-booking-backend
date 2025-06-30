@@ -13,8 +13,9 @@ router.post(
   '/',
   auth(USER_ROLE.hotel_owner),
   upload.fields([
-    { name: 'images', maxCount: 10 },
+    { name: 'images', maxCount: 5 },
     { name: 'coverImage', maxCount: 1 },
+    { name: 'profile', maxCount: 1 },
   ]),
   parseData(),
   propertyController.createProperty,
@@ -23,8 +24,9 @@ router.patch(
   '/:id',
   auth(USER_ROLE.hotel_owner),
   upload.fields([
-    { name: 'images', maxCount: 10 },
+    { name: 'images', maxCount: 5 },
     { name: 'coverImage', maxCount: 1 },
+    { name: 'profile', maxCount: 1 },
   ]),
   parseData(),
   propertyController.updateProperty,
@@ -45,7 +47,7 @@ router.get(
   auth(USER_ROLE.hotel_owner),
   propertyController.getMyProperty,
 );
-router.get("/home-page-data", propertyController.getHamePageData)
+router.get('/home-page-data', propertyController.getHamePageData);
 router.get('/:id', propertyController.getPropertyById);
 router.get('/', propertyController.getAllProperty);
 

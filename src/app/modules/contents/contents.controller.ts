@@ -3,15 +3,7 @@ import catchAsync from '../../utils/catchAsync';
 import { contentsService } from './contents.service';
 import sendResponse from '../../utils/sendResponse';
 
-const createContents = catchAsync(async (req: Request, res: Response) => {
-  const result = await contentsService.createContents(req.body, req.files);
-  sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: 'Content created successfully',
-    data: result,
-  });
-});
+ 
 
 // Get all contents
 const getAllContents = catchAsync(async (req: Request, res: Response) => {
@@ -76,8 +68,7 @@ const deleteBanner = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-export const contentsController = {
-  createContents,
+export const contentsController = { 
   getAllContents,
   getContentsById,
   updateContents,

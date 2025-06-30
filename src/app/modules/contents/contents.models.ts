@@ -12,7 +12,16 @@ const contentsSchema = new Schema<IContents>(
     privacyPolicy: {
       type: String,
     },
-    banner: [
+    topSectionImage: [
+      {
+        key: {
+          type: String,
+          required: true,
+        },
+        url: { type: String, required: true },
+      },
+    ],
+    whyChooseUsSectionImage: [
       {
         key: {
           type: String,

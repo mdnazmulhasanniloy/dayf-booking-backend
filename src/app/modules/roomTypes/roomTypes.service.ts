@@ -825,6 +825,45 @@ const globalSearch = async (query: Record<string, any>) => {
             },
           },
 
+          //add extra field fro max and min price
+          {
+            $lookup: {
+              from: 'roomtypes',
+              localField: '_id',
+              foreignField: 'property',
+              as: 'roomTypes',
+              pipeline: [
+                { $match: { isDeleted: false } },
+                { $project: { pricePerNight: 1 } },
+              ],
+            },
+          },
+
+          {
+            $addFields: {
+              minPrice: {
+                $cond: [
+                  { $gt: [{ $size: '$roomTypes' }, 0] },
+                  { $min: '$roomTypes.pricePerNight' },
+                  null,
+                ],
+              },
+              maxPrice: {
+                $cond: [
+                  { $gt: [{ $size: '$roomTypes' }, 0] },
+                  { $max: '$roomTypes.pricePerNight' },
+                  null,
+                ],
+              },
+            },
+          },
+
+          {
+            $project: {
+              roomTypes: 0,
+            },
+          },
+
           {
             $addFields: {
               author: { $arrayElemAt: ['$author', 0] },

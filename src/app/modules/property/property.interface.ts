@@ -21,13 +21,14 @@ export interface IProperty {
   address: string;
   location: ILocations;
   facilities: ObjectId[];
+  profile: string;
   coverImage: string;
   descriptions: string;
   shortDescription: string;
   policy: string;
   Other: string[];
   avgRating: number;
-  reviews: ObjectId[]; 
+  reviews: ObjectId[];
   isDeleted: boolean;
 }
 

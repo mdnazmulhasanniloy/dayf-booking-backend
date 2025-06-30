@@ -10,32 +10,6 @@ import { sendEmail } from '../../utils/mailSender';
 import path from 'path';
 import fs from 'fs';
 
-// Create a new content
-const createContents = async (payload: IContents, files: any) => {
-  if (files) {
-    const { banner } = files as UploadedFiles;
-
-    if (banner?.length) {
-      const imgsArray: { file: any; path: string; key?: string }[] = [];
-
-      banner?.map(async image => {
-        imgsArray.push({
-          file: image,
-          path: `images/banner`,
-        });
-      });
-
-      payload.banner = await uploadManyToS3(imgsArray);
-    }
-  }
-
-  const result = await Contents.create(payload);
-  if (!result) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Content creation failed');
-  }
-  return result;
-};
-
 // Get all contents
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getAllContents = async (query: { key?: keyof IContents }) => {
@@ -66,13 +40,13 @@ const deleteBanner = async (key: string) => {
   const result = await Contents.findByIdAndUpdate(
     content?._id,
     {
-      $pull: { banner: { key: key } },
+      $pull: { whyChooseUsSectionImage: { key: key } },
     },
     { new: true },
   );
 
   const newKey: string[] = [];
-  newKey.push(`images/banner${key}`);
+  newKey.push(`images/whyChooseUsSectionImage/${key}`);
 
   if (newKey) {
     await deleteManyFromS3(newKey);
@@ -88,42 +62,85 @@ const updateContents = async (payload: Partial<IContents>, files: any) => {
     throw new AppError(httpStatus.NOT_FOUND, 'Content not found');
   }
 
-  const { deleteKey, ...updateData } = payload;
+  const { whyChooseUsSectionDeleteKey, topSectionDeleteKey, ...updateData } =
+    payload;
 
   const update: any = { ...updateData };
 
   if (files) {
-    const { banner } = files as UploadedFiles;
+    const { topSectionImage, whyChooseUsSectionImage } = files as UploadedFiles;
 
-    if (banner?.length) {
+    if (topSectionImage?.length) {
       const imgsArray: { file: any; path: string; key?: string }[] = [];
 
-      banner.map(b =>
+      topSectionImage.map(b =>
         imgsArray.push({
           file: b,
-          path: `images/banner`,
+          path: `images/topSectionImage`,
         }),
       );
 
-      payload.banner = await uploadManyToS3(imgsArray);
+      payload.topSectionImage = await uploadManyToS3(imgsArray);
+    }
+    if (whyChooseUsSectionImage?.length) {
+      const imgsArray: { file: any; path: string; key?: string }[] = [];
+
+      whyChooseUsSectionImage.map(b =>
+        imgsArray.push({
+          file: b,
+          path: `images/whyChooseUsSectionImage`,
+        }),
+      );
+
+      payload.whyChooseUsSectionImage = await uploadManyToS3(imgsArray);
     }
   }
 
-  if (deleteKey && deleteKey.length > 0) {
+  if (topSectionDeleteKey && topSectionDeleteKey.length > 0) {
     const newKey: string[] = [];
-    deleteKey.map((key: any) => newKey.push(`images/banner${key}`));
+    topSectionDeleteKey.map((key: any) =>
+      newKey.push(`images/topSectionImage/${key}`),
+    );
     if (newKey?.length > 0) {
       await deleteManyFromS3(newKey);
     }
 
     await Contents.findByIdAndUpdate(content[0]._id, {
-      $pull: { banner: { key: { $in: deleteKey } } },
+      $pull: { topSectionImage: { key: { $in: topSectionDeleteKey } } },
     });
   }
 
-  if (payload?.banner && payload.banner.length > 0) {
+
+  if (whyChooseUsSectionDeleteKey && whyChooseUsSectionDeleteKey.length > 0) {
+    const newKey: string[] = [];
+    whyChooseUsSectionDeleteKey.map((key: any) =>
+      newKey.push(`images/whyChooseUsSectionImage/${key}`),
+    );
+    if (newKey?.length > 0) {
+      await deleteManyFromS3(newKey);
+    }
+
     await Contents.findByIdAndUpdate(content[0]._id, {
-      $push: { banner: { $each: payload.banner } },
+      $pull: {
+        whyChooseUsSectionImage: { key: { $in: whyChooseUsSectionDeleteKey } },
+      },
+    });
+  }
+
+  if (payload?.topSectionImage && payload.topSectionImage.length > 0) {
+    await Contents.findByIdAndUpdate(content[0]._id, {
+      $push: { topSectionImage: { $each: payload.topSectionImage } },
+    });
+  }
+
+  if (
+    payload?.whyChooseUsSectionImage &&
+    payload.whyChooseUsSectionImage.length > 0
+  ) {
+    await Contents.findByIdAndUpdate(content[0]._id, {
+      $push: {
+        whyChooseUsSectionImage: { $each: payload.whyChooseUsSectionImage },
+      },
     });
   }
 
@@ -175,8 +192,7 @@ const supportMessage = async (payload: any) => {
   return;
 };
 
-export const contentsService = {
-  createContents,
+export const contentsService = { 
   getAllContents,
   getContentsById,
   updateContents,

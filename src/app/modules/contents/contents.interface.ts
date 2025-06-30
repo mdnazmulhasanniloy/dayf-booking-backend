@@ -1,12 +1,14 @@
 import { Model, ObjectId } from 'mongoose';
 
 export interface IContents {
-  deleteKey?: string[];
+  topSectionDeleteKey?: string[];
+  whyChooseUsSectionDeleteKey?: string[];
   _id?: string;
   createdBy: ObjectId;
   aboutUs?: string;
   termsAndConditions?: string;
-  banner: { key: string; url: string }[];
+  topSectionImage: { key: string; url: string }[];
+  whyChooseUsSectionImage: { key: string; url: string }[];
   privacyPolicy?: string;
   supports?: string;
   faq?: string;

@@ -16,19 +16,22 @@ router.post(
   validateRequest(contentsValidator.supportMailSchema),
   contentsController.supportMessage,
 );
-router.post(
-  '/',
-  auth(USER_ROLE.super_admin, USER_ROLE.sub_admin, USER_ROLE.admin),
-  upload.fields([{ name: 'banner', maxCount: 5 }]),
-  parseData(),
-  // validateRequest(contentsValidator.createContentsZodSchema),
-  contentsController.createContents,
-);
+// router.post(
+//   '/',
+//   auth(USER_ROLE.super_admin, USER_ROLE.sub_admin, USER_ROLE.admin),
+//   upload.fields([{ name: 'banner', maxCount: 5 }]),
+//   parseData(),
+//   // validateRequest(contentsValidator.createContentsZodSchema),
+//   contentsController.createContents,
+// );
 
 router.put(
   '/',
   auth(USER_ROLE.super_admin, USER_ROLE.sub_admin, USER_ROLE.admin),
-  upload.fields([{ name: 'banner', maxCount: 5 }]),
+  upload.fields([
+    { name: 'topSectionImage', maxCount: 5 },
+    { name: 'whyChooseUsSectionImage', maxCount: 5 },
+  ]),
   parseData(),
   contentsController.updateContents,
 );
