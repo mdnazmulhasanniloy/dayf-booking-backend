@@ -53,9 +53,16 @@ const markAsDone = async (id: string) => {
   );
   return result;
 };
+// delete
+
+const deleteNotification = async (id: string) => {
+  const result = await Notification.deleteMany({ receiver: id });
+  return result;
+};
 
 export const notificationServices = {
   insertNotificationIntoDb,
   getAllNotifications,
   markAsDone,
+  deleteNotification,
 };
