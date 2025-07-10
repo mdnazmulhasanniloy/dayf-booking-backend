@@ -1,6 +1,5 @@
 import { model, Schema, Types } from 'mongoose';
-import { IRooms, IRoomsModules } from './rooms.interface';
-import { IImage } from './../property/property.interface';
+import { IRooms, IRoomsModules } from './rooms.interface'; 
 import generateCryptoString from '../../utils/generateCryptoString';
 
 const roomsSchema = new Schema<IRooms>(

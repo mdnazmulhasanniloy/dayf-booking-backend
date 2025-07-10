@@ -56,7 +56,7 @@ const getAllApartment = async (query: Record<string, any>) => {
     latitude,
     longitude,
     facilities,
-    priceRange,
+    priceRange, //10-100
     ratingsFilter,
     adults,
     children,
@@ -327,68 +327,79 @@ const getApartmentById = async (id: string) => {
 
 const updateApartment = async (
   id: string,
-  payload: Partial<IApartment>,
+  payload: Partial<IApartment> & { deleteKey?: string[] },
   files: any,
 ) => {
-  const { deleteKey, ...updateData } = payload;
+  const updatePayload: any = { ...payload }; // Safe copy
 
-  const update: any = { ...updateData };
-
+  // Handle file uploads
   if (files) {
     const { images, profile, coverImage } = files;
 
+    // Handle multiple apartment images
     if (images?.length) {
-      const imgsArray: { file: any; path: string; key?: string }[] = [];
-
-      images.map((image: any) =>
-        imgsArray.push({
+      const imgsArray: { file: any; path: string; key?: string }[] = images.map(
+        (image: any) => ({
           file: image,
-          path: `images/apartment`,
+          path: 'images/apartment',
         }),
       );
 
-      payload.images = await uploadManyToS3(imgsArray);
+      const uploadedImages = await uploadManyToS3(imgsArray);
+      updatePayload.images = uploadedImages;
     }
 
+    // Handle profile image
     if (profile?.length) {
-      payload.profile = (await uploadToS3({
+      const uploadedProfile = await uploadToS3({
         file: profile[0],
         fileName: `images/apartment/profile/${Math.floor(100000 + Math.random() * 900000)}`,
-      })) as string;
+      });
+      updatePayload.profile = uploadedProfile as string;
     }
 
+    // Handle cover image
     if (coverImage?.length) {
-      payload.coverImage = (await uploadToS3({
+      const uploadedCover = await uploadToS3({
         file: coverImage[0],
-        fileName: `images/apartment/cover-image/${Math.floor(100000 + Math.random() * 900000)}`,
-      })) as string;
+        fileName: `images/apartment/coverImage/${Math.floor(100000 + Math.random() * 900000)}`,
+      });
+      updatePayload.coverImage = uploadedCover as string;
     }
   }
 
-  if (deleteKey && deleteKey.length > 0) {
-    const newKey: string[] = [];
-    deleteKey.map((key: any) => newKey.push(`images/apartment${key}`));
-    if (newKey?.length > 0) {
-      await deleteManyFromS3(newKey);
-    }
+  // Handle image deletions
+  if (payload.deleteKey && payload.deleteKey.length > 0) {
+    const fullKeysToDelete = payload.deleteKey.map(
+      key => `images/apartment${key}`,
+    );
+    await deleteManyFromS3(fullKeysToDelete);
 
     await Apartment.findByIdAndUpdate(id, {
-      $pull: { images: { key: { $in: deleteKey } } },
+      $pull: { images: { key: { $in: payload.deleteKey } } },
     });
   }
 
-  if (payload?.images && payload.images.length > 0) {
+  // Push new images if any
+  if (updatePayload.images && updatePayload.images.length > 0) {
     await Apartment.findByIdAndUpdate(id, {
-      $push: { images: { $each: payload.images } },
+      $push: { images: { $each: updatePayload.images } },
     });
+    delete updatePayload.images;  
   }
-  const result = await Apartment.findByIdAndUpdate(id, update, { new: true });
+
+  // Final update
+  const result = await Apartment.findByIdAndUpdate(id, updatePayload, {
+    new: true,
+  });
+
   if (!result) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Failed to update Apartment');
   }
   return result;
 };
 
+ 
 const deleteApartment = async (id: string) => {
   const result = await Apartment.findByIdAndUpdate(
     id,

@@ -317,10 +317,9 @@ const forgotPassword = async (email: string) => {
 
   await User.findByIdAndUpdate(user?._id, {
     needsPasswordChange: true,
-    verification: {
-      otp,
-      expiresAt,
-    },
+    "verification.otp":otp,
+     "verification.expiresAt": expiresAt,
+     
   });
 
   const otpEmailPath = path.join(
@@ -362,12 +361,18 @@ const resetPassword = async (token: string, payload: TResetPassword) => {
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
+
+
   if (new Date() > user?.verification?.expiresAt) {
     throw new AppError(httpStatus.FORBIDDEN, 'Session has expired');
   }
+
+
   if (!user?.verification?.status) {
     throw new AppError(httpStatus.FORBIDDEN, 'OTP is not verified yet');
   }
+
+
   if (payload?.newPassword !== payload?.confirmPassword) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
@@ -380,7 +385,7 @@ const resetPassword = async (token: string, payload: TResetPassword) => {
     Number(config.bcrypt_salt_rounds),
   );
 
-  const result = await User.findByIdAndUpdate(decode?.userId, {
+  const result = await User.findByIdAndUpdate(decode?.userId, {       
     password: hashedPassword,
     passwordChangedAt: new Date(),
     verification: {

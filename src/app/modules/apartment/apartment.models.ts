@@ -26,6 +26,9 @@ const apartmentSchema = new Schema<IApartment>(
     },
     coverImage: {
       type: String,
+    },
+    coverColor: {
+      type: String,
       default: () => generateRandomHexColor(),
     },
     author: {
@@ -130,6 +133,7 @@ const apartmentSchema = new Schema<IApartment>(
     timestamps: true,
   },
 );
+ 
 
 apartmentSchema.index({ location: '2dsphere' });
 const Apartment = model<IApartment, IApartmentModules>(

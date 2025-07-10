@@ -1,120 +1,126 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Custom Video Player</title>
-  <style>
-    body {
-      background: #111;
-      color: #fff;
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-    }
-
-    .video-container {
-      max-width: 800px;
-      width: 100%;
-      position: relative;
-      background: #000;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-    }
-
-    video {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
-
-    .controls {
-      position: absolute;
-      bottom: 0;
-      width: 100%;
-      background: rgba(0, 0, 0, 0.6);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px;
-    }
-
-    .controls button {
-      background: none;
-      border: none;
-      color: white;
-      font-size: 18px;
-      cursor: pointer;
-      margin: 0 10px;
-    }
-
-    .progress {
-      flex-grow: 1;
-      height: 6px;
-      background: #333;
-      border-radius: 3px;
-      margin: 0 10px;
-      position: relative;
-      cursor: pointer;
-    }
-
-    .progress-filled {
-      height: 100%;
-      background: #e63946;
-      width: 0%;
-      border-radius: 3px;
-    }
-  </style>
-</head>
-<body>
-
-  <div class="video-container">
-    <video id="myVideo" src="https://media.istockphoto.com/id/2157568904/video/wide-angle-of-backlit-golden-peaking-wave-filmed-at-golden-hour-in-the-ocean.mp4?s=mp4-640x640-is&k=20&c=UyvQ2Av1lYRncYcr0YEdsSI4NPXXQexPSicZnEvkb-k=" poster="thumbnail.jpg"></video>
-    <div class="controls">
-      <button id="playPause">►</button>
-      <div class="progress" id="progress">
-        <div class="progress-filled" id="progressFilled"></div>
-      </div>
-      <button id="muteToggle">🔊</button>
-    </div>
-  </div>
-
-  <script>
-    const video = document.getElementById('myVideo');
-    const playPause = document.getElementById('playPause');
-    const muteToggle = document.getElementById('muteToggle');
-    const progress = document.getElementById('progress');
-    const progressFilled = document.getElementById('progressFilled');
-
-    playPause.addEventListener('click', () => {
-      if (video.paused) {
-        video.play();
-        playPause.textContent = '❚❚';
-      } else {
-        video.pause();
-        playPause.textContent = '►';
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Custom Video Player</title>
+    <style>
+      body {
+        background: #111;
+        color: #fff;
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
       }
-    });
 
-    muteToggle.addEventListener('click', () => {
-      video.muted = !video.muted;
-      muteToggle.textContent = video.muted ? '🔇' : '🔊';
-    });
+      .video-container {
+        max-width: 800px;
+        width: 100%;
+        position: relative;
+        background: #000;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      }
 
-    video.addEventListener('timeupdate', () => {
-      const percent = (video.currentTime / video.duration) * 100;
-      progressFilled.style.width = `${percent}%`;
-    });
+      video {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
 
-    progress.addEventListener('click', (e) => {
-      const newTime = (e.offsetX / progress.offsetWidth) * video.duration;
-      video.currentTime = newTime;
-    });
-  </script>
+      .controls {
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px;
+      }
 
-</body>
+      .controls button {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 18px;
+        cursor: pointer;
+        margin: 0 10px;
+      }
+
+      .progress {
+        flex-grow: 1;
+        height: 6px;
+        background: #333;
+        border-radius: 3px;
+        margin: 0 10px;
+        position: relative;
+        cursor: pointer;
+      }
+
+      .progress-filled {
+        height: 100%;
+        background: #e63946;
+        width: 0%;
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="video-container">
+      <img
+        src="https://real-state-admin.s3.eu-north-1.amazonaws.com/images/property/cover/#5D8R1"
+        alt=""
+      />
+      <!-- <video
+        id="myVideo"
+        src="https://media.istockphoto.com/id/2157568904/video/wide-angle-of-backlit-golden-peaking-wave-filmed-at-golden-hour-in-the-ocean.mp4?s=mp4-640x640-is&k=20&c=UyvQ2Av1lYRncYcr0YEdsSI4NPXXQexPSicZnEvkb-k="
+        poster="thumbnail.jpg"
+      ></video> -->
+      <!-- <div class="controls">
+        <button id="playPause">►</button>
+        <div class="progress" id="progress">
+          <div class="progress-filled" id="progressFilled"></div>
+        </div>
+        <button id="muteToggle">🔊</button>
+      </div> -->
+    </div>
+
+    <script>
+      const video = document.getElementById('myVideo');
+      const playPause = document.getElementById('playPause');
+      const muteToggle = document.getElementById('muteToggle');
+      const progress = document.getElementById('progress');
+      const progressFilled = document.getElementById('progressFilled');
+
+      playPause.addEventListener('click', () => {
+        if (video.paused) {
+          video.play();
+          playPause.textContent = '❚❚';
+        } else {
+          video.pause();
+          playPause.textContent = '►';
+        }
+      });
+
+      muteToggle.addEventListener('click', () => {
+        video.muted = !video.muted;
+        muteToggle.textContent = video.muted ? '🔇' : '🔊';
+      });
+
+      video.addEventListener('timeupdate', () => {
+        const percent = (video.currentTime / video.duration) * 100;
+        progressFilled.style.width = `${percent}%`;
+      });
+
+      progress.addEventListener('click', e => {
+        const newTime = (e.offsetX / progress.offsetWidth) * video.duration;
+        video.currentTime = newTime;
+      });
+    </script>
+  </body>
 </html>

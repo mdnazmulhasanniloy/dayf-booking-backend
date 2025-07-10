@@ -32,6 +32,10 @@ const propertySchema = new Schema<IProperty>(
     },
     coverImage: {
       type: String,
+      default: null,
+    },
+    coverColor: {
+      type: String,
       default: () => generateRandomHexColor(),
     },
     profile: {

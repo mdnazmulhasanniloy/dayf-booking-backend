@@ -6,10 +6,10 @@ import { deleteManyFromS3, uploadManyToS3, uploadToS3 } from '../../utils/s3';
 import pickQuery from '../../utils/pickQuery';
 import { Types } from 'mongoose';
 import { paginationHelper } from '../../helpers/pagination.helpers';
-import generateCryptoString from '../../utils/generateCryptoString';
 import Apartment from '../apartment/apartment.models';
+import generateRandomString from '../../utils/generateRandomString';
 
-const createProperty = async (payload: IProperty, files: any) => { 
+const createProperty = async (payload: IProperty, files: any) => {
   if (files) {
     const { images, coverImage, profile } = files;
 
@@ -29,13 +29,14 @@ const createProperty = async (payload: IProperty, files: any) => {
     if (coverImage) {
       payload.coverImage = (await uploadToS3({
         file: coverImage[0],
-        fileName: `images/property/cover/${generateCryptoString(5)}`,
+        fileName: `images/property/cover/${generateRandomString(5)}`,
       })) as string;
     }
+
     if (profile) {
       payload.profile = (await uploadToS3({
         file: profile[0],
-        fileName: `images/property/profile/${generateCryptoString(5)}`,
+        fileName: `images/property/profile/${generateRandomString(5)}`,
       })) as string;
     }
   }
@@ -309,59 +310,72 @@ const getPropertyById = async (id: string) => {
 
 const updateProperty = async (
   id: string,
-  payload: Partial<IProperty>,
+  payload: Partial<IProperty> & { deleteKey?: string[] },
   files: any,
 ) => {
-  const { deleteKey, ...updateData } = payload;
+  const updatePayload: Partial<IProperty> = { ...payload };
 
-  const update: any = { ...updateData };
-
+  // Handle file uploads
   if (files) {
-    const { images, coverImage } = files;
+    const { images, coverImage, profile } = files;
 
+    // Upload new images
     if (images?.length) {
-      const imgsArray: { file: any; path: string; key?: string }[] = [];
-
-      images.map((image: any) =>
-        imgsArray.push({
-          file: image,
-          path: `images/property`,
-        }),
-      );
-
-      payload.images = await uploadManyToS3(imgsArray);
+      const imgsArray = images.map((image: any) => ({
+        file: image,
+        path: 'images/property',
+      }));
+      const uploadedImages = await uploadManyToS3(imgsArray);
+      updatePayload.images = uploadedImages;
     }
 
-    if (coverImage) {
-      payload.coverImage = (await uploadToS3({
+    // Upload cover image
+    if (coverImage?.length) {
+      const uploadedCover = await uploadToS3({
         file: coverImage[0],
-        fileName: `images/property/cover/${generateCryptoString(5)}`,
-      })) as string;
+        fileName: `images/property/cover/${generateRandomString(5)}`,
+      });
+      updatePayload.coverImage = uploadedCover as string;
+    }
+
+    // Upload profile image
+    if (profile?.length) {
+      const uploadedProfile = await uploadToS3({
+        file: profile[0],
+        fileName: `images/property/profile/${generateRandomString(5)}`,
+      });
+      updatePayload.profile = uploadedProfile as string;
     }
   }
 
-  if (deleteKey && deleteKey.length > 0) {
-    const newKey: string[] = [];
-    deleteKey.map((key: any) => newKey.push(`images/property${key}`));
-    if (newKey?.length > 0) {
-      await deleteManyFromS3(newKey);
-    }
+  // Handle image deletions from S3 and DB
+  if (payload.deleteKey && payload.deleteKey.length > 0) {
+    const fullKeysToDelete = payload.deleteKey.map(
+      key => `images/property/${key}`,
+    );
+    await deleteManyFromS3(fullKeysToDelete);
 
     await Property.findByIdAndUpdate(id, {
-      $pull: { images: { key: { $in: deleteKey } } },
+      $pull: { images: { key: { $in: payload.deleteKey } } },
     });
   }
 
-  if (payload?.images && payload.images.length > 0) {
+  // Push new images if available
+  if (updatePayload.images && updatePayload.images.length > 0) {
     await Property.findByIdAndUpdate(id, {
-      $push: { images: { $each: payload.images } },
+      $push: { images: { $each: updatePayload.images } },
     });
+    delete updatePayload.images; // avoid pushing again in the next update
   }
 
-  const result = await Property.findByIdAndUpdate(id, update, { new: true });
+  // Final property update
+  const result = await Property.findByIdAndUpdate(id, updatePayload, {
+    new: true,
+  });
   if (!result) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Failed to update Property');
   }
+
   return result;
 };
 
@@ -385,17 +399,6 @@ const getHamePageData = async () => {
     // Step 1: Match non-deleted properties
     { $match: { isDeleted: false } },
 
-    // Step 2: Lookup rooms related to each property
-    // {
-    //   $lookup: {
-    //     from: 'rooms', // matches collection name in MongoDB (lowercase plural)
-    //     localField: '_id',
-    //     foreignField: 'property',
-    //     as: 'rooms',
-    //   },
-    // },
-
-    // Step 3: Lookup and populate facilities
     {
       $lookup: {
         from: 'facilities',
@@ -405,23 +408,6 @@ const getHamePageData = async () => {
       },
     },
 
-    // Step 4: Add fields for priceRange based on rooms
-    // {
-    //   $addFields: {
-    //     priceRange: {
-    //       $cond: {
-    //         if: { $gt: [{ $size: '$rooms' }, 0] },
-    //         then: {
-    //           min: { $min: '$rooms.pricePerNight' },
-    //           max: { $max: '$rooms.pricePerNight' },
-    //         },
-    //         else: null,
-    //       },
-    //     },
-    //   },
-    // },
-
-    // Step 5: Sort by avgRating descending
     { $sort: { avgRating: -1 } },
 
     // Step 6: Limit result

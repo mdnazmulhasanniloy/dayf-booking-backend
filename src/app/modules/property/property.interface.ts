@@ -16,6 +16,7 @@ export interface IProperty {
   author: ObjectId;
   images: IImage[];
   name: string;
+  coverColor: string;
   length: number;
   description: string;
   address: string;

@@ -7,6 +7,7 @@ export interface IApartment {
   id: string;
   profile: string;
   coverImage: string;
+  coverColor: string;
   author: ObjectId;
   price: number;
   images: IImage[];
