@@ -28,9 +28,17 @@ jobs:
           key: ${{ secrets.DO_PRIVATE_KEY }}
           port: 22
           script: |
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            nvm use 24
+
+            node -v
+            npm -v
+            pm2 -v
+
             cd ~/dayf-booking-backend
             git pull origin main
             rm -rf node_modules
             npm install -g pm2
-            npm i
+            npm install
             pm2 restart dayf-server || pm2 start npm --name dayf-server -- run dev
