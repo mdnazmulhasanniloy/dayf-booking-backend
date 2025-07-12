@@ -12,6 +12,14 @@ jobs:
       - name: 📥 Checkout Code
         uses: actions/checkout@v3
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+
+      - name: Install PM2
+        run: npm install -g pm2
+
       - name: 🚀 Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.0
         with:
