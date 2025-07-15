@@ -2,7 +2,7 @@ import httpStatus from 'http-status';
 import { IPayments } from './payments.interface';
 import Payments from './payments.models';
 import QueryBuilder from '../../builder/QueryBuilder';
-import AppError from '../../error/AppError'; 
+import AppError from '../../error/AppError';
 import config from '../../config';
 import generateRandomString from '../../utils/generateRandomString';
 import Bookings from '../bookings/bookings.models';
@@ -28,7 +28,7 @@ const checkout = async (payload: IPayments) => {
 
   const bookings: IBookings | null = await Bookings?.findById(
     payload?.bookings,
-  ).populate([{ path: 'reference'}]);
+  ).populate([{ path: 'reference' }]);
 
   if (!bookings) {
     throw new AppError(httpStatus.NOT_FOUND, 'Booking Not Found!');
@@ -94,6 +94,11 @@ const checkout = async (payload: IPayments) => {
       user?.email,
       user?.name,
     );
+    await User.findByIdAndUpdate(
+      user?._id,
+      { customerId: customer?.id },
+      { upsert: false },
+    );
     customerId = customer?.id;
   }
 
@@ -143,6 +148,7 @@ const confirmPayment = async (query: Record<string, any>) => {
       {
         paymentStatus: PAYMENT_STATUS?.paid,
         status: BOOKING_STATUS?.confirmed,
+        expireAt: null,
         tranId: payment?.tranId,
       },
       { new: true, session },
