@@ -55,8 +55,8 @@ const initializeSocketIO = (server: HttpServer) => {
 
       //----------------------user id set in online array-------------------------//
       onlineUser.add(user?._id?.toString());
-      socketTOUserId.set(socket?.id, user?._id);
-      userTOSocketId.set(user?._id, socket?.id);
+      socketTOUserId.set(socket?.id, user?._id?.toString());
+      userTOSocketId.set(user?._id?.toString(), socket?.id);
 
       socket.on('check', (data, callback) => {
         console.log(data);
@@ -98,7 +98,8 @@ const initializeSocketIO = (server: HttpServer) => {
             role: receiverDetails?.role,
           };
           const userSocket = getSocketId(user?._id);
-          socket.to(userSocket).emit('user-details', payload);
+
+          io.to(userSocket).emit('user-details', payload);
 
           const getPreMessage = await Message.find({
             $or: [
@@ -106,8 +107,7 @@ const initializeSocketIO = (server: HttpServer) => {
               { sender: userId, receiver: user?._id },
             ],
           }).sort({ updatedAt: 1 });
-
-          socket.to(userSocket).emit('message', getPreMessage || []);
+          io.to(userSocket).emit('message', getPreMessage || []);
 
           // Notification
           // const allUnReaddMessage = await Message.countDocuments({
@@ -275,7 +275,8 @@ const initializeSocketIO = (server: HttpServer) => {
 
         // const senderMessage = 'new-message::' + result.chat.toString();
         const userSocket = getSocketId(user?._id);
-        const receiverSocket = getSocketId(payload?.receiver);
+        console.log('🚀 ~ socket.on ~ userSocket:', userSocket);
+        const receiverSocket = getSocketId(result?.receiver?.toString()); 
         io.to(userSocket).emit('new-message', result);
         io.to(receiverSocket).emit('new-message', result);
 
