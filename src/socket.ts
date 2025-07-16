@@ -276,7 +276,6 @@ const initializeSocketIO = (server: HttpServer) => {
 
         // const senderMessage = 'new-message::' + result.chat.toString();
         const userSocket = getSocketId(user?._id);
-        console.log('🚀 ~ socket.on ~ userSocket:', userSocket);
         const receiverSocket = getSocketId(result?.receiver?.toString());
         io.to(userSocket).emit('new-message', result);
         io.to(receiverSocket).emit('new-message', result);
