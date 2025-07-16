@@ -27,11 +27,11 @@ const initializeSocketIO = (server: HttpServer) => {
   const userTOSocketId = new Map<string, string>();
 
   function getSocketId(userid: string) {
-    return userTOSocketId.get(userid) as string;
+    return userTOSocketId.get(userid?.toString()) as string;
   }
 
   function getUserId(socketid: string) {
-    return socketTOUserId.get(socketid) as string;
+    return socketTOUserId.get(socketid?.toString()) as string;
   }
 
   // Online users
@@ -90,6 +90,7 @@ const initializeSocketIO = (server: HttpServer) => {
               message: 'user is not found!',
             });
           }
+
           const payload = {
             _id: receiverDetails?._id,
             name: receiverDetails?.name,
@@ -97,7 +98,7 @@ const initializeSocketIO = (server: HttpServer) => {
             profile: receiverDetails?.profile,
             role: receiverDetails?.role,
           };
-          const userSocket = getSocketId(user?._id);
+          const userSocket = getSocketId(user?._id?.toString());
 
           io.to(userSocket).emit('user-details', payload);
 
@@ -276,7 +277,7 @@ const initializeSocketIO = (server: HttpServer) => {
         // const senderMessage = 'new-message::' + result.chat.toString();
         const userSocket = getSocketId(user?._id);
         console.log('🚀 ~ socket.on ~ userSocket:', userSocket);
-        const receiverSocket = getSocketId(result?.receiver?.toString()); 
+        const receiverSocket = getSocketId(result?.receiver?.toString());
         io.to(userSocket).emit('new-message', result);
         io.to(receiverSocket).emit('new-message', result);
 
