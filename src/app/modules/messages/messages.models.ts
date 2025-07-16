@@ -9,13 +9,11 @@ const messageSchema = new Schema<IMessages>(
     },
     imageUrl: [
       {
-        key: {
-          type: String,
-          default: null,
-        },
-        url: { type: String, default: null },
+        type: String,
+        default: null,
       },
     ],
+
     seen: {
       type: Boolean,
       default: false,

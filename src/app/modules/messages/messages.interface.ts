@@ -3,12 +3,8 @@ import { Model, ObjectId } from 'mongoose';
 export interface IMessages {
   _id?: ObjectId;
   id?: string;
-  text?: string; 
-  imageUrl?: {
-    key: string;
-    url: string;
-  }[];
-
+  text?: string;
+  imageUrl?: string[];
   seen: boolean;
   chat: ObjectId;
   sender: ObjectId;
