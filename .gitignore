@@ -4,4 +4,4 @@ logs/
 .env
 .vercel
 nn.ts
-./firebase-service-account.jsonfirebase-service-account.json
+firebase-service-account.json
