@@ -188,14 +188,14 @@ const getAllApartment = async (query: Record<string, any>) => {
   if (adults || children || infants) {
     pipeline.push({
       $match: {
-        guests: {
-          adult: adults ? { $gte: adults } : { $gte: 0 },
-          children: children ? { $gte: children } : { $gte: 0 },
-          infants: infants ? { $gte: infants } : { $gte: 0 },
-        },
+        'guests.adult': adults ? { $gte: Number(adults) } : { $gte: 0 },
+        'guests.children': children ? { $gte: Number(children) } : { $gte: 0 },
+        'guests.infants': infants ? { $gte: Number(infants) } : { $gte: 0 },
       },
     });
+    // console.log(JSON.stringify(pipeline, null, 2));
   }
+
   if (Object.entries(filtersData).length) {
     Object.entries(filtersData).forEach(([field, value]) => {
       if (/^\[.*?\]$/.test(value)) {
@@ -385,7 +385,7 @@ const updateApartment = async (
     await Apartment.findByIdAndUpdate(id, {
       $push: { images: { $each: updatePayload.images } },
     });
-    delete updatePayload.images;  
+    delete updatePayload.images;
   }
 
   // Final update
@@ -399,7 +399,6 @@ const updateApartment = async (
   return result;
 };
 
- 
 const deleteApartment = async (id: string) => {
   const result = await Apartment.findByIdAndUpdate(
     id,
