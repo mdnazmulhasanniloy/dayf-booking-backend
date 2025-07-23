@@ -67,6 +67,7 @@
   "dependencies": {
     "@types/node-schedule": "^2.1.7",
     "@types/uuid": "^10.0.0",
+    "firebase-admin": "^13.4.0",
     "node-schedule": "^2.1.1",
     "socket.io": "^4.7.5",
     "stripe": "^16.6.0",

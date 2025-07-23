@@ -22,11 +22,13 @@ import { IUser } from '../user/user.interface';
 import { User } from '../user/user.models';
 import path from 'path';
 import fs from 'fs';
-import { REGISTER_WITH } from '../user/user.constants';
+import { REGISTER_WITH, USER_ROLE } from '../user/user.constants';
+import { DecodedIdToken } from 'firebase-admin/lib/auth/token-verifier';
+import firebaseAdmin from '../../utils/firebase';
 
 // Login
 const login = async (payload: TLogin) => {
-  payload.email = payload?.email?.trim().toLowerCase()
+  payload.email = payload?.email?.trim().toLowerCase();
   const user: IUser | null = await User.isUserExist(payload?.email);
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
@@ -77,32 +79,81 @@ const login = async (payload: TLogin) => {
 
 // register with google
 const registerWithGoogle = async (payload: any) => {
-  // const data = await verifyGoogleToken(payload.token);
-  // console.log(data);
-  // return data;
-  // if (!data.success && data?.message) {
-  //   throw new AppError(httpStatus.BAD_REQUEST, data?.message);
-  // }
+  try {
+    const decodedToken: DecodedIdToken | null = await firebaseAdmin
+      .auth()
+      .verifyIdToken(payload?.token);
 
-  const userData = payload;
-
-  const existingUser = await User.isUserExist(userData?.email);
-
-  if (existingUser) {
-    if (existingUser?.registerWith !== REGISTER_WITH.google) {
+    console.log(JSON.stringify(decodedToken));
+    if (!decodedToken)
+      throw new AppError(httpStatus.BAD_REQUEST, 'Invalid token');
+    if (!decodedToken?.email_verified) {
       throw new AppError(
-        httpStatus.BAD_REQUEST,
-        `This account is registered with ${existingUser.registerWith}, so you should try logging in using that method.`,
+        httpStatus?.BAD_REQUEST,
+        'your mail not verified from google',
       );
     }
 
-    if (existingUser?.isDeleted) {
-      throw new AppError(httpStatus.FORBIDDEN, 'This user is deleted');
+    const existingUser = await User.isUserExist(decodedToken?.email as string);
+
+    if (existingUser) {
+      if (existingUser?.registerWith !== REGISTER_WITH.google) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          `This account is registered with ${existingUser.registerWith}, so you should try logging in using that method.`,
+        );
+      }
+
+      if (existingUser?.isDeleted) {
+        throw new AppError(httpStatus.FORBIDDEN, 'This user is deleted');
+      }
+
+      const jwtPayload: { userId: string; role: string } = {
+        userId: existingUser?._id?.toString() as string,
+        role: existingUser?.role,
+      };
+
+      const accessToken = createToken(
+        jwtPayload,
+        config.jwt_access_secret as string,
+        config.jwt_access_expires_in as string,
+      );
+
+      const refreshToken = createToken(
+        jwtPayload,
+        config.jwt_refresh_secret as string,
+        config.jwt_refresh_expires_in as string,
+      );
+
+      return {
+        user: existingUser,
+        accessToken,
+        refreshToken,
+      };
+    }
+
+    const user = await User.create({
+      name: decodedToken?.name,
+      email: decodedToken?.email,
+      profile: decodedToken?.picture,
+      phoneNumber: decodedToken?.phone_number,
+      registerWith: REGISTER_WITH.google,
+      role: payload?.role ?? USER_ROLE.user,
+      verification: {
+        status: true,
+      },
+    });
+
+    if (!user) {
+      throw new AppError(
+        httpStatus.INTERNAL_SERVER_ERROR,
+        'Failed to create user',
+      );
     }
 
     const jwtPayload: { userId: string; role: string } = {
-      userId: existingUser?._id?.toString() as string,
-      role: existingUser?.role,
+      userId: user?._id?.toString() as string,
+      role: user?.role,
     };
 
     const accessToken = createToken(
@@ -118,80 +169,91 @@ const registerWithGoogle = async (payload: any) => {
     );
 
     return {
-      user: existingUser,
+      user,
       accessToken,
       refreshToken,
     };
+  } catch (error: any) {
+    throw new AppError(httpStatus.BAD_REQUEST, error.message);
   }
-
-  const user = await User.create({
-    name: userData?.name,
-    email: userData?.email,
-    image: userData?.picture,
-    registerWith: REGISTER_WITH.google,
-    role: payload.role,
-    verification: {
-      status: true,
-    },
-  });
-
-  if (!user) {
-    throw new AppError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      'Failed to create user',
-    );
-  }
-
-  const jwtPayload: { userId: string; role: string } = {
-    userId: user?._id?.toString() as string,
-    role: user?.role,
-  };
-
-  const accessToken = createToken(
-    jwtPayload,
-    config.jwt_access_secret as string,
-    config.jwt_access_expires_in as string,
-  );
-
-  const refreshToken = createToken(
-    jwtPayload,
-    config.jwt_refresh_secret as string,
-    config.jwt_refresh_expires_in as string,
-  );
-
-  return {
-    user,
-    accessToken,
-    refreshToken,
-  };
 };
 
 const registerWithFacebook = async (payload: any) => {
-  // const data = await verifyFacebookToken(payload.token);
+  try {
+    const decodedToken: DecodedIdToken | null = await firebaseAdmin
+      .auth()
+      .verifyIdToken(payload?.token);
 
-  // if (!data.success && data?.message) {
-  //   throw new AppError(httpStatus.BAD_REQUEST, data?.message);
-  // }
-
-  const userData = payload;
-
-  const existingUser = await User.isUserExist(userData?.email);
-
-  if (existingUser) {
-    if (existingUser?.registerWith !== REGISTER_WITH.facebook) {
+    console.log(JSON.stringify(decodedToken));
+    if (!decodedToken)
+      throw new AppError(httpStatus.BAD_REQUEST, 'Invalid token');
+    if (!decodedToken?.email_verified) {
       throw new AppError(
-        httpStatus.BAD_REQUEST,
-        `This account is registered with ${existingUser.registerWith}, so you should try logging in using that method.`,
+        httpStatus?.BAD_REQUEST,
+        'your mail not verified from google',
       );
     }
 
-    if (existingUser?.isDeleted) {
-      throw new AppError(httpStatus.FORBIDDEN, 'This user is deleted');
+    const existingUser = await User.isUserExist(decodedToken?.email as string);
+
+    if (existingUser) {
+      if (existingUser?.registerWith !== REGISTER_WITH.facebook) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          `This account is registered with ${existingUser.registerWith}, so you should try logging in using that method.`,
+        );
+      }
+
+      if (existingUser?.isDeleted) {
+        throw new AppError(httpStatus.FORBIDDEN, 'This user is deleted');
+      }
+
+      const jwtPayload: { userId: string; role: string } = {
+        userId: existingUser?._id?.toString() as string,
+        role: existingUser?.role,
+      };
+
+      const accessToken = createToken(
+        jwtPayload,
+        config.jwt_access_secret as string,
+        config.jwt_access_expires_in as string,
+      );
+
+      const refreshToken = createToken(
+        jwtPayload,
+        config.jwt_refresh_secret as string,
+        config.jwt_refresh_expires_in as string,
+      );
+
+      return {
+        user: existingUser,
+        accessToken,
+        refreshToken,
+      };
+    }
+
+    const user = await User.create({
+      name: decodedToken?.name,
+      email: decodedToken?.email,
+      profile: decodedToken?.picture,
+      phoneNumber: decodedToken?.phone_number,
+      registerWith: REGISTER_WITH.facebook,
+      role: payload?.role ?? USER_ROLE.user,
+      verification: {
+        status: true,
+      },
+    });
+
+    if (!user) {
+      throw new AppError(
+        httpStatus.INTERNAL_SERVER_ERROR,
+        'Failed to create user',
+      );
     }
 
     const jwtPayload: { userId: string; role: string } = {
-      userId: existingUser?._id?.toString() as string,
-      role: existingUser?.role,
+      userId: user?._id?.toString() as string,
+      role: user?.role,
     };
 
     const accessToken = createToken(
@@ -207,52 +269,13 @@ const registerWithFacebook = async (payload: any) => {
     );
 
     return {
-      user: existingUser,
+      user,
       accessToken,
       refreshToken,
     };
-  }
-
-  const user = await User.create({
-    name: userData?.name,
-    email: userData?.email,
-    image: userData?.picture,
-    registerWith: REGISTER_WITH.facebook,
-    role: payload.role,
-    verification: {
-      status: true,
-    },
-  });
-
-  if (!user) {
-    throw new AppError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      'Failed to create user',
-    );
-  }
-
-  const jwtPayload: { userId: string; role: string } = {
-    userId: user?._id?.toString() as string,
-    role: user?.role,
-  };
-
-  const accessToken = createToken(
-    jwtPayload,
-    config.jwt_access_secret as string,
-    config.jwt_access_expires_in as string,
-  );
-
-  const refreshToken = createToken(
-    jwtPayload,
-    config.jwt_refresh_secret as string,
-    config.jwt_refresh_expires_in as string,
-  );
-
-  return {
-    user,
-    accessToken,
-    refreshToken,
-  };
+  } catch (error: any) {
+    throw new AppError(httpStatus.BAD_REQUEST, error.message);
+  } 
 };
 
 // Change password
@@ -317,9 +340,8 @@ const forgotPassword = async (email: string) => {
 
   await User.findByIdAndUpdate(user?._id, {
     needsPasswordChange: true,
-    "verification.otp":otp,
-     "verification.expiresAt": expiresAt,
-     
+    'verification.otp': otp,
+    'verification.expiresAt': expiresAt,
   });
 
   const otpEmailPath = path.join(
@@ -362,16 +384,13 @@ const resetPassword = async (token: string, payload: TResetPassword) => {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
-
   if (new Date() > user?.verification?.expiresAt) {
     throw new AppError(httpStatus.FORBIDDEN, 'Session has expired');
   }
 
-
   if (!user?.verification?.status) {
     throw new AppError(httpStatus.FORBIDDEN, 'OTP is not verified yet');
   }
-
 
   if (payload?.newPassword !== payload?.confirmPassword) {
     throw new AppError(
@@ -385,7 +404,7 @@ const resetPassword = async (token: string, payload: TResetPassword) => {
     Number(config.bcrypt_salt_rounds),
   );
 
-  const result = await User.findByIdAndUpdate(decode?.userId, {       
+  const result = await User.findByIdAndUpdate(decode?.userId, {
     password: hashedPassword,
     passwordChangedAt: new Date(),
     verification: {
