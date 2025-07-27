@@ -117,8 +117,7 @@ const checkout = async (payload: IPayments) => {
   return checkoutSession?.url;
 };
 
-const confirmPayment = async (query: Record<string, any>) => {
-  console.log("🚀 ~ confirmPayment ~ query:", query)
+const confirmPayment = async (query: Record<string, any>) => {  
   const { sessionId, paymentId, device } = query;
   const session = await startSession();
   const PaymentSession = await StripeService.getPaymentSession(sessionId);
