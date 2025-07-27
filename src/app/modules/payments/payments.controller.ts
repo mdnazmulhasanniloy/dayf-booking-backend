@@ -19,18 +19,22 @@ const checkout = catchAsync(async (req: Request, res: Response) => {
 const confirmPayment = catchAsync(async (req: Request, res: Response) => {
   console.log(req.originalUrl);
   const result = await paymentsService.confirmPayment(req?.query);
+  console.log('🚀 ~ result:', result);
   if (result?.redirectType === 'website') {
-    res.redirect(
+    console.log(
+      '--------------------------------------------------------------->>redirect',
+    );
+    return res.redirect(
       `${config.client_Url}?/booking/success?bookingId=${result?.bookings}`,
     );
-  } else {
-    sendResponse(res, {
-      success: true,
-      statusCode: httpStatus.OK,
-      data: result,
-      message: 'payment successful',
-    });
   }
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    data: result,
+    message: 'payment successful',
+  });
 });
 
 const createPayments = catchAsync(async (req: Request, res: Response) => {

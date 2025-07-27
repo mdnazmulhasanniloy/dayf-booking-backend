@@ -9,9 +9,7 @@ import {
 } from './auth.interface';
 import config from '../../config';
 import {
-  createToken,
-  verifyFacebookToken,
-  verifyGoogleToken,
+  createToken, 
   verifyToken,
 } from './auth.utils';
 import { generateOtp } from '../../utils/otpGenerator';
@@ -79,10 +77,11 @@ const login = async (payload: TLogin) => {
 
 // register with google
 const registerWithGoogle = async (payload: any) => {
+  console.log();
   try {
     const decodedToken: DecodedIdToken | null = await firebaseAdmin
       .auth()
-      .verifyIdToken(payload?.token);
+      .verifyIdToken(payload?.token); // Verify the token
 
     console.log(JSON.stringify(decodedToken));
     if (!decodedToken)
@@ -174,6 +173,7 @@ const registerWithGoogle = async (payload: any) => {
       refreshToken,
     };
   } catch (error: any) {
+    console.error('Error in registerWithGoogle:', error);
     throw new AppError(httpStatus.BAD_REQUEST, error.message);
   }
 };
@@ -275,7 +275,7 @@ const registerWithFacebook = async (payload: any) => {
     };
   } catch (error: any) {
     throw new AppError(httpStatus.BAD_REQUEST, error.message);
-  } 
+  }
 };
 
 // Change password

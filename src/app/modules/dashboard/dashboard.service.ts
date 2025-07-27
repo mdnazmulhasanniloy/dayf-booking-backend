@@ -1,11 +1,11 @@
-import { MonthlyIncome, MonthlyUsers } from './dashboard.interface'; 
+import { MonthlyIncome, MonthlyUsers } from './dashboard.interface';
 import Payments from '../payments/payments.models';
 import moment from 'moment';
 import { PAYMENT_STATUS } from '../bookings/bookings.constants';
 import { initializeMonthlyData } from './dashboard.utils';
 import { Types } from 'mongoose';
 import Bookings from '../bookings/bookings.models';
-import { BOOKING_MODEL_TYPE } from '../bookings/bookings.interface'; 
+import { BOOKING_MODEL_TYPE } from '../bookings/bookings.interface';
 import pickQuery from '../../utils/pickQuery';
 import { paginationHelper } from '../../helpers/pagination.helpers';
 import { User } from '../user/user.models';
@@ -472,7 +472,7 @@ const getAdminDashboard = async (query: Record<string, any>) => {
   );
 
   //========================== Booking aggregate ==========================\\
-  const monthString = query?.bookingMonth || moment().format('YYYY-MM');
+  const monthString = query?.bookingMonth || moment().format('YYYY-MM'); 
 
   const startOfMonth = moment(monthString, 'YYYY-MM').startOf('month').utc();
   const endOfMonth = moment(monthString, 'YYYY-MM').endOf('month').utc();
@@ -559,7 +559,7 @@ const getAdminDashboard = async (query: Record<string, any>) => {
   //     $sort: { date: 1 },
   //   },
   // ]);
- 
+
   return {
     toDayIncome: earningData?.toDayEarnings[0]?.total || 0,
     totalIncome: earningData?.totalEarnings[0]?.total || 0,
