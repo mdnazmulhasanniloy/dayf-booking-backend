@@ -20,7 +20,7 @@ const confirmPayment = catchAsync(async (req: Request, res: Response) => {
   console.log(req.originalUrl);
   const result = await paymentsService.confirmPayment(req?.query);
   console.log('🚀 ~ result:', result);
-  if (result?.redirectType === 'website') {
+  if (result?.device === 'website') {
     console.log(
       '--------------------------------------------------------------->>redirect',
     );
