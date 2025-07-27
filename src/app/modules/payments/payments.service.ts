@@ -119,7 +119,7 @@ const checkout = async (payload: IPayments) => {
 
 const confirmPayment = async (query: Record<string, any>) => {
   console.log("🚀 ~ confirmPayment ~ query:", query)
-  const { sessionId, paymentId, redirectType } = query;
+  const { sessionId, paymentId, device } = query;
   const session = await startSession();
   const PaymentSession = await StripeService.getPaymentSession(sessionId);
   const paymentIntentId = PaymentSession.payment_intent as string;
@@ -181,7 +181,7 @@ const confirmPayment = async (query: Record<string, any>) => {
     });
 
     await session.commitTransaction();
-    return { ...payment.toObject(), redirectType };
+    return { ...payment.toObject(), device };
   } catch (error: any) {
     await session.abortTransaction();
 
