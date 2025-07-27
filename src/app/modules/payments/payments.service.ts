@@ -22,7 +22,6 @@ import { IProperty } from '../property/property.interface';
 import RoomTypes from '../roomTypes/roomTypes.models';
 
 const checkout = async (payload: IPayments) => {
-  console.log("🚀 ~ checkout ~ payload:", payload)
   const tranId = generateRandomString(10);
   let paymentData: IPayments;
   let name: string;
@@ -117,7 +116,7 @@ const checkout = async (payload: IPayments) => {
   return checkoutSession?.url;
 };
 
-const confirmPayment = async (query: Record<string, any>) => {  
+const confirmPayment = async (query: Record<string, any>) => {
   const { sessionId, paymentId, device } = query;
   const session = await startSession();
   const PaymentSession = await StripeService.getPaymentSession(sessionId);
