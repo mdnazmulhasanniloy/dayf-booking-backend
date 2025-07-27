@@ -18,12 +18,9 @@ const checkout = catchAsync(async (req: Request, res: Response) => {
 
 const confirmPayment = catchAsync(async (req: Request, res: Response) => {
   console.log(req.originalUrl);
-  const result = await paymentsService.confirmPayment(req?.query);
-  console.log('🚀 ~ result:', result);
+  const result = await paymentsService.confirmPayment(req?.query); 
   if (result?.device === 'website') {
-    console.log(
-      '--------------------------------------------------------------->>redirect',
-    );
+     
     return res.redirect(
       `${config.client_Url}/booking/success?bookingId=${result?.bookings}`,
     );
