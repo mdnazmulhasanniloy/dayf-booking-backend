@@ -25,7 +25,7 @@ const confirmPayment = catchAsync(async (req: Request, res: Response) => {
       '--------------------------------------------------------------->>redirect',
     );
     return res.redirect(
-      `${config.client_Url}?/booking/success?bookingId=${result?.bookings}`,
+      `${config.client_Url}/booking/success?bookingId=${result?.bookings}`,
     );
   }
 
