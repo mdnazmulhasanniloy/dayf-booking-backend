@@ -12,11 +12,11 @@ const stripLinkAccount = async (userId: string) => {
   if (!user) {
     throw new AppError(httpStatus.BAD_REQUEST, 'User not found!');
   }
+  const account = await StripeService.getStripe().accounts.create({
+    // email: user?.email, (optional: uncomment if you want to pass user's email)
+  });
 
   try {
-    const account = await StripeService.getStripe().accounts.create({
-      // email: user?.email, (optional: uncomment if you want to pass user's email)
-    });
     const refresh_url = `${config?.server_url}/stripe/refresh/${account.id}?userId=${user?._id}`;
 
     const return_url = `${config?.client_Url}/seller/confirmation?userId=${user._id}&stripeAccountId=${account.id}`;
@@ -96,9 +96,78 @@ const returnUrl = async (payload: {
   }
 };
 
+
+// connect account for apk
+const stripLinkAccountForAPK = async (userId: string) => {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'User not found!');
+  }
+  const account = await StripeService.getStripe().accounts.create({
+    // email: user?.email, (optional: uncomment if you want to pass user's email)
+  });
+
+  try {
+    const return_url = `${config?.server_url}/stripe/apk/return?stripeAccountId=${account.id}&userId=${user?._id}`;
+    const refresh_url = `${config?.server_url}/stripe/apk/refresh/${account.id}?userId=${user?._id}`;
+
+    const accountLink = await StripeService.connectAccount(
+      return_url,
+      refresh_url,
+      account?.id,
+    );
+
+    return accountLink.url;
+  } catch (error: any) {
+    throw new AppError(httpStatus.BAD_GATEWAY, error.message);
+  }
+};
+const refreshFOrAPK = async (paymentId: string, query: Record<string, any>) => {
+  const user = await User.findById(query.userId);
+
+  if (!user) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'User not found!');
+  }
+
+  try {
+    const return_url = `${config?.server_url}/stripe/apk/return?stripeAccountId=${paymentId}&userId=${user?._id}`;
+    const refresh_url = `${config?.server_url}/stripe/apk/refresh/${paymentId}?userId=${user?._id}`;
+
+    const accountLink = await StripeService.connectAccount(
+      return_url,
+      refresh_url,
+      paymentId,
+    );
+
+    return accountLink.url;
+  } catch (error: any) {
+    throw new AppError(httpStatus.BAD_REQUEST, error.message);
+  }
+};
+
+// Handle the return URL and update the user's Stripe account ID
+const returnUrlForAPK = async (query: Record<string, any>) => {
+  try {
+    const user = await User.findByIdAndUpdate(query?.userId, {
+      stripeAccountId: query?.stripeAccountId,
+    });
+
+    if (!user) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'user not found!');
+    }
+    return { url: config?.client_Url };
+  } catch (error: any) {
+    throw new AppError(httpStatus.BAD_REQUEST, error.message);
+  }
+};
+
 export const stripeService = {
   handleStripeOAuth,
   stripLinkAccount,
   refresh,
   returnUrl,
+  stripLinkAccountForAPK,
+  refreshFOrAPK,
+  returnUrlForAPK,
 };

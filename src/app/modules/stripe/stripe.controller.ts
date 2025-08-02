@@ -38,9 +38,46 @@ const returnUrl = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// for apk
+
+const stripLinkAccountForAPK = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await stripeService.stripLinkAccountForAPK(
+      req?.user?.userId,
+    );
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      data: result,
+      message: 'Account creation URL generated successfully.',
+    });
+  },
+);
+
+
+const refreshFOrAPK = catchAsync(async (req: Request, res: Response) => {
+  const result = await stripeService.refreshFOrAPK(req.params?.id, req.query);
+
+  // Remove sendResponse after res.redirect to avoid setting headers twice
+  res.redirect(result);
+});
+
+const returnUrlForAPK = catchAsync(async (req: Request, res: Response) => {
+  const result = await stripeService.returnUrlForAPK(req.query);
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    data: result,
+    message: 'Stripe account updated successfully.',
+  });
+});
+
 export const stripeController = {
   stripLinkAccount,
   handleStripeOAuth,
   refresh,
   returnUrl,
+  stripLinkAccountForAPK,
+  refreshFOrAPK,
+  returnUrlForAPK,
 };
