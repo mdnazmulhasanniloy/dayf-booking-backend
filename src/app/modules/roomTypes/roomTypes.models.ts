@@ -1,5 +1,9 @@
 import { model, Schema } from 'mongoose';
-import { ILocations, IRoomTypes, IRoomTypesModules } from './roomTypes.interface';
+import {
+  ILocations,
+  IRoomTypes,
+  IRoomTypesModules,
+} from './roomTypes.interface';
 import { IImage } from '../property/property.interface';
 
 const ImageSchema = new Schema<IImage>({
@@ -67,6 +71,7 @@ const roomTypesSchema = new Schema<IRoomTypes>(
   },
 );
 
+roomTypesSchema.index({ location: '2dsphere' });
 const RoomTypes = model<IRoomTypes, IRoomTypesModules>(
   'RoomTypes',
   roomTypesSchema,
