@@ -148,7 +148,7 @@ const confirmPayment = async (query: Record<string, any>) => {
       {
         paymentStatus: PAYMENT_STATUS?.paid,
         status: BOOKING_STATUS?.confirmed,
-        expireAt: null,
+        $unset: { expireAt: '' },
         tranId: payment?.tranId,
       },
       { new: true, session },
