@@ -7,6 +7,7 @@ import { getAverageRating } from './reviews.utils';
 import Apartment from '../apartment/apartment.models';
 import Property from '../property/property.models';
 import { ClientSession, startSession } from 'mongoose';
+import Bookings from '../bookings/bookings.models';
 
 const createReviews = async (payload: IReviews) => {
   const session: ClientSession = await startSession();
@@ -54,6 +55,12 @@ const createReviews = async (payload: IReviews) => {
       default:
         throw new AppError(httpStatus.BAD_REQUEST, 'Invalid model type');
     }
+
+    await Bookings.findByIdAndUpdate(
+      payload?.booking,
+      { isReviewed: true },
+      { new: true, upsert: false, session },
+    );
 
     await session.commitTransaction();
     session.endSession();
