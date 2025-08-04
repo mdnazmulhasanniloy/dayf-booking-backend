@@ -110,7 +110,6 @@ const updateContents = async (payload: Partial<IContents>, files: any) => {
     });
   }
 
-
   if (whyChooseUsSectionDeleteKey && whyChooseUsSectionDeleteKey.length > 0) {
     const newKey: string[] = [];
     whyChooseUsSectionDeleteKey.map((key: any) =>
@@ -180,7 +179,7 @@ const supportMessage = async (payload: any) => {
   );
 
   await sendEmail(
-    'uzzalbhowmik21.work@gmail.com',
+    'support@dayfbooking.com',
     payload?.subject ?? 'Support Messages',
     fs
       .readFileSync(otpEmailPath, 'utf8')
@@ -192,7 +191,7 @@ const supportMessage = async (payload: any) => {
   return;
 };
 
-export const contentsService = { 
+export const contentsService = {
   getAllContents,
   getContentsById,
   updateContents,

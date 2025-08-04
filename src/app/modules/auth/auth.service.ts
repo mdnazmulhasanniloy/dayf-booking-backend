@@ -8,10 +8,7 @@ import {
   TResetPassword,
 } from './auth.interface';
 import config from '../../config';
-import {
-  createToken, 
-  verifyToken,
-} from './auth.utils';
+import { createToken, verifyToken } from './auth.utils';
 import { generateOtp } from '../../utils/otpGenerator';
 import moment from 'moment';
 import { sendEmail } from '../../utils/mailSender';
@@ -352,10 +349,7 @@ const forgotPassword = async (email: string) => {
   await sendEmail(
     user?.email,
     'Your reset password OTP is',
-    fs
-      .readFileSync(otpEmailPath, 'utf8')
-      .replace('{{otp}}', otp)
-      .replace('{{email}}', user?.email),
+    fs.readFileSync(otpEmailPath, 'utf8').replace('{{otp}}', otp),
   );
 
   return { email, token };

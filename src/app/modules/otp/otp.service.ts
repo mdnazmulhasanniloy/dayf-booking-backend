@@ -119,10 +119,7 @@ const resendOtp = async (email: string) => {
     await sendEmail(
       user?.email,
       'Your One Time OTP',
-      fs
-        .readFileSync(otpEmailPath, 'utf8')
-        .replace('{{otp}}', otp)
-        .replace('{{email}}', user?.email),
+      fs.readFileSync(otpEmailPath, 'utf8').replace('{{otp}}', otp),
     );
 
     return { token };
