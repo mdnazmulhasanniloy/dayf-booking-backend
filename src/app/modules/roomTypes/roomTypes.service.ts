@@ -70,6 +70,8 @@ const getAllRoomTypes = async (query: Record<string, any>) => {
     infants,
     startDate,
     endDate,
+    latitude,
+    longitude,
     ...filtersData
   } = filters;
 
@@ -86,8 +88,22 @@ const getAllRoomTypes = async (query: Record<string, any>) => {
 
   const pipeline: any[] = [];
 
-  pipeline.push({ $match: { isDeleted: false } });
+  if (latitude && longitude) {
+    pipeline.push({
+      $geoNear: {
+        near: {
+          type: 'Point',
+          coordinates: [parseFloat(longitude), parseFloat(latitude)],
+        },
+        key: 'location',
+        maxDistance: parseFloat(5 as unknown as string) * 1609, // 5 miles to meters
+        distanceField: 'dist.calculated',
+        spherical: true,
+      },
+    });
+  }
 
+  pipeline.push({ $match: { isDeleted: false } });
   if (searchTerm) {
     pipeline.push({
       $match: {
