@@ -407,14 +407,18 @@ const getHamePageData = async () => {
         as: 'facilities',
       },
     },
-
+    {
+      $addFields: {
+        isProperty: true,
+      },
+    },
     { $sort: { avgRating: -1 } },
 
     // Step 6: Limit result
     { $limit: 10 },
   ]);
 
-  const topHotelRooms = await Apartment.find({})
+  const topHotelRooms = await Apartment.find({ isDeleted: false })
     .populate('facilities')
     .sort({ avgRating: -1 })
     .limit(10)
