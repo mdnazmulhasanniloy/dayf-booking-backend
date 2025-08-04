@@ -27,6 +27,7 @@ export interface IBookings {
   createdAt?: Date;
   updatedAt?: Date;
   isDeleted: boolean;
+  isReviewed: boolean;
 }
 
 export type IBookingsModules = Model<IBookings, Record<string, unknown>>;

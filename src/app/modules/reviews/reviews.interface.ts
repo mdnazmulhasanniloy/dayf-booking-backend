@@ -12,6 +12,7 @@ export interface IReviews {
   reference: ObjectId;
   review: string;
   rating: number;
+  booking?: ObjectId;
 }
 
 export type IReviewsModules = Model<IReviews, Record<string, unknown>>;
