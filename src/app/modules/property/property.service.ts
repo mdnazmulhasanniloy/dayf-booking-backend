@@ -4,10 +4,11 @@ import Property from './property.models';
 import AppError from '../../error/AppError';
 import { deleteManyFromS3, uploadManyToS3, uploadToS3 } from '../../utils/s3';
 import pickQuery from '../../utils/pickQuery';
-import { Types } from 'mongoose';
+import { startSession, Types } from 'mongoose';
 import { paginationHelper } from '../../helpers/pagination.helpers';
 import Apartment from '../apartment/apartment.models';
 import generateRandomString from '../../utils/generateRandomString';
+import RoomTypes from '../roomTypes/roomTypes.models';
 
 const createProperty = async (payload: IProperty, files: any) => {
   if (files) {
@@ -380,15 +381,43 @@ const updateProperty = async (
 };
 
 const deleteProperty = async (id: string) => {
-  const result = await Property.findByIdAndUpdate(
-    id,
-    { isDeleted: true },
-    { new: true },
-  );
-  if (!result) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Failed to delete property');
+  const session = await startSession();
+
+  try {
+    let result;
+
+    await session.withTransaction(async () => {
+      result = await Property.findByIdAndUpdate(
+        id,
+        { isDeleted: true },
+        { new: true, session },
+      );
+
+      if (!result) {
+        throw new AppError(httpStatus.BAD_REQUEST, 'Failed to delete property');
+      }
+
+      const roomUpdate = await RoomTypes.updateMany(
+        { property: result._id },
+        { isDeleted: true },
+        { session },
+      );
+
+      if (roomUpdate.modifiedCount === 0) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          'Failed to delete room types',
+        );
+      }
+    });
+
+    return result;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
   }
-  return result;
 };
 const getHamePageData = async () => {
   // const topProperties = await Property.find({}).populate("facilities")
