@@ -67,7 +67,7 @@ const initializeSocketIO = (server: HttpServer) => {
       //----------------------online array send for front end------------------------//
       io.emit('onlineUser', Array.from(onlineUser));
 
-      socket.on('message-page', async (userId, callback) => {
+      socket.on('message-page', async ({ userId }, callback) => {
         if (!userId) {
           callbackFn(callback, {
             success: false,
