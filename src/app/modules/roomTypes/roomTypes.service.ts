@@ -605,15 +605,26 @@ const globalSearch = async (query: Record<string, any>) => {
     }
 
     if (adults || children || infants) {
-      pipeline.push({
-        $match: {
-          guests: {
-            adult: adults ? { $gte: adults } : { $gte: 0 },
-            children: children ? { $gte: children } : { $gte: 0 },
-            infants: infants ? { $gte: infants } : { $gte: 0 },
-          },
-        },
-      });
+         pipeline.push({
+           $match: {
+             'guests.adult': adults ? { $gte: Number(adults) } : { $gte: 0 },
+             'guests.children': children
+               ? { $gte: Number(children) }
+               : { $gte: 0 },
+             'guests.infants': infants
+               ? { $gte: Number(infants) }
+               : { $gte: 0 },
+           },
+         });
+      // pipeline.push({
+      //   $match: {
+      //     guests: {
+      //       adult: adults ? { $gte: adults } : { $gte: 0 },
+      //       children: children ? { $gte: children } : { $gte: 0 },
+      //       infants: infants ? { $gte: infants } : { $gte: 0 },
+      //     },
+      //   },
+      // });
     }
 
     // Sorting condition
