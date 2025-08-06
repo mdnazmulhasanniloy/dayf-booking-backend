@@ -67,7 +67,8 @@ const initializeSocketIO = (server: HttpServer) => {
       //----------------------online array send for front end------------------------//
       io.emit('onlineUser', Array.from(onlineUser));
 
-      socket.on('message-page', async ({ userId }, callback) => {
+      socket.on('message-page', async (userId, callback) => {
+        console.log("🚀 ~ initializeSocketIO ~ userId:", userId)
         if (!userId) {
           callbackFn(callback, {
             success: false,
@@ -98,6 +99,7 @@ const initializeSocketIO = (server: HttpServer) => {
             profile: receiverDetails?.profile,
             role: receiverDetails?.role,
           };
+
           const userSocket = getSocketId(user?._id?.toString());
 
           io.to(userSocket).emit('user-details', payload);
@@ -108,8 +110,13 @@ const initializeSocketIO = (server: HttpServer) => {
               { sender: userId, receiver: user?._id },
             ],
           }).sort({ updatedAt: 1 });
+
           io.to(userSocket).emit('message', getPreMessage || []);
 
+          callbackFn(callback, {
+            success: true,
+            data: { getPreMessage, userDetails: payload },
+          });
           // Notification
           // const allUnReaddMessage = await Message.countDocuments({
           //   receiver: user?._id,
