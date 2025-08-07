@@ -384,9 +384,10 @@ const deleteProperty = async (id: string) => {
   const session = await startSession();
 
   try {
-    let result;
+    let result = null;
 
     await session.withTransaction(async () => {
+      // Soft delete the property
       result = await Property.findByIdAndUpdate(
         id,
         { isDeleted: true },
@@ -394,19 +395,23 @@ const deleteProperty = async (id: string) => {
       );
 
       if (!result) {
-        throw new AppError(httpStatus.BAD_REQUEST, 'Failed to delete property');
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          'Property not found or already deleted',
+        );
       }
 
+      // Soft delete related room types
       const roomUpdate = await RoomTypes.updateMany(
         { property: result._id },
         { isDeleted: true },
         { session },
       );
 
-      if (roomUpdate.modifiedCount === 0) {
+      if (roomUpdate.matchedCount === 0) {
         throw new AppError(
           httpStatus.BAD_REQUEST,
-          'Failed to delete room types',
+          'No associated room types found to delete',
         );
       }
     });

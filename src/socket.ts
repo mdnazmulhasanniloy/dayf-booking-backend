@@ -60,15 +60,14 @@ const initializeSocketIO = (server: HttpServer) => {
 
       socket.on('check', (data, callback) => {
         console.log(data);
-
+        io.emit('check-res', data);
         callbackFn(callback, { success: true });
       });
 
       //----------------------online array send for front end------------------------//
       io.emit('onlineUser', Array.from(onlineUser));
 
-      socket.on('message-page', async (userId, callback) => {
-        console.log("🚀 ~ initializeSocketIO ~ userId:", userId)
+      socket.on('message-page', async (userId, callback) => { 
         if (!userId) {
           callbackFn(callback, {
             success: false,
@@ -259,7 +258,9 @@ const initializeSocketIO = (server: HttpServer) => {
           payload.sender = user?._id;
 
           const alreadyExists = await Chat.findOne({
-            participants: { $all: [payload.sender, payload.receiver] },
+            participants: {
+              $all: [payload.sender ?? user?._id, payload.receiver],
+            },
           }).populate(['participants']);
 
           if (!alreadyExists) {
@@ -283,7 +284,7 @@ const initializeSocketIO = (server: HttpServer) => {
           }
 
           // const senderMessage = 'new-message::' + result.chat.toString();
-          const userSocket = getSocketId(user?._id);
+          const userSocket = getSocketId(user?._id?.toString());
           const receiverSocket = getSocketId(result?.receiver?.toString());
           io.to(userSocket).emit('new-message', result);
           io.to(receiverSocket).emit('new-message', result);
