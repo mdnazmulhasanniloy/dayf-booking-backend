@@ -18,8 +18,10 @@ async function main() {
     await mongoose.connect(config.database_url as string);
     defaultTask();
     server = app.listen(Number(config.port), config.ip as string, () => {
-      //@ts-ignore
-      console.log(`app is listening on ${config.ip}:${config.port}`.green.bold);
+      console.log(
+        //@ts-ignore
+        `app is listening on http://${config.ip}:${config.port}`.green.bold,
+      );
     });
     io.listen(Number(config.socket_port));
     console.log(
