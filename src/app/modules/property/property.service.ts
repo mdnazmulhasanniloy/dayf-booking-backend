@@ -432,7 +432,37 @@ const getHamePageData = async () => {
   const topProperties = await Property.aggregate([
     // Step 1: Match non-deleted properties
     { $match: { isDeleted: false } },
+    {
+      $lookup: {
+        from: 'roomtypes',
+        localField: '_id',
+        foreignField: 'property',
+        as: 'roomTypes',
+        pipeline: [
+          { $match: { isDeleted: false } },
+          { $project: { pricePerNight: 1 } },
+        ],
+      },
+    },
 
+    {
+      $addFields: {
+        minPrice: {
+          $cond: [
+            { $gt: [{ $size: '$roomTypes' }, 0] },
+            { $min: '$roomTypes.pricePerNight' },
+            null,
+          ],
+        },
+        maxPrice: {
+          $cond: [
+            { $gt: [{ $size: '$roomTypes' }, 0] },
+            { $max: '$roomTypes.pricePerNight' },
+            null,
+          ],
+        },
+      },
+    },
     {
       $lookup: {
         from: 'facilities',
