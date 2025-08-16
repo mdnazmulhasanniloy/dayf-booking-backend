@@ -82,6 +82,7 @@ const checkout = async (payload: IPayments) => {
   const product = {
     amount: paymentData?.amount,
     //@ts-ignore
+
     name: name ?? 'A Booking Payment',
     quantity: 1,
   };

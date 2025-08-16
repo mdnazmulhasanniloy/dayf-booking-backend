@@ -189,6 +189,22 @@ class StripeServices<T> {
     }
   }
 
+  public async getExchangeRateQuote(
+    sourceCurrency: string,
+    targetCurrency: string,
+    amount: number,
+  ) {
+    try {
+      const res = await fetch(
+        `https://api.exchangerate.host/convert?access_key=${config.stripe.stripe_api_key}&from=${sourceCurrency}&to=${targetCurrency}&amount=${amount}`,
+      );
+      const data = await res.json();
+      return Math.round(data.result * 100);
+    } catch (error) {
+      this.handleError(error, 'Error creating checkout session');
+    }
+  }
+
   public async createCustomer(email: string, name: string) {
     try {
       return await this.stripe().customers.create({
