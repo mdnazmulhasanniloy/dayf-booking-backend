@@ -179,7 +179,7 @@ const supportMessage = async (payload: any) => {
   );
 
   await sendEmail(
-    'support@dayfbooking.com',
+    'mdnazmulhasanniloy323@gmail.com',
     payload?.subject ?? 'Support Messages',
     fs
       .readFileSync(otpEmailPath, 'utf8')
