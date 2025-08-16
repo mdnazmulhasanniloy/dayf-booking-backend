@@ -5,7 +5,6 @@ import app from './app';
 import config from './app/config';
 import initializeSocketIO from './socket';
 import { defaultTask } from './app/utils/defaultTask';
-import convertCurrency from './nn';
 //@ts-ignore
 // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unused-vars
 const colors = require('colors');
@@ -15,8 +14,6 @@ export const io = initializeSocketIO(createServer(app));
 // export const io = initializeSocketIO(createServer(app));
 
 async function main() {
-  const currency = await convertCurrency(1000);
-  console.log('🚀 ~ main ~ currency:', currency);
   try {
     await mongoose.connect(config.database_url as string);
     defaultTask();
