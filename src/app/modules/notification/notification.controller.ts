@@ -59,9 +59,22 @@ const deleteNotification = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const deleteANotification = catchAsync(async (req: Request, res: Response) => {
+  const result = await notificationServices.deleteANotification(
+    req?.params?.id,
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Notification deleted successfully',
+    data: result,
+  });
+});
+
 export const notificationControllers = {
   insertNotificationIntoDb,
   getAllNotifications,
   markAsDone,
   deleteNotification,
+  deleteANotification,
 };
