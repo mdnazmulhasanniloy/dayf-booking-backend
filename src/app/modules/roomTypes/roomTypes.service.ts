@@ -407,6 +407,7 @@ const globalSearch = async (query: Record<string, any>) => {
       pipeline.push({
         $match: {
           availableRooms: { $gt: 0 },
+          isDeleted: false,
         },
       });
 
@@ -605,17 +606,15 @@ const globalSearch = async (query: Record<string, any>) => {
     }
 
     if (adults || children || infants) {
-         pipeline.push({
-           $match: {
-             'guests.adult': adults ? { $gte: Number(adults) } : { $gte: 0 },
-             'guests.children': children
-               ? { $gte: Number(children) }
-               : { $gte: 0 },
-             'guests.infants': infants
-               ? { $gte: Number(infants) }
-               : { $gte: 0 },
-           },
-         });
+      pipeline.push({
+        $match: {
+          'guests.adult': adults ? { $gte: Number(adults) } : { $gte: 0 },
+          'guests.children': children
+            ? { $gte: Number(children) }
+            : { $gte: 0 },
+          'guests.infants': infants ? { $gte: Number(infants) } : { $gte: 0 },
+        },
+      });
       // pipeline.push({
       //   $match: {
       //     guests: {
