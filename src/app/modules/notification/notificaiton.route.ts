@@ -28,6 +28,17 @@ router.patch(
   notificationControllers.markAsDone,
 );
 router.delete(
+  '/:id',
+  auth(
+    USER_ROLE.user,
+    USER_ROLE.admin,
+    USER_ROLE.sub_admin,
+    USER_ROLE.super_admin,
+    USER_ROLE.hotel_owner,
+  ),
+  notificationControllers.deleteANotification,
+);
+router.delete(
   '/',
   auth(
     USER_ROLE.user,

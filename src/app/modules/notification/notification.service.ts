@@ -60,9 +60,18 @@ const deleteNotification = async (id: string) => {
   return result;
 };
 
+const deleteANotification = async (id: string) => {
+  const result = await Notification.findByIdAndDelete(id);
+  if (!result || result?.isDeleted) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Notification delete failed');
+  }
+  return result;
+};
+
 export const notificationServices = {
   insertNotificationIntoDb,
   getAllNotifications,
   markAsDone,
   deleteNotification,
+  deleteANotification,
 };
