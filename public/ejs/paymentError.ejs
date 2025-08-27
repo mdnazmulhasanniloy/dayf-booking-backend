@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Error Occurred</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          sans-serif;
+        background: linear-gradient(135deg, #007dd0 0%, #e9f6ff 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        position: relative;
+      }
+
+      .error-container {
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 40px;
+        text-align: center;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        max-width: 500px;
+        width: 100%;
+        position: relative;
+        z-index: 1;
+      }
+
+      .error-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+      }
+
+      .animation-container {
+        width: 200px;
+        height: 200px;
+        margin: 0 auto 5px;
+        position: relative;
+        z-index: 0;
+      }
+
+      .error-animation {
+        width: 100%;
+        height: 100%;
+      }
+
+      .error-message {
+        color: #1f2937;
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        line-height: 1.2;
+      }
+
+      .subtitle {
+        color: #6b7280;
+        font-size: 16px;
+        margin-bottom: 30px;
+        line-height: 1.5;
+      }
+
+      .button-group {
+        display: flex;
+        justify-content: center;
+      }
+
+      .btn {
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .btn-primary {
+        background: #ff5733;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #c23c1d;
+        transform: translateY(-1px);
+      }
+
+      .fade-in {
+        animation: fadeIn 0.6s ease-out;
+      }
+
+      .slide-up {
+        animation: slideUp 0.8s ease-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (min-width: 640px) {
+        .button-group {
+          flex-direction: row;
+        }
+      }
+
+      svg path {
+        fill: #ff5733;
+      }
+
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="error-container fade-in">
+      <div class="animation-container">
+        <div id="error-animation" class="error-animation"></div>
+      </div>
+
+      <h1 class="error-message slide-up">Oops! Payment Is Failed !</h1>
+      <p class="subtitle slide-up">
+        <%= message + " Please try again later."?? "Please try again later." %>
+      </p>
+
+      <div class="button-group slide-up">
+        <a
+          href="http://172.252.13.83:3034"
+          class="btn btn-primary <%= device !== 'website' && 'hidden' %>"
+        >
+          <i class="fas fa-home"></i> Return Home
+        </a>
+      </div>
+    </div>
+
+    <script>
+      function animation() {
+        let errorAnimation;
+
+        errorAnimation = lottie.loadAnimation({
+          container: document.getElementById('error-animation'),
+          renderer: 'svg',
+          loop: false,
+          autoplay: true,
+          path: '/ejs/lottie/error.json',
+        });
+      }
+
+      setTimeout(() => {
+        animation();
+      }, 500);
+    </script>
+  </body>
+</html>
