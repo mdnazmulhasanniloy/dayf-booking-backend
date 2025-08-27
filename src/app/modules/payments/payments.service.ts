@@ -186,20 +186,34 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
     });
 
     const paymentIntent: any =
-      await StripeService.getStripe().paymentIntents.retrieve(paymentIntentId);
+      await StripeService.getStripe().paymentIntents.retrieve(paymentIntentId, {
+        expand: ['charges'],
+      });
     console.log(JSON.stringify(paymentIntent));
+    const charge = paymentIntent?.charges?.data?.[0];
     const paymentDetails = {
       amount: paymentIntent?.amount_received,
       currency: paymentIntent?.currency,
       status: paymentIntent?.status,
       paymentMethod: paymentIntent?.payment_method,
-      paymentMethodDetails:
-        paymentIntent?.charges?.data[0]?.payment_method_details,
-      transactionId: payment?.tranId,
-      cardLast4:
-        paymentIntent?.charges?.data[0]?.payment_method_details?.card.last4,
-      paymentDate: paymentIntent.created,
+      paymentMethodDetails: charge?.payment_method_details,
+      transactionId: charge?.id, // or if you store a custom tranId, replace this
+      cardLast4: charge?.payment_method_details?.card?.last4,
+      paymentDate: new Date(paymentIntent?.created * 1000), // Stripe returns timestamp in seconds
     };
+
+    // const paymentDetails = {
+    //   amount: paymentIntent?.amount_received,
+    //   currency: paymentIntent?.currency,
+    //   status: paymentIntent?.status,
+    //   paymentMethod: paymentIntent?.payment_method,
+    //   paymentMethodDetails:
+    //     paymentIntent?.charges?.data[0]?.payment_method_details,
+    //   transactionId: payment?.tranId,
+    //   cardLast4:
+    //     paymentIntent?.charges?.data[0]?.payment_method_details?.card.last4,
+    //   paymentDate: paymentIntent.created,
+    // };
 
     await session.commitTransaction();
     return { ...payment.toObject(), device, paymentDetails };
