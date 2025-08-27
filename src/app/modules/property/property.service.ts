@@ -425,62 +425,58 @@ const deleteProperty = async (id: string) => {
   }
 };
 const getHamePageData = async () => {
-  // const topProperties = await Property.find({}).populate("facilities")
-  //     .sort({ avgRating: -1 })
-  //     .limit(10)
-  //     .lean();
-  const topProperties = await Property.aggregate([
-    // Step 1: Match non-deleted properties
-    { $match: { isDeleted: false } },
-    {
-      $lookup: {
-        from: 'roomtypes',
-        localField: '_id',
-        foreignField: 'property',
-        as: 'roomTypes',
-        pipeline: [
-          { $match: { isDeleted: false } },
-          { $project: { pricePerNight: 1 } },
-        ],
-      },
-    },
+  // const topProperties = await Property.aggregate([
+  //   // Step 1: Match non-deleted properties
+  //   { $match: { isDeleted: false } },
+  //   {
+  //     $lookup: {
+  //       from: 'roomtypes',
+  //       localField: '_id',
+  //       foreignField: 'property',
+  //       as: 'roomTypes',
+  //       pipeline: [
+  //         { $match: { isDeleted: false } },
+  //         { $project: { pricePerNight: 1 } },
+  //       ],
+  //     },
+  //   },
 
-    {
-      $addFields: {
-        minPrice: {
-          $cond: [
-            { $gt: [{ $size: '$roomTypes' }, 0] },
-            { $min: '$roomTypes.pricePerNight' },
-            null,
-          ],
-        },
-        maxPrice: {
-          $cond: [
-            { $gt: [{ $size: '$roomTypes' }, 0] },
-            { $max: '$roomTypes.pricePerNight' },
-            null,
-          ],
-        },
-      },
-    },
-    {
-      $lookup: {
-        from: 'facilities',
-        localField: 'facilities',
-        foreignField: '_id',
-        as: 'facilities',
-      },
-    },
-    {
-      $addFields: {
-        isProperty: true,
-      },
-    },
-    { $sort: { avgRating: -1 } },
+  //   {
+  //     $addFields: {
+  //       minPrice: {
+  //         $cond: [
+  //           { $gt: [{ $size: '$roomTypes' }, 0] },
+  //           { $min: '$roomTypes.pricePerNight' },
+  //           null,
+  //         ],
+  //       },
+  //       maxPrice: {
+  //         $cond: [
+  //           { $gt: [{ $size: '$roomTypes' }, 0] },
+  //           { $max: '$roomTypes.pricePerNight' },
+  //           null,
+  //         ],
+  //       },
+  //     },
+  //   },
+  //   {
+  //     $lookup: {
+  //       from: 'facilities',
+  //       localField: 'facilities',
+  //       foreignField: '_id',
+  //       as: 'facilities',
+  //     },
+  //   },
+  //   {
+  //     $addFields: {
+  //       isProperty: true,
+  //     },
+  //   },
+  //   { $sort: { avgRating: -1 } },
 
-    // Step 6: Limit result
-    { $limit: 10 },
-  ]);
+  //   // Step 6: Limit result
+  //   { $limit: 10 },
+  // ]);
 
   const topHotelRooms = await Apartment.find({ isDeleted: false })
     .populate('facilities')
@@ -489,9 +485,10 @@ const getHamePageData = async () => {
     .lean();
 
   // Combine and shuffle using Array.sort and Math.random
-  const mixedData = [...topProperties, ...topHotelRooms].sort(
-    () => 0.5 - Math.random(),
-  );
+  // const mixedData = [...topProperties, ...topHotelRooms].sort(
+  //   () => 0.5 - Math.random(),
+  // );
+  const mixedData = [...topHotelRooms].sort(() => 0.5 - Math.random());
 
   return mixedData;
 };
