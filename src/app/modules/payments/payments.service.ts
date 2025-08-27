@@ -197,9 +197,9 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
       status: paymentIntent?.status,
       paymentMethod: paymentIntent?.payment_method,
       paymentMethodDetails: charge?.payment_method_details,
-      transactionId: charge?.id, // or if you store a custom tranId, replace this
+      transactionId: charge?.id,
       cardLast4: charge?.payment_method_details?.card?.last4,
-      paymentDate: new Date(paymentIntent?.created * 1000), // Stripe returns timestamp in seconds
+      paymentDate: new Date(paymentIntent?.created * 1000),
     };
 
     // const paymentDetails = {
