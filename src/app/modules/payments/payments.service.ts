@@ -184,6 +184,8 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
         status: BOOKING_STATUS?.confirmed,
         $unset: { expireAt: '' },
         tranId: payment?.tranId,
+        receiptUrl: chargeDetails?.receipt_url,
+        currency: chargeDetails?.currency,
       },
       { new: true, session },
     );

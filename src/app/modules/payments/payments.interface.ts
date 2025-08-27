@@ -8,6 +8,8 @@ export interface IPayments {
   user: ObjectId | IUser;
   author: ObjectId | IUser;
   amount: number;
+  receiptUrl: string;
+  currency: string;
   status: string;
   paymentMethod: 'stripe';
   tranId: string;

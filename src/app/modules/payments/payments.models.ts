@@ -11,6 +11,14 @@ const paymentsSchema = new Schema<IPayments>(
       enum: ['pending', 'paid', 'refunded', 'canceled'],
       default: 'pending',
     },
+    receiptUrl: {
+      type: String,
+      default: null,
+    },
+    currency: {
+      type: String,
+      default: null,
+    },
     paymentMethod: {
       type: String,
       enum: ['stripe'],
