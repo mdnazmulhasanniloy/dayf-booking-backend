@@ -140,6 +140,7 @@
       .button-group {
         display: flex;
         justify-content: center;
+        gap: 20px;
       }
 
       .btn {
@@ -175,6 +176,7 @@
 
       .btn-secondary:hover {
         background: #e5e7eb;
+        transform: translateY(-1px);
       }
 
       .fade-in {
@@ -247,31 +249,34 @@
         successfully.
       </p>
 
-      <!-- <div class="transaction-details slide-up">
+      <div class="transaction-details slide-up">
         <div class="detail-row">
           <span class="detail-label">Transaction ID</span>
-          <span class="detail-value"><%= paymentDetails.transactionId %></span>
+          <span class="detail-value"><%= paymentDetails?.transactionId %></span>
         </div>
         <div class="detail-row">
           <span class="detail-label">Date</span>
-          <span class="detail-value"><%= paymentDetails.paymentDate %></span>
+          <span class="detail-value"><%= paymentDetails?.paymentDate %></span>
         </div>
         <div class="detail-row">
           <span class="detail-label">Payment Method</span>
           <span class="detail-value"
-            >•••• •••• •••• <%= paymentDetails.cardLast4 %></span
+            >•••• •••• •••• <%= paymentDetails?.cardLast4 %></span
           >
         </div>
         <div class="detail-row">
           <span class="detail-label">Amount Paid</span>
-          <span class="detail-value amount"><%= paymentDetails.amount %></span>
+          <span class="detail-value amount"><%= paymentDetails?.amount %></span>
         </div>
-      </div> -->
-
-      <div
-        class="button-group slide-up <%= device !== 'website' && 'hidden' %>"
-      >
-        <a href="http://172.252.13.83:3034" class="btn btn-primary">
+      </div>
+      <div class="button-group slide-up">
+        <a href="<%= paymentDetails?.receipt_url %>" class="btn btn-primary">
+          <i class="fas fa-receipt"></i> Get Receipt
+        </a>
+        <a
+          href="http://172.252.13.83:3034"
+          class="btn btn-secondary <%= device !== 'website' && 'hidden' %>"
+        >
           <i class="fas fa-home"></i> Return Home
         </a>
       </div>

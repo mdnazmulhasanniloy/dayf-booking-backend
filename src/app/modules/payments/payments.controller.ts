@@ -16,7 +16,7 @@ const checkout = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const confirmPayment = catchAsync(async (req: Request, res: Response) => { 
+const confirmPayment = catchAsync(async (req: Request, res: Response) => {
   const result = await paymentsService.confirmPayment(req?.query, res);
   // if (result?.device === 'website') {
 
@@ -24,25 +24,19 @@ const confirmPayment = catchAsync(async (req: Request, res: Response) => {
   //     `${config.client_Url}/booking/success?bookingId=${result?.bookings}`,
   //   );
   // }
-  const paymentDetails = {
-    transactionId: 'TXN-2024-001234', // Replace with actual transaction ID
-    amount: '$99.99', // Replace with actual amount
-    currency: 'USD', // Replace with currency if needed
-    cardLast4: '4242', // Replace with actual card last 4 digits
-    paymentDate: new Date().toLocaleString(), // Replace with actual date
-  };
+
   // res.render('paymentSuccess', { paymentDetails });
   res.render('paymentSuccess', {
-    paymentDetails: result?.paymentDetails,
+    paymentDetails: result?.chargeDetails,
     device: result?.device,
     bookingId: result?.bookings,
   });
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    data: result,
-    message: 'payment successful',
-  });
+  // sendResponse(res, {
+  //   success: true,
+  //   statusCode: httpStatus.OK,
+  //   data: result,
+  //   message: 'payment successful',
+  // });
 });
 
 const createPayments = catchAsync(async (req: Request, res: Response) => {

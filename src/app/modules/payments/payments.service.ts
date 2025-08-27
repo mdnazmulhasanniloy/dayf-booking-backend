@@ -21,6 +21,7 @@ import { IRoomTypes } from '../roomTypes/roomTypes.interface';
 import { IProperty } from '../property/property.interface';
 import RoomTypes from '../roomTypes/roomTypes.models';
 import { Response } from 'express';
+import moment from 'moment';
 
 const checkout = async (payload: IPayments) => {
   const tranId = `TXN-${generateRandomString(10)}`;
@@ -122,24 +123,50 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
   const { sessionId, paymentId, device } = query;
   const session = await startSession();
   const PaymentSession = await StripeService.getPaymentSession(sessionId);
+
   const paymentIntentId = PaymentSession.payment_intent as string;
+  const paymentIntent =
+    await StripeService.getStripe().paymentIntents.retrieve(paymentIntentId);
+  // Retrieve the PaymentIntent
 
   if (!(await StripeService.isPaymentSuccess(sessionId))) {
     throw res.render('paymentError', {
       message: 'Payment session is not completed',
       device: device || '',
     });
-    // throw new AppError(
-    //   httpStatus.BAD_REQUEST,
-    //   'Payment session is not completed',
-    // );
   }
 
   try {
     session.startTransaction();
+
+    const charge = await StripeService.getStripe().charges.retrieve(
+      paymentIntent.latest_charge as string,
+    );
+    if (charge?.refunded) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Payment has been refunded');
+    }
+    const paymentDate = moment.unix(charge.created).format('YYYY-MM-DD HH:mm'); // Adjusted format
+
+    // Create the output object
+    const chargeDetails = {
+      amount: charge?.amount,
+      currency: charge?.currency,
+      status: charge?.status,
+      paymentMethod: charge?.payment_method,
+      paymentMethodDetails: charge?.payment_method_details?.card,
+      transactionId: charge?.balance_transaction,
+      cardLast4: charge?.payment_method_details?.card?.last4,
+      paymentDate: paymentDate,
+      receipt_url: charge?.receipt_url,
+    };
+
     const payment = await Payments.findByIdAndUpdate(
       paymentId,
-      { status: PAYMENT_STATUS?.paid, paymentIntentId: paymentIntentId },
+      {
+        status: PAYMENT_STATUS?.paid,
+        paymentIntentId: paymentIntentId,
+        tranId: charge?.balance_transaction,
+      },
       { new: true, session },
     ).populate([
       { path: 'user', select: 'name _id email phoneNumber profile ' },
@@ -185,47 +212,14 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
       model_type: modeType?.payments,
     });
 
-    const paymentIntent: any =
-      await StripeService.getStripe().paymentIntents.retrieve(paymentIntentId, {
-        expand: ['charges'],
-      });
-    console.log(JSON.stringify(paymentIntent));
-    const charge = paymentIntent?.charges?.data?.[0];
-    const paymentDetails = {
-      amount: paymentIntent?.amount_received,
-      currency: paymentIntent?.currency,
-      status: paymentIntent?.status,
-      paymentMethod: paymentIntent?.payment_method,
-      paymentMethodDetails: charge?.payment_method_details,
-      transactionId: charge?.id,
-      cardLast4: charge?.payment_method_details?.card?.last4,
-      paymentDate: new Date(paymentIntent?.created * 1000),
-    };
-
-    // const paymentDetails = {
-    //   amount: paymentIntent?.amount_received,
-    //   currency: paymentIntent?.currency,
-    //   status: paymentIntent?.status,
-    //   paymentMethod: paymentIntent?.payment_method,
-    //   paymentMethodDetails:
-    //     paymentIntent?.charges?.data[0]?.payment_method_details,
-    //   transactionId: payment?.tranId,
-    //   cardLast4:
-    //     paymentIntent?.charges?.data[0]?.payment_method_details?.card.last4,
-    //   paymentDate: paymentIntent.created,
-    // };
-
     await session.commitTransaction();
-    return { ...payment.toObject(), device, paymentDetails };
+    return { ...payment.toObject(), device, chargeDetails };
   } catch (error: any) {
     await session.abortTransaction();
 
     if (paymentIntentId) {
       try {
         await StripeService.refund(paymentId);
-        //  stripe.refunds.create({
-        //   payment_intent: paymentIntentId,
-        // });
       } catch (refundError: any) {
         console.error('Error processing refund:', refundError.message);
       }
