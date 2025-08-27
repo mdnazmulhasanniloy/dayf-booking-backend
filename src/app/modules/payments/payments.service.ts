@@ -20,9 +20,10 @@ import { IApartment } from '../apartment/apartment.interface';
 import { IRoomTypes } from '../roomTypes/roomTypes.interface';
 import { IProperty } from '../property/property.interface';
 import RoomTypes from '../roomTypes/roomTypes.models';
+import { Response } from 'express';
 
 const checkout = async (payload: IPayments) => {
-  const tranId = generateRandomString(10);
+  const tranId = `TXN-${generateRandomString(10)}`;
   let paymentData: IPayments;
   let name: string;
 
@@ -117,17 +118,21 @@ const checkout = async (payload: IPayments) => {
   return checkoutSession?.url;
 };
 
-const confirmPayment = async (query: Record<string, any>) => {
+const confirmPayment = async (query: Record<string, any>, res: Response) => {
   const { sessionId, paymentId, device } = query;
   const session = await startSession();
   const PaymentSession = await StripeService.getPaymentSession(sessionId);
   const paymentIntentId = PaymentSession.payment_intent as string;
 
   if (!(await StripeService.isPaymentSuccess(sessionId))) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      'Payment session is not completed',
-    );
+    throw res.render('paymentError', {
+      message: 'Payment session is not completed',
+      device: device || '',
+    });
+    // throw new AppError(
+    //   httpStatus.BAD_REQUEST,
+    //   'Payment session is not completed',
+    // );
   }
 
   try {
@@ -144,6 +149,7 @@ const confirmPayment = async (query: Record<string, any>) => {
     if (!payment) {
       throw new AppError(httpStatus.NOT_FOUND, 'Payment Not Found!');
     }
+
     const bookings = await Bookings.findByIdAndUpdate(
       payment?.bookings,
       {
@@ -179,8 +185,24 @@ const confirmPayment = async (query: Record<string, any>) => {
       model_type: modeType?.payments,
     });
 
+    const paymentIntent: any =
+      await StripeService.getStripe().paymentIntents.retrieve(paymentIntentId);
+
+    const paymentDetails = {
+      amount: paymentIntent?.amount_received,
+      currency: paymentIntent?.currency,
+      status: paymentIntent?.status,
+      paymentMethod: paymentIntent?.payment_method,
+      paymentMethodDetails:
+        paymentIntent?.charges.data[0]?.payment_method_details,
+      transactionId: payment?.tranId,
+      cardLast4:
+        paymentIntent?.charges?.data[0]?.payment_method_details?.card.last4,
+      paymentDate: paymentIntent.created,
+    };
+
     await session.commitTransaction();
-    return { ...payment.toObject(), device };
+    return { ...payment.toObject(), device, paymentDetails };
   } catch (error: any) {
     await session.abortTransaction();
 
@@ -194,7 +216,10 @@ const confirmPayment = async (query: Record<string, any>) => {
         console.error('Error processing refund:', refundError.message);
       }
     }
-
+    throw res.render('paymentError', {
+      message: error.message || 'Server internal error',
+      device: device || '',
+    });
     throw new AppError(httpStatus.BAD_GATEWAY, error.message);
   } finally {
     session.endSession();

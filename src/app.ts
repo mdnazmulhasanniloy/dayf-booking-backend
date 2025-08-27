@@ -7,11 +7,13 @@ import cors from 'cors';
 import express, { Application, Request, Response } from 'express';
 import globalErrorHandler from './app/middleware/globalErrorhandler';
 import notFound from './app/middleware/notfound';
-import router from './app/routes'; 
+import router from './app/routes';
 // import axios from 'axios';
-// import archiver from 'archiver'; 
+// import archiver from 'archiver';
 const app: Application = express();
 app.use(express.static('public'));
+app.set('view engine', 'ejs');
+app.set('views', 'public/ejs');
 app.use(express.json({ limit: '500mb' }));
 app.use(express.urlencoded({ limit: '500mb', extended: true }));
 
@@ -32,6 +34,16 @@ app.use(
 // application routes
 app.use('/api/v1', router);
 
+app.get('/success', async (req, res) => {
+  const paymentDetails = {
+    transactionId: 'TXN-2024-001234', // Replace with actual transaction ID
+    amount: '$99.99', // Replace with actual amount
+    currency: 'USD', // Replace with currency if needed
+    cardLast4: '4242', // Replace with actual card last 4 digits
+    paymentDate: new Date().toLocaleString(), // Replace with actual date
+  };
+  res.render('paymentError', { message: '', device: 'webdsite' });
+});
 // app.get('/download', async (req, res) => {
 //   const fileUrl = req.query.url; // Pass your view URL as ?url=
 
