@@ -128,6 +128,10 @@ const registerWithGoogle = async (payload: any) => {
       };
     }
 
+    if(payload?.device ==="mobile" && payload?.action === "login" && !payload?.role){
+      throw new AppError(httpStatus?.BAD_REQUEST, "You are not a registered user. Please register first.")
+
+    }
     const user = await User.create({
       name: decodedToken?.name,
       email: decodedToken?.email,
