@@ -518,65 +518,17 @@ const getUserOverview = async (query: Record<string, any>) => {
   return formattedMonthlyUsers;
 };
 
-// const getBookingOverview = async (query: Record<string, any>) => {
-//   const startDate = query?.startDate
-//     ? moment(query.startDate).startOf('day').toDate()
-//     : moment().startOf('year').toDate();
-//   const endDate = query?.endDate
-//     ? moment(query.endDate).endOf('day').toDate()
-//     : moment().endOf('year').toDate();
-
-//   const bookingData = await Bookings.aggregate([
-//     {
-//       $match: {
-//         startDate: { $gte: startDate },
-//         endDate: { $lte: endDate },
-//         isDeleted: false,
-//       },
-//     },
-//     {
-//       $group: {
-//         _id: {
-//           $dateToString: { format: '%Y-%m-%d', date: '$startDate' }, // Group by day based on startDate
-//         },
-//         totalBookings: { $sum: 1 }, // Count the number of bookings per day
-//       },
-//     },
-//     {
-//       $sort: { _id: 1 }, // Sort by date ascending
-//     },
-//   ]);
-//   return bookingData;
-
-//   // Format the data so it's ready for a graph (you can adjust this according to your graphing library)
-//   const formattedData = Array.from(
-//     { length: endDate.getDate() },
-//     (_, index) => ({
-//       date: moment(startDate).add(index, 'days').format('YYYY-MM-DD'),
-//       totalBookings: 0,
-//     }),
-//   );
-
-//   bookingData.forEach((entry: any) => {
-//     const dateIndex = moment(entry._id).diff(startDate, 'days');
-//     formattedData[dateIndex].totalBookings = entry.totalBookings;
-//   });
-
-//   return formattedData;
-// };
-
+ 
 const getBookingOverview = async (query: Record<string, any>) => {
-  const month = query?.month || moment().month();
+  const month =
+    query?.month !== undefined
+      ? Number(query.month) - 1 
+      : moment().month();
   const year = query?.year || moment().year();
+  const date = moment().year(year).month(month);
+  const startDate = moment(date).startOf('month').toDate();
+  const endDate = moment(date).endOf('month').toDate();
 
-  // If monthYear is not provided, use the current month and year as default
-  // const currentMonthYear = monthYear || moment().format('MMM-YYYY'); // Default to current month-year (e.g., "Jun-2024")
-const day = moment().month(month)
-  // const [monthName, year] = currentMonthYear.split('-');
-  // const month = moment().month(monthName).month(); // Get the numeric month value
-  const startDate = moment().year(year).month(month).toDate(); // Start of the selected month
-  console.log('🚀 ~ getBookingOverview ~ startDate:', startDate);
-  const endDate = moment(startDate).endOf('month').toDate(); // End of the selected month
   console.log(startDate);
   console.log(endDate);
   const bookingData = await Bookings.aggregate([
@@ -591,13 +543,13 @@ const day = moment().month(month)
     {
       $group: {
         _id: {
-          $dateToString: { format: '%Y-%m-%d', date: '$startDate' }, // Group by day based on startDate
+          $dateToString: { format: '%Y-%m-%d', date: '$startDate' },  
         },
-        totalBookings: { $sum: 1 }, // Count the number of bookings per day
+        totalBookings: { $sum: 1 }, 
       },
     },
     {
-      $sort: { _id: 1 }, // Sort by date ascending
+      $sort: { _id: 1 }, 
     },
   ]);
 
