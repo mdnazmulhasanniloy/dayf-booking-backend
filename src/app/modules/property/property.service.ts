@@ -9,8 +9,21 @@ import { paginationHelper } from '../../helpers/pagination.helpers';
 import Apartment from '../apartment/apartment.models';
 import generateRandomString from '../../utils/generateRandomString';
 import RoomTypes from '../roomTypes/roomTypes.models';
+import { IUser } from '../user/user.interface';
+import { User } from '../user/user.models';
 
 const createProperty = async (payload: IProperty, files: any) => {
+  const author: IUser | null = await User.findById(payload?.author);
+  if (!author) {
+    throw new AppError(httpStatus.UNAUTHORIZED, 'You are not a valid user');
+  }
+  if (!author?.stripeAccountId) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'You are not create stripe connect account. please create a connect account then create this.',
+    );
+  }
+
   if (files) {
     const { images, coverImage, profile } = files;
 

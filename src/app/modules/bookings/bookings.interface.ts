@@ -1,6 +1,7 @@
 import { Model, ObjectId } from 'mongoose';
 import { IRoomTypes } from './../roomTypes/roomTypes.interface';
 import { IApartment } from '../apartment/apartment.interface';
+import { IUser } from '../user/user.interface';
 export enum BOOKING_MODEL_TYPE {
   Apartment = 'Apartment',
   Rooms = 'RoomTypes',
@@ -14,8 +15,8 @@ export interface IBookings {
   paymentStatus: 'pending' | 'paid' | 'refunded' | 'failed';
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   tranId: string;
-  author: ObjectId;
-  user: ObjectId;
+  author: ObjectId | IUser;
+  user: ObjectId | IUser;
   additionalInfo: {
     name: string;
     phoneNumber: string;

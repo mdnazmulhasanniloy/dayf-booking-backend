@@ -9,8 +9,17 @@ import { paginationHelper } from '../../helpers/pagination.helpers';
 import Bookings from '../bookings/bookings.models';
 import { BOOKING_MODEL_TYPE } from '../bookings/bookings.interface';
 import moment from 'moment';
+import { User } from '../user/user.models';
+import { IUser } from '../user/user.interface';
 
 const createApartment = async (payload: IApartment, files: any) => {
+  const author: IUser | null = await User.findById(payload?.author);
+  if (!author) {
+    throw new AppError(httpStatus.UNAUTHORIZED, 'You are not a valid user');
+  }
+  if (!author?.stripeAccountId) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'You are not create stripe connect account. please create a connect account then create this.');
+  }
   if (files) {
     const { images, profile, coverImage } = files;
 

@@ -3,7 +3,7 @@ import { Model, Types } from 'mongoose';
 export interface IUser {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   // [x: string]: any;
-  _id?: Types.ObjectId;
+  _id?: Types.ObjectId | string;
   status: string;
   name: string;
   email: string;

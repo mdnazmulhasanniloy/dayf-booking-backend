@@ -30,7 +30,10 @@ const checkout = async (payload: IPayments) => {
 
   const bookings: IBookings | null = await Bookings?.findById(
     payload?.bookings,
-  ).populate([{ path: 'reference' }]);
+  ).populate([
+    { path: 'reference' },
+    { path: 'author', select: 'stripeAccountId _id' },
+  ]);
 
   if (!bookings) {
     throw new AppError(httpStatus.NOT_FOUND, 'Booking Not Found!');
@@ -65,7 +68,8 @@ const checkout = async (payload: IPayments) => {
       name = (bookings?.reference as IApartment)?.name;
     }
     payload.tranId = tranId;
-    payload.author = bookings?.author;
+    //@ts-ignore
+    payload.author = (bookings?.author as IUser)?._id;
     payload.amount = bookings?.totalPrice;
     const createdPayment = await Payments.create(payload);
 
@@ -113,9 +117,10 @@ const checkout = async (payload: IPayments) => {
     product,
     success_url,
     cancel_url,
+    (bookings?.author as IUser)?.stripeAccountId as string,
+    paymentData?.hotelOwnerAmount,
     customerId,
   );
-
   return checkoutSession?.url;
 };
 
