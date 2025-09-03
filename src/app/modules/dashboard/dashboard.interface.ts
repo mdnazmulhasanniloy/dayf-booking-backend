@@ -14,6 +14,7 @@ export interface MonthlyUsers {
   total: number;
 }
 
+ 
 export interface DashboardData {
   totalUsers: number;
   totalPayout: number;

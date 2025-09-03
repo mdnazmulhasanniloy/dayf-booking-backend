@@ -41,6 +41,35 @@ const getAdminDashboard = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const getDashboardTopCardDetails = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await dashboardService.getDashboardTopCardDetails();
+    sendResponse(res, {
+      statusCode: 201,
+      success: true,
+      message: 'admin dashboard top card get successfully',
+      data: result,
+    });
+  },
+);
+const getUserOverview = catchAsync(async (req: Request, res: Response) => {
+  const result = await dashboardService.getUserOverview(req.query);
+  sendResponse(res, {
+    statusCode: 201,
+    success: true,
+    message: 'admin dashboard user overview get successfully',
+    data: result,
+  });
+});
+const getBookingOverview = catchAsync(async (req: Request, res: Response) => {
+  const result = await dashboardService.getBookingOverview(req.query);
+  sendResponse(res, {
+    statusCode: 201,
+    success: true,
+    message: 'admin dashboard bookings overview get successfully',
+    data: result,
+  });
+});
 const getAdminEarning = catchAsync(async (req: Request, res: Response) => {
   const result = await dashboardService.getAdminEarning(req.query);
   sendResponse(res, {
@@ -56,4 +85,7 @@ export const dashboardController = {
   getHotelOwnerEarning,
   getAdminDashboard,
   getAdminEarning,
+  getDashboardTopCardDetails,
+  getUserOverview,
+  getBookingOverview,
 };

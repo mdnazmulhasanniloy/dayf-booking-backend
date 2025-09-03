@@ -17,8 +17,23 @@ router.get(
 );
 router.get(
   '/admin-dashboard',
-  // auth(USER_ROLE.admin),
+  auth(USER_ROLE.admin),
   dashboardController.getAdminDashboard,
+);
+router.get(
+  '/admin-top-card',
+  auth(USER_ROLE.admin),
+  dashboardController.getDashboardTopCardDetails,
+);
+router.get(
+  '/user-overview',
+  auth(USER_ROLE.admin),
+  dashboardController.getUserOverview,
+);
+router.get(
+  '/bookings-overview',
+  // auth(USER_ROLE.admin),
+  dashboardController.getBookingOverview,
 );
 router.get(
   '/admin-earnings',

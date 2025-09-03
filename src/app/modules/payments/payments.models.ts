@@ -26,11 +26,13 @@ const paymentsSchema = new Schema<IPayments>(
     },
     adminAmount: {
       type: Number,
+      required: true,
     },
     hotelOwnerAmount: {
       type: Number,
+      required: true,
     },
-    tranId: { type: String, unique: true, sparse: true }, 
+    tranId: { type: String, unique: true, sparse: true },
     bookings: { type: Schema.Types.ObjectId, ref: 'Bookings', required: true },
     isDeleted: { type: Boolean, default: false },
   },
@@ -38,8 +40,6 @@ const paymentsSchema = new Schema<IPayments>(
     timestamps: true,
   },
 );
-
- 
 
 paymentsSchema.index({ author: 1, user: 1 });
 paymentsSchema.index({ tranId: 1, bookings: 1 });

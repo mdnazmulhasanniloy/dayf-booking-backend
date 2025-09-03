@@ -10,6 +10,8 @@ import pickQuery from '../../utils/pickQuery';
 import { paginationHelper } from '../../helpers/pagination.helpers';
 import { User } from '../user/user.models';
 import { USER_ROLE } from '../user/user.constants';
+import AppError from '../../error/AppError';
+import httpStatus from 'http-status';
 
 const getHotelOwnerDashboard = async (
   query: Record<string, any>,
@@ -377,6 +379,244 @@ const getHotelOwnerEarning = async (
   };
 };
 
+const getDashboardTopCardDetails = async () => {
+  const startOfMonth = moment().startOf('month');
+  const endOfMonth = moment().endOf('month');
+
+  const bookingData = await Bookings.aggregate([
+    {
+      $match: {
+        isDeleted: false,
+      },
+    },
+    {
+      $facet: {
+        thisMontActiveUsers: [
+          {
+            $match: {
+              paymentStatus: PAYMENT_STATUS.paid,
+              createdAt: {
+                $gte: startOfMonth.toDate(),
+                $lte: endOfMonth.toDate(),
+              },
+            },
+          },
+          {
+            $group: {
+              _id: '$userId',
+            },
+          },
+          {
+            $count: 'uniqueUsers',
+          },
+        ],
+        thisMontTotalBookings: [
+          {
+            $match: {
+              paymentStatus: PAYMENT_STATUS.paid,
+              createdAt: {
+                $gte: startOfMonth.toDate(),
+                $lte: endOfMonth.toDate(),
+              },
+            },
+          },
+
+          {
+            $count: 'Bookings',
+          },
+        ],
+      },
+    },
+  ]).then(data => data[0]);
+
+  const totalHotelOwner = await User.countDocuments({
+    role: USER_ROLE.hotel_owner,
+    isDeleted: false,
+  });
+
+  const payment = await Payments.aggregate([
+    {
+      $match: { status: PAYMENT_STATUS.paid, isDeleted: false },
+    },
+    {
+      $facet: {
+        totalEarnings: [
+          {
+            $group: { _id: null, total: { $sum: '$amount' } },
+          },
+        ],
+        totalCommission: [
+          {
+            $group: { _id: null, total: { $sum: '$adminAmount' } },
+          },
+        ],
+      },
+    },
+  ]).then(data => data[0]);
+  return {
+    thisMontActiveUsers: bookingData?.thisMontActiveUsers[0]?.uniqueUsers || 0,
+    thisMontTotalBookings: bookingData?.thisMontTotalBookings[0]?.Bookings || 0,
+    totalHotelOwner,
+    totalEarning: payment?.totalEarnings[0]?.total || 0,
+    totalCommission: payment?.totalCommission[0]?.total || 0,
+  };
+};
+const getUserOverview = async (query: Record<string, any>) => {
+  const userYear = query?.JoinYear ? query?.JoinYear : moment().year();
+  const startOfUserYear = moment().year(userYear).startOf('year');
+  const endOfUserYear = moment().year(userYear).endOf('year');
+
+  const monthlyUserData = await User.aggregate([
+    {
+      $match: {
+        'verification.status': true,
+        role: {
+          $ne: [USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.super_admin],
+        },
+        createdAt: {
+          $gte: startOfUserYear.toDate(),
+          $lte: endOfUserYear.toDate(),
+        },
+      },
+    },
+    {
+      $project: {
+        month: { $month: '$createdAt' },
+        isHotelOwner: { $eq: ['$role', USER_ROLE.hotel_owner] },
+      },
+    },
+    {
+      $group: {
+        _id: { month: '$month' },
+        totalUsers: { $sum: 1 },
+        totalHotelOwners: {
+          $sum: { $cond: [{ $eq: ['$isHotelOwner', true] }, 1, 0] },
+        }, // Count hotel owners
+      },
+    },
+    {
+      $sort: { '_id.month': 1 },
+    },
+  ]);
+
+  // Format monthly data to have an entry for each month
+  const formattedMonthlyUsers = Array.from({ length: 12 }, (_, index) => ({
+    month: moment().month(index).format('MMM'),
+    totalUsers: 0,
+    totalHotelOwners: 0,
+  }));
+
+  monthlyUserData.forEach(entry => {
+    formattedMonthlyUsers[entry._id.month - 1].totalUsers = Math.round(
+      entry.totalUsers,
+    );
+    formattedMonthlyUsers[entry._id.month - 1].totalHotelOwners = Math.round(
+      entry.totalHotelOwners,
+    );
+  });
+
+  return formattedMonthlyUsers;
+};
+
+// const getBookingOverview = async (query: Record<string, any>) => {
+//   const startDate = query?.startDate
+//     ? moment(query.startDate).startOf('day').toDate()
+//     : moment().startOf('year').toDate();
+//   const endDate = query?.endDate
+//     ? moment(query.endDate).endOf('day').toDate()
+//     : moment().endOf('year').toDate();
+
+//   const bookingData = await Bookings.aggregate([
+//     {
+//       $match: {
+//         startDate: { $gte: startDate },
+//         endDate: { $lte: endDate },
+//         isDeleted: false,
+//       },
+//     },
+//     {
+//       $group: {
+//         _id: {
+//           $dateToString: { format: '%Y-%m-%d', date: '$startDate' }, // Group by day based on startDate
+//         },
+//         totalBookings: { $sum: 1 }, // Count the number of bookings per day
+//       },
+//     },
+//     {
+//       $sort: { _id: 1 }, // Sort by date ascending
+//     },
+//   ]);
+//   return bookingData;
+
+//   // Format the data so it's ready for a graph (you can adjust this according to your graphing library)
+//   const formattedData = Array.from(
+//     { length: endDate.getDate() },
+//     (_, index) => ({
+//       date: moment(startDate).add(index, 'days').format('YYYY-MM-DD'),
+//       totalBookings: 0,
+//     }),
+//   );
+
+//   bookingData.forEach((entry: any) => {
+//     const dateIndex = moment(entry._id).diff(startDate, 'days');
+//     formattedData[dateIndex].totalBookings = entry.totalBookings;
+//   });
+
+//   return formattedData;
+// };
+
+const getBookingOverview = async (query: Record<string, any>) => {
+  const month = query?.month || moment().month();
+  const year = query?.year || moment().year();
+
+  // If monthYear is not provided, use the current month and year as default
+  // const currentMonthYear = monthYear || moment().format('MMM-YYYY'); // Default to current month-year (e.g., "Jun-2024")
+const day = moment().month(month)
+  // const [monthName, year] = currentMonthYear.split('-');
+  // const month = moment().month(monthName).month(); // Get the numeric month value
+  const startDate = moment().year(year).month(month).toDate(); // Start of the selected month
+  console.log('🚀 ~ getBookingOverview ~ startDate:', startDate);
+  const endDate = moment(startDate).endOf('month').toDate(); // End of the selected month
+  console.log(startDate);
+  console.log(endDate);
+  const bookingData = await Bookings.aggregate([
+    {
+      $match: {
+        paymentStatus: PAYMENT_STATUS.paid,
+        startDate: { $gte: startDate },
+        endDate: { $lte: endDate },
+        isDeleted: false,
+      },
+    },
+    {
+      $group: {
+        _id: {
+          $dateToString: { format: '%Y-%m-%d', date: '$startDate' }, // Group by day based on startDate
+        },
+        totalBookings: { $sum: 1 }, // Count the number of bookings per day
+      },
+    },
+    {
+      $sort: { _id: 1 }, // Sort by date ascending
+    },
+  ]);
+
+  const formattedData = Array.from(
+    { length: endDate.getDate() },
+    (_, index) => ({
+      date: moment(startDate).add(index, 'days').format('YYYY-MM-DD'),
+      totalBookings: 0,
+    }),
+  );
+
+  bookingData.forEach((entry: any) => {
+    const dateIndex = moment(entry._id).diff(startDate, 'days');
+    formattedData[dateIndex].totalBookings = entry.totalBookings;
+  });
+
+  return formattedData;
+};
+
 const getAdminDashboard = async (query: Record<string, any>) => {
   const joinYear = query.year || moment().year();
   const roleFilter = query.role
@@ -417,62 +657,37 @@ const getAdminDashboard = async (query: Record<string, any>) => {
   //========================== Users aggregate ==========================\\
   const usersData = await User.aggregate([
     {
-      $match: { isDeleted: false, 'verification.status': true },
-    },
-    {
-      $facet: {
-        allRegisteredUsers: [{ $count: 'count' }],
-        totalHotelOwner: [
-          {
-            $match: {
-              role: USER_ROLE.hotel_owner,
-            },
+      $match: {
+        isDeleted: false,
+        'verification.status': true,
+        $match: {
+          ...roleFilter,
+          createdAt: {
+            $gte: moment().year(joinYear).startOf('year').toDate(),
+            $lte: moment().year(joinYear).endOf('year').toDate(),
           },
-          { $count: 'count' },
-        ],
-        totalUser: [{ $match: { role: USER_ROLE.user } }, { $count: 'count' }],
-
-        monthlyUsers: [
-          {
-            $match: {
-              ...roleFilter,
-              createdAt: {
-                $gte: moment().year(joinYear).startOf('year').toDate(),
-                $lte: moment().year(joinYear).endOf('year').toDate(),
-              },
-            },
-          },
-          {
-            $group: {
-              _id: { month: { $month: '$createdAt' } },
-              total: { $sum: 1 },
-            },
-          },
-          { $sort: { '_id.month': 1 } },
-        ],
-
-        lastRegisterUsersData: [
-          {
-            $sort: { createdAt: -1 },
-          },
-          {
-            $limit: 15,
-          },
-        ],
+        },
       },
     },
+    {
+      $group: {
+        _id: { month: { $month: '$createdAt' } },
+        total: { $sum: 1 },
+      },
+    },
+    { $sort: { '_id.month': 1 } },
   ]).then(data => data[0]);
 
   // Format monthly users
   const monthlyUsers = initializeMonthlyData('total') as MonthlyUsers[];
-  usersData.monthlyUsers.forEach(
+  usersData.forEach(
     ({ _id, total }: { _id: { month: number }; total: number }) => {
       monthlyUsers[_id.month - 1].total = Math.round(total);
     },
   );
 
   //========================== Booking aggregate ==========================\\
-  const monthString = query?.bookingMonth || moment().format('YYYY-MM'); 
+  const monthString = query?.bookingMonth || moment().format('YYYY-MM');
 
   const startOfMonth = moment(monthString, 'YYYY-MM').startOf('month').utc();
   const endOfMonth = moment(monthString, 'YYYY-MM').endOf('month').utc();
@@ -762,4 +977,7 @@ export const dashboardService = {
   getHotelOwnerEarning,
   getAdminDashboard,
   getAdminEarning,
+  getDashboardTopCardDetails,
+  getUserOverview,
+  getBookingOverview,
 };
