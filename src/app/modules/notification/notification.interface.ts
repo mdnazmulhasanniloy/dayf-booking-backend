@@ -4,6 +4,7 @@ export enum modeType {
   ShopWiseOrder = 'ShopWiseOrder',
   Order = 'Order',
   payments = 'Payments',
+  Supports = 'Supports',
 }
 export interface TNotification {
   receiver: ObjectId;

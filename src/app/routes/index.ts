@@ -18,6 +18,7 @@ import { bookMarkRoutes } from '../modules/bookMark/bookMark.route';
 import { roomTypesRoutes } from '../modules/roomTypes/roomTypes.route';
 import { dashboardRoutes } from '../modules/dashboard/dashboard.route';
 import uploadRouter from '../modules/uploads/route';
+import { supportsRoutes } from '../modules/supports/supports.route';
 
 const router = Router();
 const moduleRoutes = [
@@ -97,6 +98,10 @@ const moduleRoutes = [
   {
     path: '/uploads',
     route: uploadRouter,
+  },
+  {
+    path: '/support',
+    route: supportsRoutes,
   },
 ];
 moduleRoutes.forEach(route => router.use(route.path, route.route));

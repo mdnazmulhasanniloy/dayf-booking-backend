@@ -24,7 +24,6 @@ import { Response } from 'express';
 import moment from 'moment';
 
 const checkout = async (payload: IPayments) => {
-  const tranId = `TXN-${generateRandomString(10)}`;
   let paymentData: IPayments;
   let name: string;
 
@@ -46,13 +45,7 @@ const checkout = async (payload: IPayments) => {
   });
 
   if (isExistPayment) {
-    const payment = await Payments.findByIdAndUpdate(
-      isExistPayment?._id,
-      { tranId },
-      { new: true },
-    );
-
-    paymentData = payment as IPayments;
+    paymentData = isExistPayment as IPayments;
   } else {
     if (bookings?.modelType === BOOKING_MODEL_TYPE.Rooms) {
       const roomType: IRoomTypes | null = await RoomTypes?.findById(
@@ -66,8 +59,8 @@ const checkout = async (payload: IPayments) => {
       payload.adminAmount = bookings?.totalPrice * 0.1;
       payload.hotelOwnerAmount = bookings?.totalPrice * 0.9;
       name = (bookings?.reference as IApartment)?.name;
-    }
-    payload.tranId = tranId;
+    } 
+    
     //@ts-ignore
     payload.author = (bookings?.author as IUser)?._id;
     payload.amount = bookings?.totalPrice;
@@ -135,6 +128,9 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
   // Retrieve the PaymentIntent
 
   if (!(await StripeService.isPaymentSuccess(sessionId))) {
+    await Payments.findByIdAndUpdate(paymentId, {
+      status: PAYMENT_STATUS.failed,
+    });
     throw res.render('paymentError', {
       message: 'Payment session is not completed',
       device: device || '',
@@ -147,6 +143,7 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
     const charge = await StripeService.getStripe().charges.retrieve(
       paymentIntent.latest_charge as string,
     );
+
     if (charge?.refunded) {
       throw new AppError(httpStatus.BAD_REQUEST, 'Payment has been refunded');
     }

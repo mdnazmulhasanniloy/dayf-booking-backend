@@ -8,7 +8,7 @@ const paymentsSchema = new Schema<IPayments>(
     amount: { type: Number, required: true },
     status: {
       type: String,
-      enum: ['pending', 'paid', 'refunded', 'canceled'],
+      enum: ['pending', 'paid', 'refunded', 'failed'],
       default: 'pending',
     },
     receiptUrl: {
