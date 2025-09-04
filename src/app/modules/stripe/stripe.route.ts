@@ -16,7 +16,7 @@ router.patch(
   stripeController.stripLinkAccountForAPK,
 );
 router.get('/oauth/callback', stripeController?.handleStripeOAuth);
-router.post('/return', stripeController.returnUrl);
+router.get('/return', stripeController.returnUrl);
 router.get('/refresh/:id', stripeController.refresh);
 
 // for apk
