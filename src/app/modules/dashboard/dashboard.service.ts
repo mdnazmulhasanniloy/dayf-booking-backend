@@ -1,3 +1,4 @@
+import { modeType } from './../notification/notification.interface';
 import { MonthlyIncome, MonthlyUsers } from './dashboard.interface';
 import Payments from '../payments/payments.models';
 import moment from 'moment';
@@ -10,6 +11,7 @@ import pickQuery from '../../utils/pickQuery';
 import { paginationHelper } from '../../helpers/pagination.helpers';
 import { User } from '../user/user.models';
 import { USER_ROLE } from '../user/user.constants';
+import Apartment from '../apartment/apartment.models';
 
 const getHotelOwnerDashboard = async (
   query: Record<string, any>,
@@ -628,25 +630,23 @@ const getBookingPerformance = async (query: Record<string, any>) => {
     },
     {
       $facet: {
-         
         avgStay: [
           {
             $project: {
-              stayDuration: { $subtract: ['$endDate', '$startDate'] },  
+              stayDuration: { $subtract: ['$endDate', '$startDate'] },
             },
           },
           {
             $group: {
               _id: null,
-              avgStay: { $avg: '$stayDuration' },  
+              avgStay: { $avg: '$stayDuration' },
             },
           },
         ],
 
-        
         cancellationRate: [
           {
-            $match: { status: BOOKING_STATUS.cancelled },  
+            $match: { status: BOOKING_STATUS.cancelled },
           },
           {
             $group: {
@@ -656,7 +656,6 @@ const getBookingPerformance = async (query: Record<string, any>) => {
           },
         ],
 
-        
         conversionRate: [
           {
             $match: {
@@ -667,18 +666,18 @@ const getBookingPerformance = async (query: Record<string, any>) => {
                   BOOKING_STATUS.pending,
                   BOOKING_STATUS.confirmed,
                 ],
-              },  
+              },
             },
           },
           {
-            $count: 'totalConversions',  
+            $count: 'totalConversions',
           },
         ],
       },
     },
     {
       $project: {
-        avgStay: { $arrayElemAt: ['$avgStay.avgStay', 0] }, 
+        avgStay: { $arrayElemAt: ['$avgStay.avgStay', 0] },
         cancellationRate: {
           $cond: {
             if: { $gt: [{ $size: '$cancellationRate' }, 0] },
@@ -690,7 +689,7 @@ const getBookingPerformance = async (query: Record<string, any>) => {
             },
             else: 0,
           },
-        }, 
+        },
         conversionRate: {
           $cond: {
             if: { $gt: [{ $size: '$conversionRate' }, 0] },
@@ -702,21 +701,102 @@ const getBookingPerformance = async (query: Record<string, any>) => {
             },
             else: 0,
           },
-        },  
+        },
       },
     },
   ]);
 
-  const performanceData = bookingData[0];  
+  const performanceData = bookingData[0];
 
- 
   const avgStayInDays = performanceData.avgStay / (1000 * 60 * 60 * 24);
 
   return {
-    avgStay: avgStayInDays.toFixed(2),  
-    cancellationRate: (performanceData.cancellationRate * 100).toFixed(2),  
-    conversionRate: (performanceData.conversionRate * 100).toFixed(2),  
+    avgStay: avgStayInDays.toFixed(2),
+    cancellationRate: (performanceData.cancellationRate * 100).toFixed(2),
+    conversionRate: (performanceData.conversionRate * 100).toFixed(2),
   };
+};
+const getPropertiesOverview = async (query: Record<string, any>) => {
+  const startOfMonth = moment().startOf('month').toDate();
+  const endOfMonth = moment().endOf('month').toDate();
+  const apartmentData = await Apartment.aggregate([
+    {
+      $match: { isDeleted: false }, // Only consider apartments that are not deleted
+    },
+    {
+      $facet: {
+        activeApartment: [
+          {
+            $count: 'activeApartment', // Count the number of active apartments
+          },
+        ],
+        newListingsApartment: [
+          {
+            $match: {
+              createdAt: { $gte: startOfMonth, $lte: endOfMonth }, // Filter for new listings in the current month
+            },
+          },
+          {
+            $count: 'newListings', // Count the number of new listings in the current month
+          },
+        ],
+      },
+    },
+  ]);
+
+  // Extract the results and format them properly
+  const activeApartmentCount =
+    apartmentData[0]?.activeApartment[0]?.activeApartment || 0;
+  const newListingsCount =
+    apartmentData[0]?.newListingsApartment[0]?.newListings || 0;
+
+  const topApartments = await Bookings.aggregate([
+    {
+      $match: { isDeleted: false, modelType: BOOKING_MODEL_TYPE.Apartment },
+    },
+    {
+      $group: {
+        _id: '$reference',
+        totalBookings: { $sum: 1 },
+        totalRevenue: { $sum: '$totalPrice' },
+      },
+    },
+    {
+      $sort: { totalBookings: -1 },
+    },
+    {
+      $limit: 5,
+    },
+    {
+      $sort: { totalRevenue: -1 },
+    },
+    {
+      $lookup: {
+        from: 'apartments',
+        localField: '_id',
+        foreignField: '_id',
+        as: 'apartments',
+      },
+    },
+    {
+      $unwind: '$apartments',
+    },
+    {
+      $project: {
+        _id: '$_id',
+        totalBookings: 1,
+        id: '$apartments.id',
+        images: '$apartments.images',
+        name: '$apartments.name',
+        profile: '$apartments.profile',
+        Price: '$apartments.price',
+        avgRating: '$apartments.avgRating',
+        propertyLocation: '$apartments.location',
+      },
+    },
+  ]);
+
+  return { activeApartmentCount, newListingsCount, topApartments };
 };
 
 const getAdminDashboard = async (query: Record<string, any>) => {
@@ -1074,6 +1154,7 @@ const getAdminEarning = async (query: Record<string, any>) => {
     EarningsData: data,
   };
 };
+
 export const dashboardService = {
   getHotelOwnerDashboard,
   getHotelOwnerEarning,
@@ -1084,4 +1165,5 @@ export const dashboardService = {
   getBookingOverview,
   getRevenueOverview,
   getBookingPerformance,
+  getPropertiesOverview,
 };

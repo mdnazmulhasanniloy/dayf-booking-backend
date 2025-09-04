@@ -42,8 +42,13 @@ router.get(
 );
 router.get(
   '/booking-performance',
-  // auth(USER_ROLE.admin),
+  auth(USER_ROLE.admin),
   dashboardController.getBookingPerformance,
+);
+router.get(
+  '/properties-overview',
+  // auth(USER_ROLE.admin),
+  dashboardController.getPropertiesOverview,
 );
 router.get(
   '/admin-earnings',

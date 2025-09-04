@@ -84,7 +84,17 @@ const getRevenueOverview = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
-
+const getPropertiesOverview = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await dashboardService.getPropertiesOverview(req.query);
+    sendResponse(res, {
+      statusCode: 201,
+      success: true,
+      message: 'admin dashboard properties overview get successfully',
+      data: result,
+    });
+  },
+);
 
 const getBookingPerformance = catchAsync(
   async (req: Request, res: Response) => {
@@ -117,4 +127,5 @@ export const dashboardController = {
   getBookingOverview,
   getRevenueOverview,
   getBookingPerformance,
+  getPropertiesOverview,
 };
