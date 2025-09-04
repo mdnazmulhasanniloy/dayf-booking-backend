@@ -22,7 +22,16 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: '*',
+    origin: [
+      'https://admin.techcrafters.tech/login',
+      'https://www.admin.techcrafters.tech/login',
+      'https://api.techcrafters.tech/login',
+      'https://www.api.techcrafters.tech/login',
+      'https://socket.techcrafters.tech/login',
+      'https://www.socket.techcrafters.tech/login',
+      'https://techcrafters.tech/login',
+      'https://www.techcrafters.tech/login',
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   }),
