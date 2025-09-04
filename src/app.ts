@@ -20,13 +20,13 @@ app.use(express.urlencoded({ limit: '500mb', extended: true }));
 //parsers
 app.use(express.json());
 app.use(cookieParser());
-// app.use(
-//   cors({
-//     origin: true,
-//     credentials: true,
-//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-//   }),
-// );
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  }),
+);
 
 app.use(
   cors({
