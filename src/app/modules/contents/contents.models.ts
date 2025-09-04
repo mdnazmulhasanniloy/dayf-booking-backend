@@ -5,12 +5,19 @@ const contentsSchema = new Schema<IContents>(
   {
     aboutUs: {
       type: String,
+      default: null,
     },
     termsAndConditions: {
       type: String,
+      default: null,
     },
     privacyPolicy: {
       type: String,
+      default: null,
+    },
+    legalNotice: {
+      type: String,
+      default: null,
     },
     topSectionImage: [
       {
@@ -32,10 +39,9 @@ const contentsSchema = new Schema<IContents>(
     ],
     supports: {
       type: String,
+      default: null,
     },
-    faq: {
-      type: String,
-    },
+   
     isDeleted: {
       type: Boolean,
       default: false,

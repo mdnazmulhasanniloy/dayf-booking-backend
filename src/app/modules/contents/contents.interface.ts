@@ -9,6 +9,7 @@ export interface IContents {
   termsAndConditions?: string;
   topSectionImage: { key: string; url: string }[];
   whyChooseUsSectionImage: { key: string; url: string }[];
+  legalNotice?: string;
   privacyPolicy?: string;
   supports?: string;
   faq?: string;
