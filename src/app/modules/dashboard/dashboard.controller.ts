@@ -32,6 +32,7 @@ const getHotelOwnerEarning = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
 const getAdminDashboard = catchAsync(async (req: Request, res: Response) => {
   const result = await dashboardService.getAdminDashboard(req.query);
   sendResponse(res, {
@@ -41,6 +42,7 @@ const getAdminDashboard = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
 const getDashboardTopCardDetails = catchAsync(
   async (req: Request, res: Response) => {
     const result = await dashboardService.getDashboardTopCardDetails();
@@ -52,6 +54,7 @@ const getDashboardTopCardDetails = catchAsync(
     });
   },
 );
+
 const getUserOverview = catchAsync(async (req: Request, res: Response) => {
   const result = await dashboardService.getUserOverview(req.query);
   sendResponse(res, {
@@ -61,6 +64,7 @@ const getUserOverview = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
 const getBookingOverview = catchAsync(async (req: Request, res: Response) => {
   const result = await dashboardService.getBookingOverview(req.query);
   sendResponse(res, {
@@ -70,6 +74,29 @@ const getBookingOverview = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
+const getRevenueOverview = catchAsync(async (req: Request, res: Response) => {
+  const result = await dashboardService.getRevenueOverview(req.query);
+  sendResponse(res, {
+    statusCode: 201,
+    success: true,
+    message: 'admin dashboard revenue overview get successfully',
+    data: result,
+  });
+});
+
+
+const getBookingPerformance = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await dashboardService.getBookingPerformance(req.query);
+    sendResponse(res, {
+      statusCode: 201,
+      success: true,
+      message: 'admin dashboard revenue overview get successfully',
+      data: result,
+    });
+  },
+);
 const getAdminEarning = catchAsync(async (req: Request, res: Response) => {
   const result = await dashboardService.getAdminEarning(req.query);
   sendResponse(res, {
@@ -88,4 +115,6 @@ export const dashboardController = {
   getDashboardTopCardDetails,
   getUserOverview,
   getBookingOverview,
+  getRevenueOverview,
+  getBookingPerformance,
 };

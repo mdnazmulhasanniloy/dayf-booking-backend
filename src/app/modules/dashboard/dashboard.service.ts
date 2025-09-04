@@ -1,7 +1,7 @@
 import { MonthlyIncome, MonthlyUsers } from './dashboard.interface';
 import Payments from '../payments/payments.models';
 import moment from 'moment';
-import { PAYMENT_STATUS } from '../bookings/bookings.constants';
+import { BOOKING_STATUS, PAYMENT_STATUS } from '../bookings/bookings.constants';
 import { initializeMonthlyData } from './dashboard.utils';
 import { Types } from 'mongoose';
 import Bookings from '../bookings/bookings.models';
@@ -10,8 +10,6 @@ import pickQuery from '../../utils/pickQuery';
 import { paginationHelper } from '../../helpers/pagination.helpers';
 import { User } from '../user/user.models';
 import { USER_ROLE } from '../user/user.constants';
-import AppError from '../../error/AppError';
-import httpStatus from 'http-status';
 
 const getHotelOwnerDashboard = async (
   query: Record<string, any>,
@@ -461,6 +459,7 @@ const getDashboardTopCardDetails = async () => {
     totalCommission: payment?.totalCommission[0]?.total || 0,
   };
 };
+
 const getUserOverview = async (query: Record<string, any>) => {
   const userYear = query?.JoinYear ? query?.JoinYear : moment().year();
   const startOfUserYear = moment().year(userYear).startOf('year');
@@ -518,12 +517,9 @@ const getUserOverview = async (query: Record<string, any>) => {
   return formattedMonthlyUsers;
 };
 
- 
 const getBookingOverview = async (query: Record<string, any>) => {
   const month =
-    query?.month !== undefined
-      ? Number(query.month) - 1 
-      : moment().month();
+    query?.month !== undefined ? Number(query.month) - 1 : moment().month();
   const year = query?.year || moment().year();
   const date = moment().year(year).month(month);
   const startDate = moment(date).startOf('month').toDate();
@@ -543,13 +539,13 @@ const getBookingOverview = async (query: Record<string, any>) => {
     {
       $group: {
         _id: {
-          $dateToString: { format: '%Y-%m-%d', date: '$startDate' },  
+          $dateToString: { format: '%Y-%m-%d', date: '$startDate' },
         },
-        totalBookings: { $sum: 1 }, 
+        totalBookings: { $sum: 1 },
       },
     },
     {
-      $sort: { _id: 1 }, 
+      $sort: { _id: 1 },
     },
   ]);
 
@@ -567,6 +563,160 @@ const getBookingOverview = async (query: Record<string, any>) => {
   });
 
   return formattedData;
+};
+
+const getRevenueOverview = async (query: Record<string, any>) => {
+  const year = query?.year ? query?.year : moment().year();
+  const startOfYear = moment().year(year).startOf('year');
+  const endOfYear = moment().year(year).endOf('year');
+
+  const revenueData = await Payments.aggregate([
+    {
+      $match: {
+        status: 'paid', // Only include paid payments
+        isDeleted: false, // Only include non-deleted payments
+        createdAt: {
+          // Ensure payments are within the selected year
+          $gte: startOfYear.toDate(),
+          $lte: endOfYear.toDate(),
+        },
+      },
+    },
+    {
+      $project: {
+        month: { $month: '$createdAt' }, // Extract the month from the payment's createdAt date
+        adminAmount: 1, // Include the adminAmount field for commission calculations
+        amount: 1, // Include the total payment amount
+      },
+    },
+    {
+      $group: {
+        _id: { month: '$month' }, // Group by month
+        commissions: { $sum: '$adminAmount' }, // Sum the adminAmount for commissions
+        totalRevenue: { $sum: '$amount' }, // Sum the total payment amount
+      },
+    },
+    {
+      $sort: { '_id.month': 1 }, // Sort by month in ascending order
+    },
+  ]);
+
+  // Format the output to ensure all months are present, even if some months have no data
+  const formattedRevenueData = Array.from({ length: 12 }, (_, index) => ({
+    month: moment().month(index).format('MMM'), // Month name (e.g., Jan, Feb, ...)
+    commissions: 0, // Default commission to 0
+    totalRevenue: 0, // Default revenue to 0
+  }));
+
+  // Populate the data from the aggregation result
+  revenueData.forEach(entry => {
+    const monthIndex = entry._id.month - 1; // Adjust for zero-based indexing
+    formattedRevenueData[monthIndex].commissions = entry.commissions;
+    formattedRevenueData[monthIndex].totalRevenue = entry.totalRevenue;
+  });
+
+  return formattedRevenueData;
+};
+
+const getBookingPerformance = async (query: Record<string, any>) => {
+  const bookingData = await Bookings.aggregate([
+    {
+      $match: {
+        paymentStatus: PAYMENT_STATUS.paid,
+        isDeleted: false,
+      },
+    },
+    {
+      $facet: {
+         
+        avgStay: [
+          {
+            $project: {
+              stayDuration: { $subtract: ['$endDate', '$startDate'] },  
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              avgStay: { $avg: '$stayDuration' },  
+            },
+          },
+        ],
+
+        
+        cancellationRate: [
+          {
+            $match: { status: BOOKING_STATUS.cancelled },  
+          },
+          {
+            $group: {
+              _id: null,
+              cancelledBookings: { $sum: 1 },
+            },
+          },
+        ],
+
+        
+        conversionRate: [
+          {
+            $match: {
+              status: {
+                $in: [
+                  BOOKING_STATUS.completed,
+                  BOOKING_STATUS.cancelled,
+                  BOOKING_STATUS.pending,
+                  BOOKING_STATUS.confirmed,
+                ],
+              },  
+            },
+          },
+          {
+            $count: 'totalConversions',  
+          },
+        ],
+      },
+    },
+    {
+      $project: {
+        avgStay: { $arrayElemAt: ['$avgStay.avgStay', 0] }, 
+        cancellationRate: {
+          $cond: {
+            if: { $gt: [{ $size: '$cancellationRate' }, 0] },
+            then: {
+              $divide: [
+                { $arrayElemAt: ['$cancellationRate.cancelledBookings', 0] },
+                { $size: '$avgStay' },
+              ],
+            },
+            else: 0,
+          },
+        }, 
+        conversionRate: {
+          $cond: {
+            if: { $gt: [{ $size: '$conversionRate' }, 0] },
+            then: {
+              $divide: [
+                { $arrayElemAt: ['$conversionRate.totalConversions', 0] },
+                100,
+              ],
+            },
+            else: 0,
+          },
+        },  
+      },
+    },
+  ]);
+
+  const performanceData = bookingData[0];  
+
+ 
+  const avgStayInDays = performanceData.avgStay / (1000 * 60 * 60 * 24);
+
+  return {
+    avgStay: avgStayInDays.toFixed(2),  
+    cancellationRate: (performanceData.cancellationRate * 100).toFixed(2),  
+    conversionRate: (performanceData.conversionRate * 100).toFixed(2),  
+  };
 };
 
 const getAdminDashboard = async (query: Record<string, any>) => {
@@ -932,4 +1082,6 @@ export const dashboardService = {
   getDashboardTopCardDetails,
   getUserOverview,
   getBookingOverview,
+  getRevenueOverview,
+  getBookingPerformance,
 };
