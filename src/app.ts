@@ -20,30 +20,30 @@ app.use(express.urlencoded({ limit: '500mb', extended: true }));
 //parsers
 app.use(express.json());
 app.use(cookieParser());
-app.use(
-  cors({
-    origin: true,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  }),
-);
+// app.use(
+//   cors({
+//     origin: true,
+//     credentials: true,
+//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+//   }),
+// );
 
-app.use(
-  cors({
-    origin: [
-      'https://admin.techcrafters.tech',
-      'https://www.admin.techcrafters.tech',
-      'https://api.techcrafters.tech',
-      'https://www.api.techcrafters.tech',
-      'https://socket.techcrafters.tech',
-      'https://www.socket.techcrafters.tech',
-      'https://techcrafters.tech',
-      'https://www.techcrafters.tech',
-    ],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  }),
-);
+// app.use(
+//   cors({
+//     origin: [
+//       'https://admin.techcrafters.tech',
+//       'https://www.admin.techcrafters.tech',
+//       'https://api.techcrafters.tech',
+//       'https://www.api.techcrafters.tech',
+//       'https://socket.techcrafters.tech',
+//       'https://www.socket.techcrafters.tech',
+//       'https://techcrafters.tech',
+//       'https://www.techcrafters.tech',
+//     ],
+//     credentials: true,
+//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+//   }),
+// );
 // Remove duplicate static middleware
 // app.use(app.static('public'));
 

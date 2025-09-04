@@ -37,7 +37,7 @@ const stripLinkAccount = async (userId: string) => {
 
     const refresh_url = `${config?.server_url}/stripe/refresh/${account.id}?userId=${user?._id}`;
 
-    const return_url = `${config?.client_Url}/seller/confirmation?userId=${user._id}&stripeAccountId=${account.id}`;
+    const return_url = `${config?.server_url}/stripe/return?userId=${user._id}&stripeAccountId=${account.id}`;
     const accountLink = await StripeService.connectAccount(
       return_url,
       refresh_url,
@@ -83,7 +83,7 @@ const refresh = async (accountId: string, query: Record<string, any>) => {
   try {
     const refresh_url = `${config?.server_url}/stripe/refresh/${accountId}?userId=${user?._id}`;
 
-    const return_url = `${config?.client_Url}/seller/confirmation?userId=${user._id}&stripeAccountId=${accountId}`;
+    const return_url = `${config?.server_url}/stripe/return?userId=${user._id}&stripeAccountId=${accountId}`;
     const accountLink = await StripeService.connectAccount(
       return_url,
       refresh_url,
@@ -96,10 +96,7 @@ const refresh = async (accountId: string, query: Record<string, any>) => {
 };
 
 // Handle the return URL and update the user's Stripe account ID
-const returnUrl = async (payload: {
-  stripeAccountId: string;
-  userId: string;
-}) => {
+const returnUrl = async (payload: Record<string, any>) => {
   try {
     const user = await User.findByIdAndUpdate(payload.userId, {
       stripeAccountId: payload?.stripeAccountId,

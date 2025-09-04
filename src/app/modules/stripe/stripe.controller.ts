@@ -29,7 +29,8 @@ const refresh = catchAsync(async (req: Request, res: Response) => {
 });
 
 const returnUrl = catchAsync(async (req: Request, res: Response) => {
-  const result = await stripeService.returnUrl(req.body);
+  const result = await stripeService.returnUrl(req.query);
+  res.redirect('https://admin.techcrafters.tech');
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
@@ -53,7 +54,6 @@ const stripLinkAccountForAPK = catchAsync(
     });
   },
 );
-
 
 const refreshFOrAPK = catchAsync(async (req: Request, res: Response) => {
   const result = await stripeService.refreshFOrAPK(req.params?.id, req.query);
