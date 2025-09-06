@@ -31,6 +31,7 @@ app.use(cookieParser());
 app.use(
   cors({
     origin: [
+      'http://206.162.244.133:3001',
       'http://localhost:4000',
       'http://10.10.10.48:5015:4000',
       'https://admin.techcrafters.tech',
