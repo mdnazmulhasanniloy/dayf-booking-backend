@@ -53,14 +53,23 @@ const checkout = async (payload: IPayments) => {
       ).populate([{ path: 'property', select: 'name' }]);
 
       name = (roomType?.property as IProperty)?.name;
-      payload.adminAmount = bookings?.totalPrice * 0.08;
-      payload.hotelOwnerAmount = bookings?.totalPrice * 0.92;
+      payload.adminAmount = parseFloat(
+        (Number(bookings?.totalPrice) * 0.08).toFixed(2),
+      );
+      payload.hotelOwnerAmount = parseFloat(
+        (Number(bookings?.totalPrice) * 0.92).toFixed(2),
+      );
     } else if (bookings?.modelType === BOOKING_MODEL_TYPE.Apartment) {
-      payload.adminAmount = bookings?.totalPrice * 0.1;
-      payload.hotelOwnerAmount = bookings?.totalPrice * 0.9;
+      payload.adminAmount = parseFloat(
+        (Number(bookings?.totalPrice) * 0.1).toFixed(2),
+      );
+      payload.hotelOwnerAmount = parseFloat(
+        (Number(bookings?.totalPrice) * 0.9).toFixed(2),
+      );
+
       name = (bookings?.reference as IApartment)?.name;
-    } 
-    
+    }
+
     //@ts-ignore
     payload.author = (bookings?.author as IUser)?._id;
     payload.amount = bookings?.totalPrice;
