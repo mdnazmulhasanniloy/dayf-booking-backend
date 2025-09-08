@@ -29,7 +29,7 @@ async function main() {
       `Socket is listening on port ${config.ip}:${config.socket_port}`.yellow
         .bold,
     );
-
+     
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     //@ts-ignore
     global.socketio = io;
