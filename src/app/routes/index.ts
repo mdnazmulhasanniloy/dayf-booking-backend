@@ -20,6 +20,7 @@ import { dashboardRoutes } from '../modules/dashboard/dashboard.route';
 import uploadRouter from '../modules/uploads/route';
 import { supportsRoutes } from '../modules/supports/supports.route';
 import { carouselRoutes } from '../modules/carousel/carousel.route';
+import { galleryRoutes } from '../modules/gallery/gallery.route';
 
 const router = Router();
 const moduleRoutes = [
@@ -103,6 +104,10 @@ const moduleRoutes = [
   {
     path: '/carousel',
     route: carouselRoutes,
+  },
+  {
+    path: '/gallery',
+    route: galleryRoutes,
   },
   {
     path: '/support',
