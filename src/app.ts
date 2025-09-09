@@ -18,36 +18,36 @@ app.use(express.json({ limit: '500mb' }));
 app.use(express.urlencoded({ limit: '500mb', extended: true }));
 
 //parsers
-// app.use(express.json());
-// app.use(cookieParser());
-// app.use(
-//   cors({
-//     origin: true,
-//     credentials: true,
-//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-//   }),
-// );
-
+app.use(express.json());
+app.use(cookieParser());
 app.use(
   cors({
-    origin: [
-      'http://206.162.244.133:3001',
-      'http://localhost:4000',
-      'http://10.10.10.48:5015:4000',
-      'https://admin.techcrafters.tech',
-      'https://www.admin.techcrafters.tech',
-      'https://api.techcrafters.tech',
-      'https://www.api.techcrafters.tech',
-      'https://socket.techcrafters.tech',
-      'https://www.socket.techcrafters.tech',
-      'https://techcrafters.tech',
-      'https://www.techcrafters.tech',
-      'http://10.10.10.48:4000',
-    ],
+    origin: true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   }),
 );
+
+// app.use(
+//   cors({
+//     origin: [
+//       'http://206.162.244.133:3001',
+//       'http://localhost:4000',
+//       'http://10.10.10.48:5015:4000',
+//       'https://admin.techcrafters.tech',
+//       'https://www.admin.techcrafters.tech',
+//       'https://api.techcrafters.tech',
+//       'https://www.api.techcrafters.tech',
+//       'https://socket.techcrafters.tech',
+//       'https://www.socket.techcrafters.tech',
+//       'https://techcrafters.tech',
+//       'https://www.techcrafters.tech',
+//       'http://10.10.10.48:4000',
+//     ],
+//     credentials: true,
+//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+//   }),
+// );
 // Remove duplicate static middleware
 // app.use(app.static('public'));
 

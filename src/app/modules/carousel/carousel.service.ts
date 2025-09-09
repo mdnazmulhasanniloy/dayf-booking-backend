@@ -49,9 +49,7 @@ const updateCarousel = async (id: string, payload: Partial<ICarousel>) => {
 const deleteCarousel = async (id: string) => {
   const carouselGet = Carousel.findById(id);
   if (carouselGet?.image) {
-    const url = new URL(
-      'https://travelersnh.s3.eu-north-1.amazonaws.com/images/user/profile/949664',
-    );
+    const url = new URL(carouselGet?.image as string);
     const route = url.pathname;
     await deleteFromS3(route);
   }
