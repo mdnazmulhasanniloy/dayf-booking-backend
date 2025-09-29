@@ -7,7 +7,7 @@ import { Server } from 'socket.io';
 import getUserDetailsFromToken from './app/helpers/getUserDetailsFromToken';
 import AppError from './app/error/AppError';
 import httpStatus from 'http-status';
-import { Schema, Types } from 'mongoose';
+import {  Types } from 'mongoose';
 import { IUser } from './app/modules/user/user.interface';
 import { User } from './app/modules/user/user.models';
 import Message from './app/modules/messages/messages.models';

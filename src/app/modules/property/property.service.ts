@@ -104,6 +104,7 @@ const getAllProperty = async (query: Record<string, any>) => {
       },
     });
   }
+  
   if (ratingsFilter) {
     const ratingsArray = ratingsFilter?.split(',').map(Number);
     pipeline.push({
@@ -308,6 +309,8 @@ const getAllProperty = async (query: Record<string, any>) => {
     data,
   };
 };
+
+
 
 const getPropertyById = async (id: string) => {
   const result = await Property.findById(id).populate([
