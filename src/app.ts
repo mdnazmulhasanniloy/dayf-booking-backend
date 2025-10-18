@@ -8,6 +8,7 @@ import express, { Application, Request, Response } from 'express';
 import globalErrorHandler from './app/middleware/globalErrorhandler';
 import notFound from './app/middleware/notfound';
 import router from './app/routes';
+import getUrlData from './scp';
 // import axios from 'axios';
 // import archiver from 'archiver';
 const app: Application = express();

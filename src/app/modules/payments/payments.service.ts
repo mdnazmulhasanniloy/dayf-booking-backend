@@ -232,7 +232,7 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
 
     if (paymentIntentId) {
       try {
-        await StripeService.refund(paymentId);
+        await StripeService.refund(paymentIntentId);
       } catch (refundError: any) {
         console.error('Error processing refund:', refundError.message);
       }
