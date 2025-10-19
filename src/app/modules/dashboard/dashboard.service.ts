@@ -109,6 +109,19 @@ const getHotelOwnerDashboard = async (
             },
           },
         ],
+        totalUpcomingBookings: [
+          {
+            $match: {
+              startDate: { $gte: moment().utc().toDate() },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: 1 },
+            },
+          },
+        ],
         todayBookings: [
           {
             $match: {
@@ -224,6 +237,7 @@ const getHotelOwnerDashboard = async (
     monthlyIncome,
     toDayBookings: bookingData?.todayBookings[0]?.total || 0,
     totalBookings: bookingData?.totalBookings[0]?.total || 0,
+    totalUpcomingBookings: bookingData?.totalUpcomingBookings[0]?.total || 0,
     bookingsData: bookingData?.bookingData || [],
   };
 };
