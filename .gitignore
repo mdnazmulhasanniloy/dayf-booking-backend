@@ -6,5 +6,5 @@ logs/
 nn.ts
 package-lock.json
 generateFolder.ts
-dist
+dist/
 firebase-service-account.json
