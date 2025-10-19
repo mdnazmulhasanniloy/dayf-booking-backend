@@ -12,6 +12,7 @@ import { paginationHelper } from '../../helpers/pagination.helpers';
 import { User } from '../user/user.models';
 import { USER_ROLE } from '../user/user.constants';
 import Apartment from '../apartment/apartment.models';
+import Property from '../property/property.models';
 
 const getHotelOwnerDashboard = async (
   query: Record<string, any>,
@@ -230,6 +231,11 @@ const getHotelOwnerDashboard = async (
       },
     },
   ]).then(data => data[0]);
+
+  const myProperties = await Property.countDocuments({
+    author: new Types.ObjectId(authorId),
+    isDeleted: false,
+  });
   return {
     toDayIncome: earningData?.toDayEarnings[0]?.total || 0,
     thisMonthIncome: earningData?.thisMonthEarnings[0]?.total || 0,
@@ -239,6 +245,7 @@ const getHotelOwnerDashboard = async (
     totalBookings: bookingData?.totalBookings[0]?.total || 0,
     totalUpcomingBookings: bookingData?.totalUpcomingBookings[0]?.total || 0,
     bookingsData: bookingData?.bookingData || [],
+    totalProperties: myProperties,
   };
 };
 
