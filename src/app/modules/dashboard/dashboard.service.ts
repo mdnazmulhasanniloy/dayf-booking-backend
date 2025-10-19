@@ -47,6 +47,19 @@ const getHotelOwnerDashboard = async (
             $group: { _id: null, total: { $sum: '$hotelOwnerAmount' } },
           },
         ],
+        thisMonthEarnings: [
+          {
+            $match: {
+              createdAt: {
+                $gte: moment().startOf('month').toDate(),
+                $lte: moment().endOf('month').toDate(),
+              },
+            },
+          },
+          {
+            $group: { _id: null, total: { $sum: '$hotelOwnerAmount' } },
+          },
+        ],
         monthlyIncome: [
           {
             $match: {
@@ -206,6 +219,7 @@ const getHotelOwnerDashboard = async (
   ]).then(data => data[0]);
   return {
     toDayIncome: earningData?.toDayEarnings[0]?.total || 0,
+    thisMonthIncome: earningData?.thisMonthEarnings[0]?.total || 0,
     totalIncome: earningData?.totalEarnings[0]?.total || 0,
     monthlyIncome,
     toDayBookings: bookingData?.todayBookings[0]?.total || 0,
