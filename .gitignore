@@ -4,4 +4,6 @@ logs/
 .env
 .vercel
 nn.ts
+package-lock.json
+dist
 firebase-service-account.json
