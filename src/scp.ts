@@ -13,7 +13,7 @@ const getUrlData = async (url: string): Promise<Product> => {
 
   await page.goto(url, {
     waitUntil: 'networkidle2',
-    timeout: 60000,
+    timeout: 60000,  
   });
 
   // Extract data from Amazon product page
