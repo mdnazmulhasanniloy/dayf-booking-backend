@@ -52,10 +52,7 @@ const apartmentSchema = new Schema<IApartment>(
       type: Number,
       required: true,
     },
-    availability: {
-      type: Number,
-      required: true,
-    },
+  
     shortDescription: {
       type: String,
       required: false,

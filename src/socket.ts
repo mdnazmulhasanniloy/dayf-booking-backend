@@ -159,7 +159,7 @@ const initializeSocketIO = (server: HttpServer) => {
           io.emit('io-error', { success: false, message: error.message });
         }
       });
-
+ 
       //----------------------seen message-----------------------//
       socket.on('seen', async ({ chatId }, callback) => {
         if (!chatId) {

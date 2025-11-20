@@ -13,8 +13,7 @@ export interface IApartment {
   images: IImage[];
   name: string;
   guests: { adult: number; children: number; infants: number };
-  roomSize: number;
-  availability: number;
+  roomSize: number; 
   isAvailable: boolean;
   shortDescription: string;
   description: string;
