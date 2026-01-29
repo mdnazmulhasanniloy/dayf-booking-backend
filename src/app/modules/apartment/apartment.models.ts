@@ -52,7 +52,7 @@ const apartmentSchema = new Schema<IApartment>(
       type: Number,
       required: true,
     },
-  
+
     shortDescription: {
       type: String,
       required: false,
@@ -67,26 +67,38 @@ const apartmentSchema = new Schema<IApartment>(
       type: LocationSchema,
       required: true,
     },
-    guests: {
-      adult: {
-        type: Number,
-        required: true,
-        max: 10,
-        min: 1,
-      },
-      children: {
-        type: Number,
-        required: true,
-        max: 10,
-        min: 2,
-      },
-      infants: {
-        type: Number,
-        required: true,
-        max: 2,
-        min: 0,
-      },
+    totalCapacity: {
+      type: Number,
+      required: true,
     },
+    totalBadRooms: {
+      type: Number,
+      default: null,
+    },
+    bads: {
+      type: Number,
+      default: null,
+    },
+    // guests: {
+    //   adult: {
+    //     type: Number,
+    //     required: true,
+    //     max: 10,
+    //     min: 1,
+    //   },
+    //   children: {
+    //     type: Number,
+    //     required: true,
+    //     max: 10,
+    //     min: 2,
+    //   },
+    //   infants: {
+    //     type: Number,
+    //     required: true,
+    //     max: 2,
+    //     min: 0,
+    //   },
+    // },
 
     address: {
       type: String,
@@ -130,9 +142,9 @@ const apartmentSchema = new Schema<IApartment>(
     timestamps: true,
   },
 );
- 
 
 apartmentSchema.index({ location: '2dsphere' });
+
 const Apartment = model<IApartment, IApartmentModules>(
   'Apartment',
   apartmentSchema,

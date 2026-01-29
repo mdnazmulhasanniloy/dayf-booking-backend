@@ -18,7 +18,10 @@ const createApartment = async (payload: IApartment, files: any) => {
     throw new AppError(httpStatus.UNAUTHORIZED, 'You are not a valid user');
   }
   if (!author?.stripeAccountId) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'You are not create stripe connect account. please create a connect account then create this.');
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'You are not create stripe connect account. please create a connect account then create this.',
+    );
   }
   if (files) {
     const { images, profile, coverImage } = files;
@@ -67,9 +70,10 @@ const getAllApartment = async (query: Record<string, any>) => {
     facilities,
     priceRange, //10-100
     ratingsFilter,
-    adults,
-    children,
-    infants,
+    totalCapacity,
+    totalBadRooms,
+    bads,
+
     startDate,
     endDate,
     ...filtersData
@@ -194,12 +198,16 @@ const getAllApartment = async (query: Record<string, any>) => {
     });
   }
 
-  if (adults || children || infants) {
+  if (totalCapacity || totalBadRooms || bads) {
     pipeline.push({
       $match: {
-        'guests.adult': adults ? { $gte: Number(adults) } : { $gte: 0 },
-        'guests.children': children ? { $gte: Number(children) } : { $gte: 0 },
-        'guests.infants': infants ? { $gte: Number(infants) } : { $gte: 0 },
+        totalCapacity: totalCapacity
+          ? { $gte: Number(totalCapacity) }
+          : { $gte: 0 },
+        totalBadRooms: totalBadRooms
+          ? { $gte: Number(totalBadRooms) }
+          : { $gte: 0 },
+        bads: bads ? { $gte: Number(bads) } : { $gte: 0 },
       },
     });
     // console.log(JSON.stringify(pipeline, null, 2));

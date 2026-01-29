@@ -94,6 +94,8 @@ const checkout = async (payload: IPayments) => {
     name: name ?? 'A Booking Payment',
     quantity: 1,
   };
+
+  
   let customerId = '';
   const user = await User.IsUserExistId(paymentData?.user?.toString());
   if (user?.customerId) {

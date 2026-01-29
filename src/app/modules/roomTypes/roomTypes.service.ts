@@ -65,9 +65,12 @@ const getAllRoomTypes = async (query: Record<string, any>) => {
     facilities,
     priceRange,
     ratingsFilter,
-    adults,
-    children,
-    infants,
+    // adults,
+    // children,
+    // infants,
+    totalCapacity,
+    totalBadRooms,
+    bads,
     startDate,
     endDate,
     latitude,
@@ -200,12 +203,16 @@ const getAllRoomTypes = async (query: Record<string, any>) => {
     });
   }
 
-  if (adults || children || infants) {
+  if (totalCapacity || totalBadRooms || bads) {
     pipeline.push({
       $match: {
-        'guests.adult': adults ? { $gte: Number(adults) } : { $gte: 0 },
-        'guests.children': children ? { $gte: Number(children) } : { $gte: 0 },
-        'guests.infants': infants ? { $gte: Number(infants) } : { $gte: 0 },
+        totalCapacity: totalCapacity
+          ? { $gte: Number(totalCapacity) }
+          : { $gte: 0 },
+        totalBadRooms: totalBadRooms
+          ? { $gte: Number(totalBadRooms) }
+          : { $gte: 0 },
+        bads: bads ? { $gte: Number(bads) } : { $gte: 0 },
       },
     });
   }
@@ -314,9 +321,9 @@ const globalSearch = async (query: Record<string, any>) => {
   const { filters, pagination } = await pickQuery(query);
 
   const {
-    adults,
-    children,
-    infants,
+    totalCapacity,
+    totalBadRooms,
+    bads,
     startDate,
     endDate,
     latitude,
@@ -418,14 +425,16 @@ const globalSearch = async (query: Record<string, any>) => {
       });
     }
 
-    if (adults || children || infants) {
+    if (totalCapacity || totalBadRooms || bads) {
       pipeline.push({
         $match: {
-          'guests.adult': adults ? { $gte: Number(adults) } : { $gte: 0 },
-          'guests.children': children
-            ? { $gte: Number(children) }
+          totalCapacity: totalCapacity
+            ? { $gte: Number(totalCapacity) }
             : { $gte: 0 },
-          'guests.infants': infants ? { $gte: Number(infants) } : { $gte: 0 },
+          totalBadRooms: totalBadRooms
+            ? { $gte: Number(totalBadRooms) }
+            : { $gte: 0 },
+          bads: bads ? { $gte: Number(bads) } : { $gte: 0 },
         },
       });
     }
@@ -605,14 +614,16 @@ const globalSearch = async (query: Record<string, any>) => {
       });
     }
 
-    if (adults || children || infants) {
+    if (bads || totalBadRooms || totalCapacity) {
       pipeline.push({
         $match: {
-          'guests.adult': adults ? { $gte: Number(adults) } : { $gte: 0 },
-          'guests.children': children
-            ? { $gte: Number(children) }
+          bads: bads ? { $gte: Number(bads) } : { $gte: 0 },
+          totalBadRooms: totalBadRooms
+            ? { $gte: Number(totalBadRooms) }
             : { $gte: 0 },
-          'guests.infants': infants ? { $gte: Number(infants) } : { $gte: 0 },
+          totalCapacity: totalCapacity
+            ? { $gte: Number(totalCapacity) }
+            : { $gte: 0 },
         },
       });
       // pipeline.push({

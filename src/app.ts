@@ -7,8 +7,7 @@ import cors from 'cors';
 import express, { Application, Request, Response } from 'express';
 import globalErrorHandler from './app/middleware/globalErrorhandler';
 import notFound from './app/middleware/notfound';
-import router from './app/routes';
-import getUrlData from './scp';
+import router from './app/routes'; 
 // import axios from 'axios';
 // import archiver from 'archiver';
 const app: Application = express();
@@ -50,9 +49,7 @@ app.use(
   }),
 );
 // Remove duplicate static middleware
-// app.use(app.static('public'));
-
-// application routes
+ 
 app.use('/api/v1', router);
 
 app.get('/', (req: Request, res: Response) => {
