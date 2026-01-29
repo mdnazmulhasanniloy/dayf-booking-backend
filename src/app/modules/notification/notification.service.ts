@@ -49,7 +49,6 @@ const markAsDone = async (id: string) => {
         read: true,
       },
     },
-    { new: true },
   );
   return result;
 };

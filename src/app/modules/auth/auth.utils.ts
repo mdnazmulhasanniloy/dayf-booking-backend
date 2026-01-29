@@ -1,10 +1,11 @@
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import axios from 'axios'; 
+import axios from 'axios';
 export const createToken = (
   jwtPayload: { userId: string; role: string },
   secret: string,
   expiresIn: string,
 ) => {
+  //@ts-ignore
   return jwt.sign(jwtPayload, secret, {
     expiresIn,
   });
@@ -26,24 +27,22 @@ export async function verifyGoogleToken(accessToken: string) {
   //     message: `Google token verification failed: ${error?.message}`,
   //   };
   // }
-// const GOOGLE_CLIENT_ID =
-//   '698574081262-iqsu22or3h94bp8rl0f4qg33r7ls1p0b.apps.googleusercontent.com';
-//   try {
-//      const client = new OAuth2Client(GOOGLE_CLIENT_ID);
-
-//      const ticket = await client.verifyIdToken({
-//        idToken: accessToken,
-//        audience: GOOGLE_CLIENT_ID,
-//      });
-
-//      return ticket.getPayload(); 
-// } catch (error: any) {
-//     console.error('Google token verification failed:', error);
-//     return {
-//       success: false,
-//       message: `Google token verification failed: ${error?.message}`,
-//     };
-//   }
+  // const GOOGLE_CLIENT_ID =
+  //   '698574081262-iqsu22or3h94bp8rl0f4qg33r7ls1p0b.apps.googleusercontent.com';
+  //   try {
+  //      const client = new OAuth2Client(GOOGLE_CLIENT_ID);
+  //      const ticket = await client.verifyIdToken({
+  //        idToken: accessToken,
+  //        audience: GOOGLE_CLIENT_ID,
+  //      });
+  //      return ticket.getPayload();
+  // } catch (error: any) {
+  //     console.error('Google token verification failed:', error);
+  //     return {
+  //       success: false,
+  //       message: `Google token verification failed: ${error?.message}`,
+  //     };
+  //   }
 }
 
 export async function verifyFacebookToken(accessToken: string) {
