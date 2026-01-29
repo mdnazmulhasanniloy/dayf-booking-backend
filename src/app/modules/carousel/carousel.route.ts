@@ -18,6 +18,7 @@ router.post(
   validateRequest(carouselValidationSchema.create),
   carouselController.createCarousel,
 );
+
 router.patch(
   '/:id',
   upload.single('image'),

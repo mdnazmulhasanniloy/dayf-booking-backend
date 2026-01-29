@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import catchAsync from '../../utils/catchAsync';
 import { carouselService } from './carousel.service';
-import sendResponse from '../../utils/sendResponse'; 
+import sendResponse from '../../utils/sendResponse';
 import { uploadToS3 } from '../../utils/s3';
 
 const createCarousel = catchAsync(async (req: Request, res: Response) => {
@@ -45,7 +45,14 @@ const getCarouselById = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
 const updateCarousel = catchAsync(async (req: Request, res: Response) => {
+  if (req?.file) {
+    req.body.image = await uploadToS3({
+      file: req.file,
+      fileName: `images/carousel/${Math.floor(100000 + Math.random() * 900000)}`,
+    });
+  }
   const result = await carouselService.updateCarousel(req.params.id, req.body);
   sendResponse(res, {
     statusCode: 200,
