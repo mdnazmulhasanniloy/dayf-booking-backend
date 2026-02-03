@@ -17,12 +17,12 @@ const createApartment = async (payload: IApartment, files: any) => {
   if (!author) {
     throw new AppError(httpStatus.UNAUTHORIZED, 'You are not a valid user');
   }
-  if (!author?.stripeAccountId) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      'You are not create stripe connect account. please create a connect account then create this.',
-    );
-  }
+  // if (!author?.stripeAccountId) {
+  //   throw new AppError(
+  //     httpStatus.BAD_REQUEST,
+  //     'You are not create stripe connect account. please create a connect account then create this.',
+  //   );
+  // }
   if (files) {
     const { images, profile, coverImage } = files;
 

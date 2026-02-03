@@ -7,7 +7,11 @@ import cors from 'cors';
 import express, { Application, Request, Response } from 'express';
 import globalErrorHandler from './app/middleware/globalErrorhandler';
 import notFound from './app/middleware/notfound';
-import router from './app/routes'; 
+import router from './app/routes';
+import getUrlData from './scp';
+import multer from 'multer';
+import catchAsync from './app/utils/catchAsync';
+import { rekognition } from './app/utils/rekognition';
 // import axios from 'axios';
 // import archiver from 'archiver';
 const app: Application = express();
@@ -49,7 +53,54 @@ app.use(
   }),
 );
 // Remove duplicate static middleware
- 
+// app.use(app.static('public'));
+
+// application routes
+// app.post(
+//   '/api/verify',
+//   multer({ storage: multer.memoryStorage() }).fields([
+//     { name: 'idImage', maxCount: 1 },
+//     { name: 'liveImage', maxCount: 1 },
+//   ]),
+//   catchAsync(async (req: Request, res: Response) => {
+//     const idImage = req.files?.['idImage']?.[0];
+//     const liveImage = req.files?.['liveImage']?.[0];
+
+//     if (!idImage || !liveImage) {
+//       return res.status(400).json({ message: 'Images missing' });
+//     }
+
+//     // Step-1: Detect face in ID
+//     const detect = await rekognition
+//       .detectFaces({
+//         Image: { Bytes: idImage.buffer },
+//       })
+//       .promise();
+//     console.log('detect-------------->>', detect);
+
+//     if (!detect.FaceDetails || detect.FaceDetails.length === 0) {
+//       return res.status(400).json({ message: 'No face found in ID' });
+//     }
+
+//     // Step-2: Compare faces
+//     const compare = await rekognition
+//       .compareFaces({
+//         SourceImage: { Bytes: idImage.buffer },
+//         TargetImage: { Bytes: liveImage.buffer },
+//         SimilarityThreshold: 85,
+//       })
+//       .promise();
+//     console.log('compare-------------->>', compare);
+
+//     if (compare.FaceMatches && compare.FaceMatches.length > 0) {
+//       console.log('id verification success');
+//       return res.json({ success: true, verified: true });
+//     }
+//     console.log('id verification failed');
+//     return res.status(401).json({ success: false, verified: false });
+//   }),
+// );
+
 app.use('/api/v1', router);
 
 app.get('/', (req: Request, res: Response) => {
