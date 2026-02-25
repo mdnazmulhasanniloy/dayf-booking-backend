@@ -8,6 +8,7 @@ const LocationSchema = new Schema({
   type: { type: String, required: true },
   coordinates: { type: [Number], required: true },
 });
+
 const ImageSchema = new Schema({
   url: { type: String, required: true },
   key: { type: String, required: true },
