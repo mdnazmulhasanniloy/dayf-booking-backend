@@ -22,6 +22,8 @@ import { IProperty } from '../property/property.interface';
 import RoomTypes from '../roomTypes/roomTypes.models';
 import { Response } from 'express';
 import moment from 'moment';
+import Contents from '../contents/contents.models';
+import { IContents } from '../contents/contents.interface';
 
 const checkout = async (payload: IPayments) => {
   let paymentData: IPayments;
@@ -47,25 +49,52 @@ const checkout = async (payload: IPayments) => {
   if (isExistPayment) {
     paymentData = isExistPayment as IPayments;
   } else {
+    const contents: IContents | null = await Contents.findOne({});
+    if (!contents)
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'server internal error, commission content not found',
+      );
+
     if (bookings?.modelType === BOOKING_MODEL_TYPE.Rooms) {
       const roomType: IRoomTypes | null = await RoomTypes?.findById(
         bookings?.reference,
       ).populate([{ path: 'property', select: 'name' }]);
+      const adminPercentage = Number(contents?.commotionForRooms);
+      const ownerPercentage = 100 - adminPercentage;
 
       name = (roomType?.property as IProperty)?.name;
       payload.adminAmount = parseFloat(
-        (Number(bookings?.totalPrice) * 0.08).toFixed(2),
+        (Number(bookings?.totalPrice) * (adminPercentage / 100)).toFixed(2),
       );
+
       payload.hotelOwnerAmount = parseFloat(
-        (Number(bookings?.totalPrice) * 0.92).toFixed(2),
+        (Number(bookings?.totalPrice) * (ownerPercentage / 100)).toFixed(2),
       );
+
+      // payload.adminAmount = parseFloat(
+      //   (Number(bookings?.totalPrice) * 0.08).toFixed(2),
+      // );
+      // payload.hotelOwnerAmount = parseFloat(
+      //   (Number(bookings?.totalPrice) * 0.92).toFixed(2),
+      // );
     } else if (bookings?.modelType === BOOKING_MODEL_TYPE.Apartment) {
+      const adminPercentage = Number(contents?.commotionForApartment);
+      const ownerPercentage = 100 - adminPercentage;
+
       payload.adminAmount = parseFloat(
-        (Number(bookings?.totalPrice) * 0.1).toFixed(2),
+        (Number(bookings?.totalPrice) * (adminPercentage / 100)).toFixed(2),
       );
+
       payload.hotelOwnerAmount = parseFloat(
-        (Number(bookings?.totalPrice) * 0.9).toFixed(2),
+        (Number(bookings?.totalPrice) * (ownerPercentage / 100)).toFixed(2),
       );
+      // payload.adminAmount = parseFloat(
+      //   (Number(bookings?.totalPrice) * 0.1).toFixed(2),
+      // );
+      // payload.hotelOwnerAmount = parseFloat(
+      //   (Number(bookings?.totalPrice) * 0.9).toFixed(2),
+      // );
 
       name = (bookings?.reference as IApartment)?.name;
     }
@@ -95,7 +124,6 @@ const checkout = async (payload: IPayments) => {
     quantity: 1,
   };
 
-  
   let customerId = '';
   const user = await User.IsUserExistId(paymentData?.user?.toString());
   if (user?.customerId) {

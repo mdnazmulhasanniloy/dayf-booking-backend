@@ -19,6 +19,14 @@ const contentsSchema = new Schema<IContents>(
       type: String,
       default: null,
     },
+    commotionForApartment: {
+      type: Number,
+      default: 8,
+    },
+    commotionForRooms: {
+      type: Number,
+      default: 10,
+    },
     topSectionImage: [
       {
         key: {
@@ -41,7 +49,7 @@ const contentsSchema = new Schema<IContents>(
       type: String,
       default: null,
     },
-   
+
     isDeleted: {
       type: Boolean,
       default: false,

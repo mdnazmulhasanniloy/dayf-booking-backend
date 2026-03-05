@@ -14,55 +14,9 @@ import { modeType } from '../notification/notification.interface';
 import { IApartment } from '../apartment/apartment.interface';
 import { IRooms } from '../rooms/rooms.interface';
 import { IRoomTypes } from '../roomTypes/roomTypes.interface';
-import RoomTypes from '../roomTypes/roomTypes.models';
-import { pipeline } from 'nodemailer/lib/xoauth2';
+import RoomTypes from '../roomTypes/roomTypes.models'; 
 
-// const createBookings = async (payload: IBookings) => {
-//   switch (payload.modelType) {
-//     case BOOKING_MODEL_TYPE.Rooms:
-//       const room: IRooms | null = await Rooms.findById(payload.reference);
-//       if (!room) {
-//         throw new AppError(httpStatus.BAD_REQUEST, 'Room not found!');
-//       }
-//       //@ts-ignore
-//       payload['author'] = room?.author;
-//       //@ts-ignore
-//       payload['reference'] = room?._id;
-//       const day = moment(payload.endDate).diff(
-//         moment(payload?.startDate),
-//         'days',
-//       );
-//       payload['totalPrice'] = room?.pricePerNight * day;
-//       break;
-//     case BOOKING_MODEL_TYPE.Apartment:
-//       const apartment: IApartment | null = await Apartment.findById(
-//         payload.reference,
-//       );
-//       if (!apartment) {
-//         throw new AppError(httpStatus.BAD_REQUEST, 'Apartment not found!');
-//       }
-//       payload['author'] = apartment?.author;
-//       //@ts-ignore
-//       payload['reference'] = apartment?._id;
-//       const durationDay = moment(payload.endDate).diff(
-//         moment(payload?.startDate),
-//         'days',
-//       );
-//       payload['totalPrice'] = apartment?.price * durationDay;
-
-//       break;
-//     default:
-//       throw new AppError(httpStatus.BAD_REQUEST, 'booking model type invalid');
-//   }
-
-//     const result = await Bookings.create(payload);
-
-//   if (!result) {
-//     throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create bookings');
-//   }
-//   return result;
-// };
-
+ 
 const createBookings = async (payload: IBookings) => {
   let referenceItem: IRoomTypes | IApartment | null = null;
   let pricePerDay = 0;
@@ -153,6 +107,8 @@ const createBookings = async (payload: IBookings) => {
   //@ts-ignore
   payload.reference = referenceItem?._id;
   payload.totalPrice = pricePerDay * days;
+
+  
 
   const result = await Bookings.create(payload);
 
