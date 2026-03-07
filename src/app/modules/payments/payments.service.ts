@@ -138,6 +138,7 @@ const checkout = async (payload: IPayments) => {
       { customerId: customer?.id },
       { upsert: false },
     );
+
     customerId = customer?.id;
   }
 
