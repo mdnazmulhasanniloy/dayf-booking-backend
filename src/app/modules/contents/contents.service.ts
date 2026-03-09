@@ -56,104 +56,111 @@ const deleteBanner = async (key: string) => {
 };
 // Update content
 const updateContents = async (payload: Partial<IContents>, files: any) => {
-  const content = await Contents.find({});
+  try {
+    const content = await Contents.find({});
 
-  if (!content.length) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Content not found');
-  }
+    if (!content.length) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Content not found');
+    }
+    console.log(payload);
+    const { whyChooseUsSectionDeleteKey, topSectionDeleteKey, ...updateData } =
+      payload;
 
-  const { whyChooseUsSectionDeleteKey, topSectionDeleteKey, ...updateData } =
-    payload;
+    const update: any = { ...updateData };
 
-  const update: any = { ...updateData };
+    if (files) {
+      const { topSectionImage, whyChooseUsSectionImage } =
+        files as UploadedFiles;
 
-  if (files) {
-    const { topSectionImage, whyChooseUsSectionImage } = files as UploadedFiles;
+      if (topSectionImage?.length) {
+        const imgsArray: { file: any; path: string; key?: string }[] = [];
 
-    if (topSectionImage?.length) {
-      const imgsArray: { file: any; path: string; key?: string }[] = [];
+        topSectionImage.map(b =>
+          imgsArray.push({
+            file: b,
+            path: `images/topSectionImage`,
+          }),
+        );
 
-      topSectionImage.map(b =>
-        imgsArray.push({
-          file: b,
-          path: `images/topSectionImage`,
-        }),
+        payload.topSectionImage = await uploadManyToS3(imgsArray);
+      }
+      if (whyChooseUsSectionImage?.length) {
+        const imgsArray: { file: any; path: string; key?: string }[] = [];
+
+        whyChooseUsSectionImage.map(b =>
+          imgsArray.push({
+            file: b,
+            path: `images/whyChooseUsSectionImage`,
+          }),
+        );
+
+        payload.whyChooseUsSectionImage = await uploadManyToS3(imgsArray);
+      }
+    }
+
+    if (topSectionDeleteKey && topSectionDeleteKey.length > 0) {
+      const newKey: string[] = [];
+      topSectionDeleteKey.map((key: any) =>
+        newKey.push(`images/topSectionImage/${key}`),
       );
+      if (newKey?.length > 0) {
+        await deleteManyFromS3(newKey);
+      }
 
-      payload.topSectionImage = await uploadManyToS3(imgsArray);
+      await Contents.findByIdAndUpdate(content[0]._id, {
+        $pull: { topSectionImage: { key: { $in: topSectionDeleteKey } } },
+      });
     }
-    if (whyChooseUsSectionImage?.length) {
-      const imgsArray: { file: any; path: string; key?: string }[] = [];
 
-      whyChooseUsSectionImage.map(b =>
-        imgsArray.push({
-          file: b,
-          path: `images/whyChooseUsSectionImage`,
-        }),
+    if (whyChooseUsSectionDeleteKey && whyChooseUsSectionDeleteKey.length > 0) {
+      const newKey: string[] = [];
+      whyChooseUsSectionDeleteKey.map((key: any) =>
+        newKey.push(`images/whyChooseUsSectionImage/${key}`),
       );
+      if (newKey?.length > 0) {
+        await deleteManyFromS3(newKey);
+      }
 
-      payload.whyChooseUsSectionImage = await uploadManyToS3(imgsArray);
-    }
-  }
-
-  if (topSectionDeleteKey && topSectionDeleteKey.length > 0) {
-    const newKey: string[] = [];
-    topSectionDeleteKey.map((key: any) =>
-      newKey.push(`images/topSectionImage/${key}`),
-    );
-    if (newKey?.length > 0) {
-      await deleteManyFromS3(newKey);
-    }
-
-    await Contents.findByIdAndUpdate(content[0]._id, {
-      $pull: { topSectionImage: { key: { $in: topSectionDeleteKey } } },
-    });
-  }
-
-  if (whyChooseUsSectionDeleteKey && whyChooseUsSectionDeleteKey.length > 0) {
-    const newKey: string[] = [];
-    whyChooseUsSectionDeleteKey.map((key: any) =>
-      newKey.push(`images/whyChooseUsSectionImage/${key}`),
-    );
-    if (newKey?.length > 0) {
-      await deleteManyFromS3(newKey);
+      await Contents.findByIdAndUpdate(content[0]._id, {
+        $pull: {
+          whyChooseUsSectionImage: {
+            key: { $in: whyChooseUsSectionDeleteKey },
+          },
+        },
+      });
     }
 
-    await Contents.findByIdAndUpdate(content[0]._id, {
-      $pull: {
-        whyChooseUsSectionImage: { key: { $in: whyChooseUsSectionDeleteKey } },
-      },
+    if (payload?.topSectionImage && payload.topSectionImage.length > 0) {
+      await Contents.findByIdAndUpdate(content[0]._id, {
+        $push: { topSectionImage: { $each: payload.topSectionImage } },
+      });
+    }
+
+    if (
+      payload?.whyChooseUsSectionImage &&
+      payload.whyChooseUsSectionImage.length > 0
+    ) {
+      await Contents.findByIdAndUpdate(content[0]._id, {
+        $push: {
+          whyChooseUsSectionImage: { $each: payload.whyChooseUsSectionImage },
+        },
+      });
+    }
+
+    console.log('------------------------->>', update);
+
+    const result = await Contents.findByIdAndUpdate(content[0]._id, update, {
+      new: true,
     });
+
+    if (!result) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Content update failed');
+    }
+
+    return result;
+  } catch (error: any) {
+    throw new AppError(httpStatus.BAD_REQUEST, error?.message);
   }
-
-  if (payload?.topSectionImage && payload.topSectionImage.length > 0) {
-    await Contents.findByIdAndUpdate(content[0]._id, {
-      $push: { topSectionImage: { $each: payload.topSectionImage } },
-    });
-  }
-
-  if (
-    payload?.whyChooseUsSectionImage &&
-    payload.whyChooseUsSectionImage.length > 0
-  ) {
-    await Contents.findByIdAndUpdate(content[0]._id, {
-      $push: {
-        whyChooseUsSectionImage: { $each: payload.whyChooseUsSectionImage },
-      },
-    });
-  }
-
-  console.log('------------------------->>', update);
-
-  const result = await Contents.findByIdAndUpdate(content[0]._id, update, {
-    new: true,
-  });
-
-  if (!result) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Content update failed');
-  }
-
-  return result;
 };
 // Delete content
 const deleteContents = async (id: string) => {
