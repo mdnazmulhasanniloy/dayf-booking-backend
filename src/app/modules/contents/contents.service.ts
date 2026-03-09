@@ -143,6 +143,8 @@ const updateContents = async (payload: Partial<IContents>, files: any) => {
     });
   }
 
+  console.log('------------------------->>', update);
+
   const result = await Contents.findByIdAndUpdate(content[0]._id, update, {
     new: true,
   });
