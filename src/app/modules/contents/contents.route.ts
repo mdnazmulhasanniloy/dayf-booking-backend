@@ -11,11 +11,11 @@ const router = Router();
 const storage = memoryStorage();
 const upload = multer({ storage });
 
-router.post(
-  '/support',
-  validateRequest(contentsValidator.supportMailSchema),
-  contentsController.supportMessage,
-);
+// router.post(
+//   '/support',
+//   validateRequest(contentsValidator.supportMailSchema),
+//   contentsController.supportMessage,
+// );
 // router.post(
 //   '/',
 //   auth(USER_ROLE.super_admin, USER_ROLE.sub_admin, USER_ROLE.admin),
@@ -36,10 +36,10 @@ router.put(
   contentsController.updateContents,
 );
 
-router.delete('/:key', contentsController.deleteBanner);
+// router.delete('/:key', contentsController.deleteBanner);
 
-router.get('/:id', contentsController.getContentsById);
+// router.get('/:id', contentsController.getContentsById);
 
-router.get('/', contentsController.getAllContents);
+// router.get('/', contentsController.getAllContents);
 
 export const contentsRoutes = router;
