@@ -1,6 +1,7 @@
 import { Model, ObjectId } from 'mongoose';
 import { IImage, ILocations } from '../property/property.interface';
 import { IFacilities } from '../facilities/facilities.interface';
+import { IUser } from '../user/user.interface';
 
 export interface IApartment {
   deleteKey: string[];
@@ -8,7 +9,7 @@ export interface IApartment {
   profile: string;
   coverImage: string;
   coverColor: string;
-  author: ObjectId;
+  author: ObjectId | IUser;
   price: number;
   images: IImage[];
   name: string;

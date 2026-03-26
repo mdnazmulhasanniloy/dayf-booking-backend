@@ -2,7 +2,6 @@ import httpStatus from 'http-status';
 import { BOOKING_MODEL_TYPE, IBookings } from './bookings.interface';
 import Bookings from './bookings.models';
 import AppError from '../../error/AppError';
-import Rooms from '../rooms/rooms.models';
 import Apartment from '../apartment/apartment.models';
 import { Types } from 'mongoose';
 import pickQuery from '../../utils/pickQuery';
@@ -12,11 +11,10 @@ import { BOOKING_STATUS } from './bookings.constants';
 import { notificationServices } from '../notification/notification.service';
 import { modeType } from '../notification/notification.interface';
 import { IApartment } from '../apartment/apartment.interface';
-import { IRooms } from '../rooms/rooms.interface';
 import { IRoomTypes } from '../roomTypes/roomTypes.interface';
-import RoomTypes from '../roomTypes/roomTypes.models'; 
+import RoomTypes from '../roomTypes/roomTypes.models';
+import { IUser } from '../user/user.interface';
 
- 
 const createBookings = async (payload: IBookings) => {
   let referenceItem: IRoomTypes | IApartment | null = null;
   let pricePerDay = 0;
@@ -73,6 +71,7 @@ const createBookings = async (payload: IBookings) => {
         startDate: { $lte: moment(payload?.endDate).utc().toDate() }, // booking start <= searchEndDate
         endDate: { $gte: moment(payload?.startDate).utc().toDate() }, // booking end >= searchStartDate
       });
+
       if (booking?.length > 0) {
         throw new AppError(
           httpStatus?.BAD_REQUEST,
@@ -80,9 +79,18 @@ const createBookings = async (payload: IBookings) => {
         );
       }
 
-      referenceItem = await Apartment.findById(payload.reference);
+      referenceItem = await Apartment.findById(payload.reference).populate(
+        'author',
+      );
       if (!referenceItem) {
         throw new AppError(httpStatus.BAD_REQUEST, 'Apartment not found!');
+      }
+
+      if (!(referenceItem?.author as IUser)?.stripeAccountId) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          'This Hotel Owner does not have a Stripe account',
+        );
       }
       pricePerDay = (referenceItem as IApartment).price;
       break;
@@ -107,8 +115,6 @@ const createBookings = async (payload: IBookings) => {
   //@ts-ignore
   payload.reference = referenceItem?._id;
   payload.totalPrice = pricePerDay * days;
-
-  
 
   const result = await Bookings.create(payload);
 

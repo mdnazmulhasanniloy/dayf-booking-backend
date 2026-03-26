@@ -279,6 +279,7 @@ const getAllApartment = async (query: Record<string, any>) => {
                   name: 1,
                   email: 1,
                   phoneNumber: 1,
+                  stripeAccountId: 1,
                   profile: 1,
                 },
               },
@@ -327,7 +328,10 @@ const getAllApartment = async (query: Record<string, any>) => {
 
 const getApartmentById = async (id: string) => {
   const result = await Apartment.findById(id).populate([
-    { path: 'author', select: 'name email phoneNumber profile role' },
+    {
+      path: 'author',
+      select: 'name email phoneNumber profile role stripeAccountId',
+    },
     { path: 'facilities' },
     {
       path: 'reviews',
