@@ -23,6 +23,14 @@ router.get(
   auth(USER_ROLE.user),
   bookingsController.getMyBookings,
 );
+
+router.get(
+  '/check-calendar/:apartmentId',
+  auth(USER_ROLE.user),
+  bookingsController.getBookedDatesByMonth,
+);
+
+
 router.get(
   '/hotel-owner',
   auth(USER_ROLE.hotel_owner),

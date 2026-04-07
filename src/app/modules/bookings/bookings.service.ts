@@ -423,6 +423,95 @@ const completeBooking = async (id: string) => {
   return result;
 };
 
+const getBookedDatesByMonth = async (
+  apartmentId: string,
+  query: Record<string, any>,
+) => {
+  const { month, year } = query;
+  const startOfMonth = moment
+    .utc({ year, month: month - 1 })
+    .startOf('month')
+    .toDate();
+
+  const endOfMonth = moment
+    .utc({ year, month: month - 1 })
+    .endOf('month')
+    .toDate();
+
+  const result = await Bookings.aggregate([
+    {
+      $match: {
+        isDeleted: false,
+        paymentStatus: 'paid',
+        reference: new Types.ObjectId(apartmentId),
+        startDate: { $lte: endOfMonth },
+        endDate: { $gte: startOfMonth },
+      },
+    },
+
+    // month range এর ভিতরে booking trim
+    {
+      $project: {
+        start: {
+          $cond: [
+            { $lt: ['$startDate', startOfMonth] },
+            startOfMonth,
+            '$startDate',
+          ],
+        },
+        end: {
+          $cond: [{ $gt: ['$endDate', endOfMonth] }, endOfMonth, '$endDate'],
+        },
+      },
+    },
+
+    // প্রতি booking এর সব dates generate
+    {
+      $project: {
+        dates: {
+          $map: {
+            input: {
+              $dateRange: {
+                startDate: '$start',
+                endDate: '$end',
+                step: 1,
+                unit: 'day',
+              },
+            },
+            as: 'date',
+            in: {
+              $dateToString: {
+                format: '%Y-%m-%d',
+                date: '$$date',
+                timezone: 'UTC',
+              },
+            },
+          },
+        },
+      },
+    },
+
+    { $unwind: '$dates' },
+
+    // duplicate remove
+    {
+      $group: {
+        _id: null,
+        bookedDates: { $addToSet: '$dates' },
+      },
+    },
+
+    {
+      $project: {
+        _id: 0,
+        bookedDates: 1,
+      },
+    },
+  ]);
+
+  return result[0]?.bookedDates?.sort() || [];
+};
+
 export const bookingsService = {
   createBookings,
   getAllBookings,
@@ -431,4 +520,5 @@ export const bookingsService = {
   deleteBookings,
   cancelBooking,
   completeBooking,
+  getBookedDatesByMonth,
 };
