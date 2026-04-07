@@ -120,6 +120,15 @@ const deleteBookings = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const getBookedDatesByMonth = catchAsync(async (req: Request, res: Response) => {
+  const result = await bookingsService.getBookedDatesByMonth(req.params.apartmentId, req.query);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Booked dates fetched successfully',
+    data: result,
+  });
+});
 
 export const bookingsController = {
   createBookings,
@@ -132,4 +141,5 @@ export const bookingsController = {
   completeBooking,
   cancelBooking,
   getBookingsForHotelOwner,
+  getBookedDatesByMonth,
 };
