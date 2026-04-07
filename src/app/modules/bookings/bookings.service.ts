@@ -428,6 +428,7 @@ const getBookedDatesByMonth = async (
   query: Record<string, any>,
 ) => {
   const { month, year } = query;
+  console.log(query);
   const startOfMonth = moment
     .utc({ year, month: month - 1 })
     .startOf('month')
@@ -438,7 +439,9 @@ const getBookedDatesByMonth = async (
     .endOf('month')
     .toDate();
 
-  const result = await Bookings.aggregate([
+  console.log({ startOfMonth, endOfMonth });
+
+  const bookings = await Bookings.aggregate([
     {
       $match: {
         isDeleted: false,
@@ -448,68 +451,34 @@ const getBookedDatesByMonth = async (
         endDate: { $gte: startOfMonth },
       },
     },
-
-    // month range এর ভিতরে booking trim
-    {
-      $project: {
-        start: {
-          $cond: [
-            { $lt: ['$startDate', startOfMonth] },
-            startOfMonth,
-            '$startDate',
-          ],
-        },
-        end: {
-          $cond: [{ $gt: ['$endDate', endOfMonth] }, endOfMonth, '$endDate'],
-        },
-      },
-    },
-
-    // প্রতি booking এর সব dates generate
-    {
-      $project: {
-        dates: {
-          $map: {
-            input: {
-              $dateRange: {
-                startDate: '$start',
-                endDate: '$end',
-                step: 1,
-                unit: 'day',
-              },
-            },
-            as: 'date',
-            in: {
-              $dateToString: {
-                format: '%Y-%m-%d',
-                date: '$$date',
-                timezone: 'UTC',
-              },
-            },
-          },
-        },
-      },
-    },
-
-    { $unwind: '$dates' },
-
-    // duplicate remove
-    {
-      $group: {
-        _id: null,
-        bookedDates: { $addToSet: '$dates' },
-      },
-    },
-
     {
       $project: {
         _id: 0,
-        bookedDates: 1,
+        startDate: 1,
+        endDate: 1,
       },
     },
   ]);
+  console.log('🚀 ~ getBookedDatesByMonth ~ bookings:', bookings);
 
-  return result[0]?.bookedDates?.sort() || [];
+  const bookedDates = new Set<string>();
+
+  for (const booking of bookings) {
+    const start = moment
+      .max(moment.utc(booking.startDate), moment.utc(startOfMonth))
+      .clone();
+
+    const end = moment
+      .min(moment.utc(booking.endDate), moment.utc(endOfMonth))
+      .clone();
+
+    while (start.isBefore(end, 'day')) {
+      bookedDates.add(start.format('YYYY-MM-DD'));
+      start.add(1, 'day');
+    }
+  }
+
+  return Array.from(bookedDates).sort();
 };
 
 export const bookingsService = {
