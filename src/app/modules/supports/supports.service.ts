@@ -3,11 +3,11 @@ import { ISupports } from './supports.interface';
 import Supports from './supports.models';
 import QueryBuilder from '../../builder/QueryBuilder';
 import AppError from '../../error/AppError';
-import { uploadManyToS3 } from '../../utils/s3';
-import { notificationServices } from '../notification/notification.service';
+import { uploadManyToS3 } from '../../utils/s3'; 
 import { modeType } from '../notification/notification.interface';
 import { User } from '../user/user.models';
 import { USER_ROLE } from '../user/user.constants';
+import { notificationQueue } from '../../redis';
 
 const createSupports = async (payload: ISupports, files: any) => {
   if (files) {
@@ -32,13 +32,16 @@ const createSupports = async (payload: ISupports, files: any) => {
     throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create supports');
   }
   const admin = await User.findOne({ role: USER_ROLE.admin });
-  await notificationServices.insertNotificationIntoDb({
+  const adminNotification = {
     receiver: admin?._id,
     message: `New support message submitted`,
     description: `${payload.name} submit a message. subject:${payload?.subject}`,
     refference: result?._id,
     model_type: modeType.Supports,
-  });
+  };
+
+  await notificationQueue.add('new_notification', adminNotification);
+
   return result;
 };
 
@@ -67,8 +70,6 @@ const getSupportsById = async (id: string) => {
   return result;
 };
 
- 
-
 const deleteSupports = async (id: string) => {
   const result = await Supports.findByIdAndDelete(id);
   if (!result) {
@@ -80,6 +81,6 @@ const deleteSupports = async (id: string) => {
 export const supportsService = {
   createSupports,
   getAllSupports,
-  getSupportsById, 
+  getSupportsById,
   deleteSupports,
 };

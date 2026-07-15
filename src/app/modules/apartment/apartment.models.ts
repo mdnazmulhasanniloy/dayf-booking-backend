@@ -1,8 +1,6 @@
 import { model, Schema, Types } from 'mongoose';
 import { IApartment, IApartmentModules } from './apartment.interface';
-import generateRandomHexColor from '../../utils/generateRandomHexColor';
 import generateCryptoString from '../../utils/generateCryptoString';
-import { max } from 'moment';
 
 const LocationSchema = new Schema({
   type: { type: String, required: true },
@@ -21,90 +19,69 @@ const apartmentSchema = new Schema<IApartment>(
       unique: true,
       default: () => generateCryptoString(10),
     },
-    profile: {
-      type: String,
-      required: true,
-    },
-    coverImage: {
-      type: String,
-    },
-    coverColor: {
-      type: String,
-      default: () => generateRandomHexColor(),
-    },
     author: {
       type: Types.ObjectId,
       ref: 'User',
       required: true,
     },
+    images: {
+      type: [ImageSchema],
+      default: [],
+    },
     price: {
       type: Number,
       required: true,
-    },
-    images: {
-      type: [ImageSchema],
-      required: true,
+      min: 0,
     },
     name: {
       type: String,
       required: true,
+      trim: true,
     },
-    roomSize: {
-      type: Number,
-      required: true,
+    banner: {
+      type: String,
     },
-
     shortDescription: {
       type: String,
-      required: false,
-      default: null,
+      required: true,
+      trim: true,
     },
+
     description: {
       type: String,
-      required: false,
-      default: null,
-    },
-    location: {
-      type: LocationSchema,
       required: true,
+      trim: true,
     },
-    totalCapacity: {
+
+    maxGuests: {
       type: Number,
       required: true,
+      default: 1,
     },
+
     totalBadRooms: {
       type: Number,
-      default: null,
+      required: true,
+      min: 0,
     },
+
     bads: {
       type: Number,
-      default: null,
+      required: true,
+      min: 0,
     },
-    // guests: {
-    //   adult: {
-    //     type: Number,
-    //     required: true,
-    //     max: 10,
-    //     min: 1,
-    //   },
-    //   children: {
-    //     type: Number,
-    //     required: true,
-    //     max: 10,
-    //     min: 2,
-    //   },
-    //   infants: {
-    //     type: Number,
-    //     required: true,
-    //     max: 2,
-    //     min: 0,
-    //   },
-    // },
+
+    roomSize: {
+      type: String,
+      required: true,
+    },
 
     address: {
       type: String,
-      default: null,
+      required: true,
+      trim: true,
     },
+
     facilities: [
       {
         type: Schema.Types.ObjectId,
@@ -118,15 +95,70 @@ const apartmentSchema = new Schema<IApartment>(
         required: false,
       },
     ],
-    policy: {
-      type: String,
-      required: false,
-      default: null,
+    location: {
+      type: LocationSchema,
+      required: true,
     },
+    municipality: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    landmark: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+
+    bathrooms: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    checkInTime: {
+      type: String,
+      required: true,
+    },
+
+    checkOutTime: {
+      type: String,
+      required: true,
+    },
+
+    minimumNights: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+
+    houseRules: {
+      type: String,
+      default: '',
+    },
+
+    cancellationPolicy: {
+      type: String,
+      default: '',
+    },
+
+    isApproved: {
+      type: Boolean,
+      default: false,
+    },
+
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+
     avgRating: {
       type: Number,
       default: 0,
+      min: 0,
+      max: 5,
     },
+
     reviews: [
       {
         type: Types.ObjectId,
@@ -134,9 +166,18 @@ const apartmentSchema = new Schema<IApartment>(
         required: true,
       },
     ],
-    isDeleted: {
-      type: Boolean,
-      default: false,
+
+    // New Fields
+    propertyType: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    wilaya: {
+      type: String,
+      required: true,
+      trim: true,
     },
   },
   {
@@ -145,6 +186,14 @@ const apartmentSchema = new Schema<IApartment>(
 );
 
 apartmentSchema.index({ location: '2dsphere' });
+
+// Search Indexes
+apartmentSchema.index({ author: 1 });
+apartmentSchema.index({ isApproved: 1 });
+apartmentSchema.index({ isDeleted: 1 });
+apartmentSchema.index({ propertyType: 1 });
+apartmentSchema.index({ wilaya: 1 });
+apartmentSchema.index({ municipality: 1 });
 
 const Apartment = model<IApartment, IApartmentModules>(
   'Apartment',

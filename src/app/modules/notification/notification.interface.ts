@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongodb';
 export enum modeType {
   Bookings = 'Bookings',
+  Apartment = 'Apartment',
   ShopWiseOrder = 'ShopWiseOrder',
   Order = 'Order',
   payments = 'Payments',

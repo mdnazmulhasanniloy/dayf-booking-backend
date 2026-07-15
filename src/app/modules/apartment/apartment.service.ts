@@ -6,25 +6,19 @@ import { deleteManyFromS3, uploadManyToS3, uploadToS3 } from '../../utils/s3';
 import pickQuery from '../../utils/pickQuery';
 import { Types } from 'mongoose';
 import { paginationHelper } from '../../helpers/pagination.helpers';
-import Bookings from '../bookings/bookings.models';
-import { BOOKING_MODEL_TYPE } from '../bookings/bookings.interface';
-import moment from 'moment';
 import { User } from '../user/user.models';
 import { IUser } from '../user/user.interface';
+import { USER_ROLE } from '../user/user.constants';
+import { modeType } from '../notification/notification.interface';
+import { notificationQueue } from '../../redis';
 
 const createApartment = async (payload: IApartment, files: any) => {
   const author: IUser | null = await User.findById(payload?.author);
   if (!author) {
     throw new AppError(httpStatus.UNAUTHORIZED, 'You are not a valid user');
   }
-  // if (!author?.stripeAccountId) {
-  //   throw new AppError(
-  //     httpStatus.BAD_REQUEST,
-  //     'You are not create stripe connect account. please create a connect account then create this.',
-  //   );
-  // }
   if (files) {
-    const { images, profile, coverImage } = files;
+    const { images, banner } = files;
 
     if (images?.length) {
       const imgsArray: { file: any; path: string; key?: string }[] = [];
@@ -38,25 +32,29 @@ const createApartment = async (payload: IApartment, files: any) => {
 
       payload.images = await uploadManyToS3(imgsArray);
     }
-
-    if (profile?.length) {
-      payload.profile = (await uploadToS3({
-        file: profile[0],
-        fileName: `images/apartment/profile/${Math.floor(100000 + Math.random() * 900000)}`,
-      })) as string;
-    }
-    if (coverImage?.length) {
-      payload.coverImage = (await uploadToS3({
-        file: coverImage[0],
-        fileName: `images/apartment/cover-image/${Math.floor(100000 + Math.random() * 900000)}`,
-      })) as string;
+    if (banner?.length) {
+      const uploadedProfile = await uploadToS3({
+        file: banner[0],
+        fileName: `images/apartment/banner/${Math.floor(100000 + Math.random() * 900000)}`,
+      });
+      payload.banner = uploadedProfile as string;
     }
   }
-
   const result = await Apartment.create(payload);
   if (!result) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create apartment');
   }
+
+  const admin = await User.findOne({ role: USER_ROLE.admin });
+  const adminNotification = {
+    receiver: admin?._id,
+    message: `Approval Request: ${result?.name || 'New Apartment'}`,
+    description: `A user has submitted a new apartment for approval. Please review the listing and take the appropriate action.`,
+    refference: result?._id,
+    model_type: modeType.Apartment,
+  };
+
+  await notificationQueue.add('new_notification', adminNotification);
   return result;
 };
 
@@ -70,12 +68,7 @@ const getAllApartment = async (query: Record<string, any>) => {
     facilities,
     priceRange, //10-100
     ratingsFilter,
-    totalCapacity,
-    totalBadRooms,
-    bads,
-
-    startDate,
-    endDate,
+    isApproved,
     ...filtersData
   } = filters;
 
@@ -92,6 +85,10 @@ const getAllApartment = async (query: Record<string, any>) => {
 
   if (filtersData?.ratings) {
     filtersData['reviews'] = new Types.ObjectId(filtersData?.ratings);
+  }
+
+  if (isApproved) {
+    filtersData['isApproved'] = isApproved === 'true' ? true : false;
   }
 
   // Initialize the aggregation pipeline
@@ -164,54 +161,39 @@ const getAllApartment = async (query: Record<string, any>) => {
     });
   }
 
-  if (startDate && endDate) {
-    const bookedApartments = await Bookings.aggregate([
-      {
-        $match: {
-          modelType: BOOKING_MODEL_TYPE.Apartment,
-          isDeleted: false,
-          startDate: { $lte: moment(endDate).utc().toDate() }, // booking start <= searchEndDate
-          endDate: { $gte: moment(startDate).utc().toDate() }, // booking end >= searchStartDate
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          ids: { $push: { $toString: '$reference' } },
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-          ids: 1,
-        },
-      },
-    ]);
-    const idArray =
-      bookedApartments[0]?.ids?.map((id: string) => new Types.ObjectId(id)) ||
-      [];
-    console.log(idArray);
-    pipeline.push({
-      $match: {
-        _id: { $nin: idArray },
-      },
-    });
-  }
-
-  if (totalCapacity || totalBadRooms || bads) {
-    pipeline.push({
-      $match: {
-        totalCapacity: totalCapacity
-          ? { $gte: Number(totalCapacity) }
-          : { $gte: 0 },
-        totalBadRooms: totalBadRooms
-          ? { $gte: Number(totalBadRooms) }
-          : { $gte: 0 },
-        bads: bads ? { $gte: Number(bads) } : { $gte: 0 },
-      },
-    });
-    // console.log(JSON.stringify(pipeline, null, 2));
-  }
+  // if (startDate && endDate) {
+  //   const bookedApartments = await Bookings.aggregate([
+  //     {
+  //       $match: {
+  //         modelType: BOOKING_MODEL_TYPE.Apartment,
+  //         isDeleted: false,
+  //         startDate: { $lte: moment(endDate).utc().toDate() }, // booking start <= searchEndDate
+  //         endDate: { $gte: moment(startDate).utc().toDate() }, // booking end >= searchStartDate
+  //       },
+  //     },
+  //     {
+  //       $group: {
+  //         _id: null,
+  //         ids: { $push: { $toString: '$reference' } },
+  //       },
+  //     },
+  //     {
+  //       $project: {
+  //         _id: 0,
+  //         ids: 1,
+  //       },
+  //     },
+  //   ]);
+  //   const idArray =
+  //     bookedApartments[0]?.ids?.map((id: string) => new Types.ObjectId(id)) ||
+  //     [];
+  //   console.log(idArray);
+  //   pipeline.push({
+  //     $match: {
+  //       _id: { $nin: idArray },
+  //     },
+  //   });
+  // }
 
   if (Object.entries(filtersData).length) {
     Object.entries(filtersData).forEach(([field, value]) => {
@@ -349,13 +331,13 @@ const getApartmentById = async (id: string) => {
 const updateApartment = async (
   id: string,
   payload: Partial<IApartment> & { deleteKey?: string[] },
-  files: any,
+  files?: any,
 ) => {
   const updatePayload: any = { ...payload }; // Safe copy
 
   // Handle file uploads
   if (files) {
-    const { images, profile, coverImage } = files;
+    const { images, banner, coverImage } = files;
 
     // Handle multiple apartment images
     if (images?.length) {
@@ -371,21 +353,12 @@ const updateApartment = async (
     }
 
     // Handle profile image
-    if (profile?.length) {
+    if (banner?.length) {
       const uploadedProfile = await uploadToS3({
-        file: profile[0],
-        fileName: `images/apartment/profile/${Math.floor(100000 + Math.random() * 900000)}`,
+        file: banner[0],
+        fileName: `images/apartment/banner/${Math.floor(100000 + Math.random() * 900000)}`,
       });
-      updatePayload.profile = uploadedProfile as string;
-    }
-
-    // Handle cover image
-    if (coverImage?.length) {
-      const uploadedCover = await uploadToS3({
-        file: coverImage[0],
-        fileName: `images/apartment/coverImage/${Math.floor(100000 + Math.random() * 900000)}`,
-      });
-      updatePayload.coverImage = uploadedCover as string;
+      updatePayload.banner = uploadedProfile as string;
     }
   }
 

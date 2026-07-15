@@ -7,7 +7,7 @@ import { Server } from 'socket.io';
 import getUserDetailsFromToken from './app/helpers/getUserDetailsFromToken';
 import AppError from './app/error/AppError';
 import httpStatus from 'http-status';
-import {  Types } from 'mongoose';
+import { Types } from 'mongoose';
 import { IUser } from './app/modules/user/user.interface';
 import { User } from './app/modules/user/user.models';
 import Message from './app/modules/messages/messages.models';
@@ -16,23 +16,23 @@ import { IChat } from './app/modules/chat/chat.interface';
 import Chat from './app/modules/chat/chat.models';
 import callbackFn from './app/utils/callbackFn';
 
+const socketTOUserId = new Map<string, string>();
+const userTOSocketId = new Map<string, string>();
+
+export function getSocketId(userid: string) {
+  return userTOSocketId.get(userid?.toString()) as string;
+}
+
+function getUserId(socketid: string) {
+  return socketTOUserId.get(socketid?.toString()) as string;
+}
+
 const initializeSocketIO = (server: HttpServer) => {
   const io = new Server(server, {
     cors: {
       origin: '*',
     },
   });
-
-  const socketTOUserId = new Map<string, string>();
-  const userTOSocketId = new Map<string, string>();
-
-  function getSocketId(userid: string) {
-    return userTOSocketId.get(userid?.toString()) as string;
-  }
-
-  function getUserId(socketid: string) {
-    return socketTOUserId.get(socketid?.toString()) as string;
-  }
 
   // Online users
   const onlineUser = new Set();
@@ -67,7 +67,7 @@ const initializeSocketIO = (server: HttpServer) => {
       //----------------------online array send for front end------------------------//
       io.emit('onlineUser', Array.from(onlineUser));
 
-      socket.on('message-page', async (userId, callback) => { 
+      socket.on('message-page', async (userId, callback) => {
         if (!userId) {
           callbackFn(callback, {
             success: false,
@@ -116,20 +116,6 @@ const initializeSocketIO = (server: HttpServer) => {
             success: true,
             data: { getPreMessage, userDetails: payload },
           });
-          // Notification
-          // const allUnReaddMessage = await Message.countDocuments({
-          //   receiver: user?._id,
-          //   seen: false,
-          // });
-          // const variable = 'new-notifications::' + user?._id;
-          // io.emit(variable, allUnReaddMessage);
-
-          // const allUnReaddMessage2 = await Message.countDocuments({
-          //   receiver: userId,
-          //   seen: false,
-          // });
-          // const variable2 = 'new-notifications::' + userId;
-          // io.emit(variable2, allUnReaddMessage2);
 
           //end Notification//
         } catch (error: any) {
@@ -159,7 +145,7 @@ const initializeSocketIO = (server: HttpServer) => {
           io.emit('io-error', { success: false, message: error.message });
         }
       });
- 
+
       //----------------------seen message-----------------------//
       socket.on('seen', async ({ chatId }, callback) => {
         if (!chatId) {
@@ -220,29 +206,6 @@ const initializeSocketIO = (server: HttpServer) => {
           const user2SocketId = getSocketId(user2?.toString());
           io.to(user1SocketId).emit('chat-list', ChatListUser1);
           io.to(user2SocketId).emit('chat-list', ChatListUser2);
-
-          // const allUnReaddMessage = await Message.countDocuments({
-          //   receiver: user1,
-          //   seen: false,
-          // });
-          // const variable = 'new-notifications::' + user1;
-          // io.emit(variable, allUnReaddMessage);
-
-          // const allUnReaddMessage2 = await Message.countDocuments({
-          //   receiver: user2,
-          //   seen: false,
-          // });
-          // const variable2 = 'new-notifications::' + user2;
-          // io.emit(variable2, allUnReaddMessage2);
-
-          // const getPreMessage = await Message.find({
-          //   $or: [
-          //     { sender: user1, receiver: user2 },
-          //     { sender: user2, receiver: user1 },
-          //   ],
-          // }).sort({ updatedAt: 1 });
-
-          // socket.emit('message', getPreMessage || []);
         } catch (error: any) {
           callbackFn(callback, {
             success: false,
@@ -302,20 +265,6 @@ const initializeSocketIO = (server: HttpServer) => {
           );
           io.to(userSocket).emit('chat-list', ChatListSender);
 
-          // Notification
-          // const allUnReaddMessage = await Message.countDocuments({
-          //   receiver: result.sender,
-          //   seen: false,
-          // });
-          // const variable = 'new-notifications::' + result.sender;
-          // io.emit(variable, allUnReaddMessage);
-          // const allUnReaddMessage2 = await Message.countDocuments({
-          //   receiver: result.receiver,
-          //   seen: false,
-          // });
-          // const variable2 = 'new-notifications::' + result.receiver;
-          // io.emit(variable2, allUnReaddMessage2);
-
           //end Notification//
           callbackFn(callback, {
             statusCode: httpStatus.OK,
@@ -332,39 +281,6 @@ const initializeSocketIO = (server: HttpServer) => {
           });
         }
       });
-
-      //-----------------------Typing------------------------//
-      // socket.on('typing', function (data) {
-      //   const chat = 'typing::' + data.chatId.toString();
-      //   const message = user?.name + ' is typing...';
-      //   socket.emit(chat, { message: message });
-      // });
-
-      // socket.on('stopTyping', function (data) {
-      //   const chat = 'stopTyping::' + data.chatId.toString();
-      //   const message = user?.name + ' is stop typing...';
-      //   socket.emit(chat, { message: message });
-      // });
-
-      //-----------------------Seen All------------------------//
-      // socket.on('message-notification', async ({}, callback) => {
-      //   try {
-      //     const allUnReaddMessage = await Message.countDocuments({
-      //       receiver: user?._id,
-      //       seen: false,
-      //     });
-      //     const variable = 'new-notifications::' + user?._id;
-      //     io.emit(variable, allUnReaddMessage);
-      //     callbackFn(callback, { success: true, message: allUnReaddMessage });
-      //   } catch (error) {
-      //     callbackFn(callback, {
-      //       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      //       success: false,
-      //       message: 'Failed to retrieve notifications',
-      //     });
-      //   }
-      // });
-
       //-----------------------Disconnect------------------------//
       socket.on('disconnect', () => {
         onlineUser.delete(user?._id?.toString());

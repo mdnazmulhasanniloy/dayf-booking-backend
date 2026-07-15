@@ -46,6 +46,10 @@ const userSchema: Schema<IUser> = new Schema(
       type: String,
       default: null,
     },
+    fcmToken: {
+      type: String,
+      default: null,
+    },
     stripeAccountId: {
       type: String,
       default: null,
