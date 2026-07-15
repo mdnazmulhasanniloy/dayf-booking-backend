@@ -16,6 +16,9 @@ const stripe = {
 
 export default {
   NODE_ENV: process.env.NODE_ENV,
+  redis_port: process.env.REDIS_PORT,
+  redis_host: process.env.REDIS_HOST,
+  redis_password: process.env.REDIS_PASSWORD,
   port: process.env.PORT,
   ip: process.env.IP,
   database_url: process.env.DATABASE_URL,

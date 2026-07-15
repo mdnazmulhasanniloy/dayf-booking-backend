@@ -23,53 +23,74 @@ import firebaseAdmin from '../../utils/firebase';
 
 // Login
 const login = async (payload: TLogin) => {
-  payload.email = payload?.email?.trim().toLowerCase();
-  const user: IUser | null = await User.isUserExist(payload?.email);
-  if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
-  }
+  try {
+    payload.email = payload?.email?.trim().toLowerCase();
+    const user: IUser | null = await User.isUserExist(payload?.email);
+    if (!user) {
+      throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+    }
 
-  if (user?.isDeleted) {
-    throw new AppError(httpStatus.FORBIDDEN, 'This user is deleted');
-  }
+    if (user?.isDeleted) {
+      throw new AppError(httpStatus.FORBIDDEN, 'This user is deleted');
+    }
 
-  if (user?.registerWith !== REGISTER_WITH.credentials) {
+    if (user?.registerWith !== REGISTER_WITH.credentials) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `This account is registered with ${user.registerWith}, so you should try logging in using that method.`,
+      );
+    }
+
+    if (!(await User.isPasswordMatched(payload.password, user.password))) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Password does not match');
+    }
+
+    if (!user?.verification?.status) {
+      throw new AppError(httpStatus.FORBIDDEN, 'User account is not verified');
+    }
+
+    if (payload.fcmToken && payload.fcmToken !== '') {
+      await firebaseAdmin.messaging().send({
+        token: payload.fcmToken,
+        notification: {
+          title: 'Login Successful',
+          body: 'You have successfully logged in.',
+        },
+      });
+
+      await User.findByIdAndUpdate(user._id, {
+        fcmToken: payload.fcmToken,
+      });
+    }
+
+    const jwtPayload: { userId: string; role: string } = {
+      userId: user?._id?.toString() as string,
+      role: user?.role,
+    };
+
+    const accessToken = createToken(
+      jwtPayload,
+      config.jwt_access_secret as string,
+      config.jwt_access_expires_in as string,
+    );
+
+    const refreshToken = createToken(
+      jwtPayload,
+      config.jwt_refresh_secret as string,
+      config.jwt_refresh_expires_in as string,
+    );
+
+    return {
+      user,
+      accessToken,
+      refreshToken,
+    };
+  } catch (error: any) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      `This account is registered with ${user.registerWith}, so you should try logging in using that method.`,
+      error?.message ?? 'User Login Failed.',
     );
   }
-
-  if (!(await User.isPasswordMatched(payload.password, user.password))) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Password does not match');
-  }
-
-  if (!user?.verification?.status) {
-    throw new AppError(httpStatus.FORBIDDEN, 'User account is not verified');
-  }
-
-  const jwtPayload: { userId: string; role: string } = {
-    userId: user?._id?.toString() as string,
-    role: user?.role,
-  };
-
-  const accessToken = createToken(
-    jwtPayload,
-    config.jwt_access_secret as string,
-    config.jwt_access_expires_in as string,
-  );
-
-  const refreshToken = createToken(
-    jwtPayload,
-    config.jwt_refresh_secret as string,
-    config.jwt_refresh_expires_in as string,
-  );
-
-  return {
-    user,
-    accessToken,
-    refreshToken,
-  };
 };
 
 // register with google
@@ -79,8 +100,6 @@ const registerWithGoogle = async (payload: any) => {
     const decodedToken: DecodedIdToken | null = await firebaseAdmin
       .auth()
       .verifyIdToken(payload?.token); // Verify the token
-
-    console.log(JSON.stringify(decodedToken));
     if (!decodedToken)
       throw new AppError(httpStatus.BAD_REQUEST, 'Invalid token');
     if (!decodedToken?.email_verified) {
@@ -102,6 +121,16 @@ const registerWithGoogle = async (payload: any) => {
 
       if (existingUser?.isDeleted) {
         throw new AppError(httpStatus.FORBIDDEN, 'This user is deleted');
+      }
+
+      if (payload?.fcmToken && payload?.fcmToken !== '') {
+        await firebaseAdmin.messaging().send({
+          token: payload?.fcmToken,
+          notification: {
+            title: 'Login Successful',
+            body: 'You have successfully logged in.',
+          },
+        });
       }
 
       const jwtPayload: { userId: string; role: string } = {
@@ -128,15 +157,33 @@ const registerWithGoogle = async (payload: any) => {
       };
     }
 
-    if(payload?.device ==="mobile" && payload?.action === "login" && !payload?.role){
-      throw new AppError(httpStatus?.BAD_REQUEST, "You are not a registered user. Please register first.")
-
+    if (
+      payload?.device === 'mobile' &&
+      payload?.action === 'login' &&
+      !payload?.role
+    ) {
+      throw new AppError(
+        httpStatus?.BAD_REQUEST,
+        'You are not a registered user. Please register first.',
+      );
     }
+
+    if (payload?.fcmToken && payload?.fcmToken !== '') {
+      await firebaseAdmin.messaging().send({
+        token: payload?.fcmToken,
+        notification: {
+          title: 'Login Successful',
+          body: 'You have successfully logged in.',
+        },
+      });
+    }
+
     const user = await User.create({
       name: decodedToken?.name,
       email: decodedToken?.email,
       profile: decodedToken?.picture,
       phoneNumber: decodedToken?.phone_number,
+      fcmToken: payload.fcmToken ?? null,
       registerWith: REGISTER_WITH.google,
       role: payload?.role ?? USER_ROLE.user,
       verification: {

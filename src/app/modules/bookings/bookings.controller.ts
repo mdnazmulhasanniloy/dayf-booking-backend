@@ -13,6 +13,18 @@ const createBookings = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const createApartmentBooking = catchAsync(
+  async (req: Request, res: Response) => {
+    req.body.user = req.user.userId;
+    const result = await bookingsService.createApartmentBooking(req.body);
+    sendResponse(res, {
+      statusCode: 201,
+      success: true,
+      message: 'Bookings created successfully',
+      data: result,
+    });
+  },
+);
 
 const getAllBookingsWithReference = catchAsync(
   async (req: Request, res: Response) => {
@@ -120,15 +132,20 @@ const deleteBookings = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
-const getBookedDatesByMonth = catchAsync(async (req: Request, res: Response) => {
-  const result = await bookingsService.getBookedDatesByMonth(req.params.apartmentId, req.query);
-  sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: 'Booked dates fetched successfully',
-    data: result,
-  });
-});
+const getBookedDatesByMonth = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await bookingsService.getBookedDatesByMonth(
+      req.params.apartmentId,
+      req.query,
+    );
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: 'Booked dates fetched successfully',
+      data: result,
+    });
+  },
+);
 
 export const bookingsController = {
   createBookings,
@@ -142,4 +159,5 @@ export const bookingsController = {
   cancelBooking,
   getBookingsForHotelOwner,
   getBookedDatesByMonth,
+  createApartmentBooking,
 };

@@ -1,25 +1,30 @@
-import httpStatus from 'http-status';
+import httpStatus, { OK } from 'http-status';
 import { BOOKING_MODEL_TYPE, IBookings } from './bookings.interface';
 import Bookings from './bookings.models';
 import AppError from '../../error/AppError';
 import Apartment from '../apartment/apartment.models';
-import { Types } from 'mongoose';
+import { startSession, Types } from 'mongoose';
 import pickQuery from '../../utils/pickQuery';
 import { paginationHelper } from '../../helpers/pagination.helpers';
 import moment from 'moment';
 import { BOOKING_STATUS } from './bookings.constants';
-import { notificationServices } from '../notification/notification.service';
 import { modeType } from '../notification/notification.interface';
 import { IApartment } from '../apartment/apartment.interface';
 import { IRoomTypes } from '../roomTypes/roomTypes.interface';
 import RoomTypes from '../roomTypes/roomTypes.models';
 import { IUser } from '../user/user.interface';
+import { notificationQueue } from '../../redis';
+import { getDateRange } from '../calender/calender.utils';
+import Calender from '../calender/calender.models';
+import { CALENDAR_BLOCK_TYPE } from '../calender/calender.interface';
 
 const createBookings = async (payload: IBookings) => {
   let referenceItem: IRoomTypes | IApartment | null = null;
   let pricePerDay = 0;
   const startDateUTC = moment(payload.startDate).utc().toDate();
   const endDateUTC = moment(payload.endDate).utc().toDate();
+  const dateRange = getDateRange(startDateUTC, endDateUTC);
+  const expireAt = new Date(Date.now() + 5 * 60 * 1000);
   switch (payload.modelType) {
     case BOOKING_MODEL_TYPE.Rooms:
       referenceItem = await RoomTypes.findById(payload.reference);
@@ -82,6 +87,7 @@ const createBookings = async (payload: IBookings) => {
       referenceItem = await Apartment.findById(payload.reference).populate(
         'author',
       );
+
       if (!referenceItem) {
         throw new AppError(httpStatus.BAD_REQUEST, 'Apartment not found!');
       }
@@ -125,6 +131,100 @@ const createBookings = async (payload: IBookings) => {
   return result;
 };
 
+const createApartmentBooking = async (payload: IBookings) => {
+  const session = await startSession();
+  session.startTransaction();
+  let referenceItem: IApartment | null = null;
+  let pricePerDay = 0;
+  const startDateUTC = moment(payload.startDate).utc().toDate();
+  const endDateUTC = moment(payload.endDate).utc().toDate();
+
+  try {
+    // const booking = await Bookings.find({
+    //   isDeleted: false,
+    //   reference: payload?.reference,
+    //   modelType: BOOKING_MODEL_TYPE.Apartment,
+    //   startDate: { $lte: moment(payload?.endDate).utc().toDate() },
+    //   endDate: { $gte: moment(payload?.startDate).utc().toDate() },
+    // });
+
+    // if (booking?.length > 0) {
+    //   throw new AppError(
+    //     httpStatus?.BAD_REQUEST,
+    //     'This apartment already booked in this timeline',
+    //   );
+    // }
+
+    referenceItem = await Apartment.findById(payload.reference).populate(
+      'author',
+    );
+
+    if (!referenceItem) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Apartment not found!');
+    }
+
+    if (!(referenceItem?.author as IUser)?.stripeAccountId) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'This Hotel Owner does not have a Stripe account',
+      );
+    }
+    pricePerDay = (referenceItem as IApartment).price;
+
+    const days = moment(payload.endDate).diff(
+      moment(payload.startDate),
+      'days',
+    );
+    if (days <= 0) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'End date must be after start date',
+      );
+    }
+
+    //@ts-ignore
+    payload.author = referenceItem.author;
+    //@ts-ignore
+    payload.reference = referenceItem?._id;
+    payload.totalPrice = pricePerDay * days;
+    const dateRange = getDateRange(startDateUTC, endDateUTC);
+    const expireAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    const [booking] = await Bookings.create([payload], { session });
+
+    if (!booking) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create booking');
+    }
+
+    try {
+      await Calender.insertMany(
+        dateRange.map(date => ({
+          reference: payload.reference,
+          modelType: BOOKING_MODEL_TYPE.Apartment,
+          date,
+
+          type: CALENDAR_BLOCK_TYPE.manual,
+          bookingId: booking?._id,
+          blockedBy: payload?.user,
+          expireAt,
+        })),
+        { session, ordered: true },
+      );
+    } catch (err: any) {
+      if (err?.code === 11000) {
+        throw new AppError(
+          httpStatus.CONFLICT,
+          'Selected dates are no longer available. Please choose different dates.',
+        );
+      }
+      throw err;
+    }
+
+    return booking;
+  } catch (error: any) {
+    throw new AppError(OK, error?.message || 'Booking Filed');
+  }
+};
 const getAllBookings = async (query: Record<string, any>) => {
   const { filters, pagination } = await pickQuery(query);
 
@@ -361,22 +461,26 @@ const cancelBooking = async (id: string) => {
     throw new AppError(httpStatus.BAD_REQUEST, 'Failed to cancel booking');
   }
 
-  await notificationServices.insertNotificationIntoDb({
+  const userNotification = {
     receiver: result?.user,
     message: 'Booking Cancellation Confirmation',
     description: `Your booking with ID: ${result.id} has been successfully cancelled. If you have any questions or require further assistance, please contact our support team.`,
     refference: result?._id,
     model_type: modeType.Bookings,
-  });
-  await notificationServices.insertNotificationIntoDb({
+  };
+  const authorNotification = {
     receiver: result?.author,
     message: 'Booking Cancellation Alert',
     description: `A booking has been cancelled. Booking ID: ${result.id} was scheduled from ${moment(isExist.startDate).format('MMMM Do YYYY')} to ${moment(isExist.endDate).format('MMMM Do YYYY')}. Please update your availability accordingly. If you need further details, please access your management dashboard or contact our support team.`,
     refference: result?._id,
     model_type: modeType.Bookings,
-  });
+  };
+  await notificationQueue.add('new_notification', userNotification);
+  await notificationQueue.add('new_notification', authorNotification);
+
   return result;
 };
+
 const deleteBookings = async (id: string) => {
   const result = await Bookings.findByIdAndUpdate(
     id,
@@ -405,20 +509,22 @@ const completeBooking = async (id: string) => {
     throw new AppError(httpStatus.BAD_REQUEST, 'Failed to complete booking');
   }
 
-  await notificationServices.insertNotificationIntoDb({
+  const userNotification = {
     receiver: result?.user,
     message: 'Booking Completion Confirmation',
     description: `Your booking with ID: ${result._id} has been successfully completed. Thank you for choosing our services. We hope you had a pleasant experience.`,
     refference: result?._id,
     model_type: modeType.Bookings,
-  });
-  await notificationServices.insertNotificationIntoDb({
+  };
+  const authorNotification = {
     receiver: result?.author,
     message: 'Booking Completion Confirmation',
     description: `A booking at your property with ID: ${result._id} has been marked as completed.`,
     refference: result?._id,
     model_type: modeType.Bookings,
-  });
+  };
+  await notificationQueue.add('new_notification', userNotification);
+  await notificationQueue.add('new_notification', authorNotification);
 
   return result;
 };
@@ -490,4 +596,5 @@ export const bookingsService = {
   cancelBooking,
   completeBooking,
   getBookedDatesByMonth,
+  createApartmentBooking,
 };

@@ -172,7 +172,14 @@ class StripeServices<T> {
             amount: parseFloat((Number(hotelAdminAmount) * 100).toFixed(2)),
             destination: hotelAccountId,
           },
+          setup_future_usage: 'off_session',
         },
+        payment_method_options: {
+          card: {
+            setup_future_usage: 'off_session',
+          },
+        },
+
         invoice_creation: {
           enabled: true,
         },
@@ -189,6 +196,83 @@ class StripeServices<T> {
       });
     } catch (error) {
       this.handleError(error, 'Error creating checkout session');
+    }
+  }
+
+  public async createSetupIntent(customerId?: string) {
+    try {
+      const stripe = this.stripe();
+
+      // Customer না থাকলে নতুন তৈরি করুন
+      let customer = customerId;
+      if (!customer) {
+        const newCustomer = await stripe.customers.create();
+        customer = newCustomer.id;
+      }
+
+      const setupIntent = await stripe.setupIntents.create({
+        customer,
+        payment_method_types: ['card'],
+        usage: 'off_session', // ভবিষ্যতে user ছাড়াই charge করা যাবে
+      });
+
+      return {
+        clientSecret: setupIntent.client_secret, // Frontend এ পাঠাবেন
+        customerId: customer, // DB তে save করুন
+      };
+    } catch (error) {
+      this.handleError(error, 'Error creating setup intent');
+    }
+  }
+
+  public async getSavedCards(customerId: string) {
+    try {
+      const stripe = this.stripe();
+
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: customerId,
+        type: 'card',
+      });
+
+      return paymentMethods.data.map(async pm => ({
+        id: pm.id,
+        brand: pm.card?.brand, // 'visa', 'mastercard'
+        last4: pm.card?.last4, // '4242'
+        exp_month: pm.card?.exp_month,
+        exp_year: pm.card?.exp_year,
+        isDefault:
+          pm.id ===
+          ((await this.stripe().customers.retrieve(customerId)) as any)
+            ?.invoice_settings?.default_payment_method,
+      }));
+    } catch (error) {
+      this.handleError(error, 'Error fetching saved cards');
+    }
+  }
+
+  public async setDefaultCard(customerId: string, paymentMethodId: string) {
+    try {
+      const stripe = this.stripe();
+
+      await stripe.customers.update(customerId, {
+        invoice_settings: {
+          default_payment_method: paymentMethodId,
+        },
+      });
+
+      return { success: true, message: 'Default card updated.' };
+    } catch (error) {
+      this.handleError(error, 'Error setting default card');
+    }
+  }
+
+  public async deleteCard(paymentMethodId: string) {
+    try {
+      const stripe = this.stripe();
+      await stripe.paymentMethods.detach(paymentMethodId);
+      return { success: true, message: 'Card removed.' };
+    } catch (error) {
+      this.handleError(error, 'Error deleting card');
     }
   }
 

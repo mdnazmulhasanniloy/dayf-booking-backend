@@ -13,20 +13,23 @@ router.post(
   '/',
   auth(USER_ROLE.hotel_owner),
   upload.fields([
-    { name: 'images', maxCount: 5 },
-    { name: 'profile', maxCount: 1 },
-    { name: 'coverImage', maxCount: 1 },
+    { name: 'images', maxCount: 10 },
+    { name: 'banner', maxCount: 1 },
   ]),
   parseData(),
   apartmentController.createApartment,
 );
 router.patch(
+  '/approved/:id',
+  auth(USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.super_admin),
+  apartmentController.updateApartment,
+);
+router.patch(
   '/:id',
   auth(USER_ROLE.hotel_owner),
   upload.fields([
-    { name: 'images', maxCount: 5 },
-    { name: 'profile', maxCount: 1 },
-    { name: 'coverImage', maxCount: 1 },
+    { name: 'images', maxCount: 10 },
+    { name: 'banner', maxCount: 1 },
   ]),
   parseData(),
   apartmentController.updateApartment,

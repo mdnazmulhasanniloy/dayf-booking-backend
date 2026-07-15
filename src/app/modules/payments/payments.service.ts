@@ -4,7 +4,6 @@ import Payments from './payments.models';
 import QueryBuilder from '../../builder/QueryBuilder';
 import AppError from '../../error/AppError';
 import config from '../../config';
-import generateRandomString from '../../utils/generateRandomString';
 import Bookings from '../bookings/bookings.models';
 import { BOOKING_MODEL_TYPE, IBookings } from '../bookings/bookings.interface';
 import { startSession } from 'mongoose';
@@ -12,7 +11,6 @@ import { PAYMENT_STATUS } from './payments.constants';
 import { User } from '../user/user.models';
 import { BOOKING_STATUS } from '../bookings/bookings.constants';
 import { USER_ROLE } from '../user/user.constants';
-import { notificationServices } from '../notification/notification.service';
 import { IUser } from '../user/user.interface';
 import { modeType } from '../notification/notification.interface';
 import StripeService from '../../builder/StripeBuilder';
@@ -24,6 +22,7 @@ import { Response } from 'express';
 import moment from 'moment';
 import Contents from '../contents/contents.models';
 import { IContents } from '../contents/contents.interface';
+import { notificationQueue } from '../../redis';
 
 const checkout = async (payload: IPayments) => {
   let paymentData: IPayments;
@@ -234,27 +233,30 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
 
     const admin = await User.findOne({ role: USER_ROLE.admin });
 
-    notificationServices.insertNotificationIntoDb({
+    const userNotification = {
       receiver: (payment?.user as IUser)?._id, // User
       message: 'Your booking payment was successful!',
       description: `Your payment for booking ID #${bookings?.id} has been successfully processed. Thank you for choosing us!`,
       refference: payment?._id,
       model_type: modeType?.payments,
-    });
-    notificationServices.insertNotificationIntoDb({
+    };
+    const authorNotification = {
       receiver: (payment?.author as IUser)?._id,
       message: 'A new booking payment has been received!',
       description: `User ${(payment?.user as IUser)?.name} has completed payment for booking ID #${bookings?.id} in your property.`,
       refference: payment?._id,
       model_type: modeType?.payments,
-    });
-    notificationServices.insertNotificationIntoDb({
+    };
+    const adminNotification = {
       receiver: admin?._id, // System Admin
       message: 'A new booking payment has been processed!',
       description: `Payment with ID ${bookings?.id} for a hotel/apartment booking has been successfully processed.`,
       refference: payment?._id,
       model_type: modeType?.payments,
-    });
+    };
+    await notificationQueue.add('new_notification', userNotification);
+    await notificationQueue.add('new_notification', authorNotification);
+    await notificationQueue.add('new_notification', adminNotification);
 
     await session.commitTransaction();
     return { ...payment.toObject(), device, chargeDetails };

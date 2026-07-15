@@ -5,7 +5,11 @@ import { USER_ROLE } from '../user/user.constants';
 
 const router = Router();
 
-router.post('/', auth(USER_ROLE.user), bookingsController.createBookings);
+router.post(
+  '/',
+  auth(USER_ROLE.user),
+  bookingsController.createApartmentBooking,
+);
 router.patch(
   '/complete/:id',
   auth(USER_ROLE.user, USER_ROLE.hotel_owner),
@@ -29,7 +33,6 @@ router.get(
   auth(USER_ROLE.user),
   bookingsController.getBookedDatesByMonth,
 );
-
 
 router.get(
   '/hotel-owner',

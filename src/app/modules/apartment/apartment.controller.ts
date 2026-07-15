@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import catchAsync from '../../utils/catchAsync';
 import { apartmentService } from './apartment.service';
 import sendResponse from '../../utils/sendResponse';
+import { notificationQueue } from '../../redis';
+import { modeType } from '../notification/notification.interface';
 
 const createApartment = catchAsync(async (req: Request, res: Response) => {
   req.body.author = req?.user?.userId;
@@ -23,6 +25,7 @@ const getAllApartment = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
 const getMyApartment = catchAsync(async (req: Request, res: Response) => {
   req.query.author = req?.user?.userId;
   const result = await apartmentService.getAllApartment(req.query);
@@ -43,12 +46,35 @@ const getApartmentById = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
 const updateApartment = catchAsync(async (req: Request, res: Response) => {
   const result = await apartmentService.updateApartment(
     req.params.id,
     req.body,
     req.files,
   );
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Apartment updated successfully',
+    data: result,
+  });
+});
+
+const approvedApartment = catchAsync(async (req: Request, res: Response) => {
+  const result = await apartmentService.updateApartment(req.params.id, {
+    isApproved: true,
+  });
+
+  const adminNotification = {
+    receiver: result.author,
+    message: `Approval Request: ${result?.name || 'New Apartment'}`,
+    description: `A user has submitted a new apartment for approval. Please review the listing and take the appropriate action.`,
+    refference: result?._id,
+    model_type: modeType.Apartment,
+  };
+
+  await notificationQueue.add('new_notification', adminNotification);
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -74,4 +100,5 @@ export const apartmentController = {
   updateApartment,
   deleteApartment,
   getMyApartment,
+  approvedApartment,
 };
