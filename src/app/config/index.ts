@@ -13,6 +13,11 @@ const stripe = {
   stripe_api_key: process.env.STRIPE_API_KEY,
   stripe_api_secret: process.env.STRIPE_API_SECRET,
 };
+const chargily = {
+  chargily_base_url: process.env.CHARGILY_BASE_URL,
+  chargily_secret_key: process.env.CHARGILY_SECRET_KEY,
+  chargily_mode: process.env.CHARGILY_MODE,
+};
 
 export default {
   NODE_ENV: process.env.NODE_ENV,
@@ -36,4 +41,5 @@ export default {
   stripe_key: process.env.STRIPE_API_KEY,
   aws,
   stripe,
+  chargily,
 };

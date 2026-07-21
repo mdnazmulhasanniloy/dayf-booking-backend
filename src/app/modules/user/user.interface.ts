@@ -18,6 +18,7 @@ export interface IUser {
   address?: string;
   stripeAccountId?: string;
   customerId?: string;
+  chargilyCustomerId?: string;
   nationality: string;
   needsPasswordChange: boolean;
   passwordChangedAt?: Date;

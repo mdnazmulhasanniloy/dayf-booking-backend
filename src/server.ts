@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import dns from 'dns';
 // Force Google DNS servers before any connection attempt
 dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
@@ -11,6 +10,7 @@ import app from './app';
 import config from './app/config';
 import initializeSocketIO from './socket';
 import { defaultTask } from './app/utils/defaultTask';
+import ChargilyService from './app/builder/Chargily';
 //@ts-ignore
 // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unused-vars
 const colors = require('colors');
@@ -19,6 +19,12 @@ let server: Server;
 export const io = initializeSocketIO(createServer(app));
 
 async function main() {
+  // const customer = await ChargilyService.createCustomer({
+  //   name: "user?.email",
+  //   email: "nazmul@gmail.com",
+  // });
+
+  // console.log(customer);
   try {
     await mongoose.connect(config.database_url as string);
     defaultTask();

@@ -16,27 +16,42 @@ const checkout = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const chargilyConfirmPayment = catchAsync(
+  async (req: Request, res: Response) => {
+    console.log(req.query);
+    const result = await paymentsService.chargilyConfirmPayment(
+      req.body,
+      req.query.paymentId as string,
+    );
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      data: result,
+      message: 'payment link get successful',
+    });
+  },
+);
+
 const confirmPayment = catchAsync(async (req: Request, res: Response) => {
   const result = await paymentsService.confirmPayment(req?.query, res);
-  // if (result?.device === 'website') {
-
-  //   return res.redirect(
-  //     `${config.client_Url}/booking/success?bookingId=${result?.bookings}`,
-  //   );
-  // }
+  if (result?.device === 'website') {
+    return res.redirect(
+      `${config.client_Url}/booking/success?bookingId=${result?.bookings}`,
+    );
+  }
 
   // res.render('paymentSuccess', { paymentDetails });
-  res.render('paymentSuccess', {
-    paymentDetails: result?.chargeDetails,
-    device: result?.device,
-    bookingId: result?.bookings,
-  });
-  // sendResponse(res, {
-  //   success: true,
-  //   statusCode: httpStatus.OK,
-  //   data: result,
-  //   message: 'payment successful',
+  // res.render('paymentSuccess', {
+  //   paymentDetails: result?.chargeDetails,
+  //   device: result?.device,
+  //   bookingId: result?.bookings,
   // });
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    data: result,
+    message: 'payment successful',
+  });
 });
 
 const createPayments = catchAsync(async (req: Request, res: Response) => {
@@ -68,6 +83,7 @@ const getPaymentsById = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
 const updatePayments = catchAsync(async (req: Request, res: Response) => {
   const result = await paymentsService.updatePayments(req.params.id, req.body);
   sendResponse(res, {
@@ -96,4 +112,5 @@ export const paymentsController = {
   deletePayments,
   confirmPayment,
   checkout,
+  chargilyConfirmPayment,
 };

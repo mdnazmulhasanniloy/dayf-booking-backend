@@ -8,7 +8,7 @@ export enum BOOKING_MODEL_TYPE {
 }
 export interface IBookings {
   _id?: ObjectId | string;
-  id: string;
+  bookingCode: string;
   modelType: string;
   reference: ObjectId | IRoomTypes | IApartment;
   totalRooms: number;
@@ -21,6 +21,12 @@ export interface IBookings {
     name: string;
     phoneNumber: string;
   };
+  depositAmount: number;
+  remainingAmount: number;
+  commissionRate: number;
+  guest: number;
+  cancelReason: string;
+  // currency: 'DZD' | 'USD';
   expireAt: Date;
   startDate: Date;
   endDate: Date;
