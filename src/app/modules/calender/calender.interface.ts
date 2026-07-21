@@ -6,14 +6,14 @@ export enum CALENDAR_BLOCK_TYPE {
   manual = 'manual',
 }
 export interface ICalender {
-  reference: ObjectId;  
+  reference: ObjectId;
   modelType: BOOKING_MODEL_TYPE;
   date: Date;
   type: CALENDAR_BLOCK_TYPE;
   bookingId?: ObjectId;
   blockedBy?: ObjectId;
   reason?: string;
-  expireAt?: Date;
+  expireAt?: Date | null;
 }
 
 export type ICalenderModules = Model<ICalender, Record<string, unknown>>;

@@ -6,6 +6,7 @@ import AppError from '../../error/AppError';
 import moment from 'moment';
 
 const createCalender = async (payload: ICalender) => {
+  payload['expireAt'] = null;
   const result = await Calender.create(payload);
   if (!result) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create calender');

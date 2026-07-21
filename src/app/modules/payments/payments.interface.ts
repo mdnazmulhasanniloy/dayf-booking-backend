@@ -2,22 +2,45 @@ import { Model, ObjectId } from 'mongoose';
 import { IBookings } from '../bookings/bookings.interface';
 import { IUser } from './../user/user.interface';
 
+export type TPaymentStatus = 'pending' | 'paid' | 'refunded' | 'failed';
+
+export type TPaymentGateway = 'stripe' | 'chargily';
+
+export type TCurrency = 'DZD' | 'EUR' | 'USD';
+
 export interface IPayments {
-  redirectType: string;
-  _id?: string;
-  user: ObjectId | IUser;
-  author: ObjectId | IUser;
-  amount: number;
-  receiptUrl: string;
-  currency: string;
-  status: string;
-  paymentMethod: 'stripe';
-  tranId: string;
-  adminAmount: number;
-  hotelOwnerAmount: number;
-  isTransfer: boolean;
+  _id?: ObjectId | string;
+  id: string;
   bookings: ObjectId | IBookings;
-  isDeleted: boolean;
+  redirectType: string;
+
+  user: ObjectId | IUser;
+
+  author: ObjectId | IUser;
+
+  amount: number;
+
+  currency: TCurrency;
+
+  status: TPaymentStatus;
+
+  tranId?: string;
+
+  paymentGateway?: TPaymentGateway;
+
+  payment_method?: number;
+  refundedAmount?: number;
+
+  paymentIntentId?: string;
+  refundReason?: string;
+
+  isDeleted?: boolean;
+
+  createdAt?: Date;
+
+  updatedAt?: Date;
+
+  isTransfer: boolean;
 }
 
 export type IPaymentsModules = Model<IPayments, Record<string, unknown>>;

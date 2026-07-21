@@ -138,8 +138,6 @@ class StripeServices<T> {
     product: IProducts,
     success_url: string,
     cancel_url: string,
-    hotelAccountId: string,
-    hotelAdminAmount: number,
     customer: string = '', // Optional: customer ID for Stripe
     currency: string = 'usd',
     payment_method_types: Array<'card' | 'paypal' | 'ideal'> = ['card'],
@@ -168,10 +166,6 @@ class StripeServices<T> {
         cancel_url: cancel_url,
         mode: 'payment',
         payment_intent_data: {
-          transfer_data: {
-            amount: parseFloat((Number(hotelAdminAmount) * 100).toFixed(2)),
-            destination: hotelAccountId,
-          },
           setup_future_usage: 'off_session',
         },
         payment_method_options: {
@@ -184,14 +178,6 @@ class StripeServices<T> {
           enabled: true,
         },
         customer,
-        // payment_intent_data: {
-        //   metadata: {
-        //     payment: JSON.stringify({
-        //       ...payment,
-        //     }),
-        //   },
-        // },
-        // payment_method_types: ['card', 'amazon_pay', 'cashapp', 'us_bank_account'],
         payment_method_types,
       });
     } catch (error) {

@@ -12,19 +12,130 @@ import { modeType } from '../notification/notification.interface';
 import { IApartment } from '../apartment/apartment.interface';
 import { IRoomTypes } from '../roomTypes/roomTypes.interface';
 import RoomTypes from '../roomTypes/roomTypes.models';
-import { IUser } from '../user/user.interface';
 import { notificationQueue } from '../../redis';
-import { getDateRange } from '../calender/calender.utils';
 import Calender from '../calender/calender.models';
+import { getDateRange } from '../calender/calender.utils';
 import { CALENDAR_BLOCK_TYPE } from '../calender/calender.interface';
+
+// const createBookings = async (payload: IBookings) => {
+//   let referenceItem: IRoomTypes | IApartment | null = null;
+//   let pricePerDay = 0;
+//   const startDateUTC = moment(payload.startDate).utc().toDate();
+//   const endDateUTC = moment(payload.endDate).utc().toDate();
+//   const dateRange = getDateRange(startDateUTC, endDateUTC);
+//   const expireAt = new Date(Date.now() + 5 * 60 * 1000);
+//   switch (payload.modelType) {
+//     case BOOKING_MODEL_TYPE.Rooms:
+//       referenceItem = await RoomTypes.findById(payload.reference);
+//       if (!referenceItem) {
+//         throw new AppError(httpStatus.BAD_REQUEST, 'Room not found!');
+//       }
+
+//       // Step 1: Check for overlapping bookings in UTC
+//       const overlappingBookings = await Bookings.aggregate([
+//         {
+//           $match: {
+//             modelType: BOOKING_MODEL_TYPE.Rooms,
+//             reference: new Types.ObjectId((referenceItem as IRoomTypes)?._id),
+//             isDeleted: false,
+//             startDate: { $lte: endDateUTC },
+//             endDate: { $gte: startDateUTC },
+//           },
+//         },
+//         {
+//           $group: {
+//             _id: null,
+//             totalBooked: { $sum: '$totalRooms' },
+//           },
+//         },
+//       ]);
+
+//       const alreadyBooked = overlappingBookings[0]?.totalBooked || 0;
+//       const availableRooms =
+//         (referenceItem as IRoomTypes).totalRooms - alreadyBooked;
+
+//       if (payload.totalRooms > availableRooms) {
+//         throw new AppError(
+//           httpStatus.BAD_REQUEST,
+//           `Only ${availableRooms} room(s) are available for the selected date range.`,
+//         );
+//       }
+
+//       pricePerDay =
+//         (referenceItem as IRoomTypes).pricePerNight * payload?.totalRooms;
+//       break;
+
+//     //Apartment type booking
+//     case BOOKING_MODEL_TYPE.Apartment:
+//       //check apartment are available or not
+//       const booking = await Bookings.find({
+//         isDeleted: false,
+//         reference: payload?.reference,
+//         modelType: BOOKING_MODEL_TYPE.Apartment,
+//         startDate: { $lte: moment(payload?.endDate).utc().toDate() }, // booking start <= searchEndDate
+//         endDate: { $gte: moment(payload?.startDate).utc().toDate() }, // booking end >= searchStartDate
+//       });
+
+//       if (booking?.length > 0) {
+//         throw new AppError(
+//           httpStatus?.BAD_REQUEST,
+//           'This apartment already booked in this timeline',
+//         );
+//       }
+
+//       referenceItem = await Apartment.findById(payload.reference).populate(
+//         'author',
+//       );
+
+//       if (!referenceItem) {
+//         throw new AppError(httpStatus.BAD_REQUEST, 'Apartment not found!');
+//       }
+
+//       if (!(referenceItem?.author as IUser)?.stripeAccountId) {
+//         throw new AppError(
+//           httpStatus.BAD_REQUEST,
+//           'This Hotel Owner does not have a Stripe account',
+//         );
+//       }
+//       pricePerDay = (referenceItem as IApartment).price;
+//       break;
+
+//     default:
+//       throw new AppError(
+//         httpStatus.BAD_REQUEST,
+//         'Booking model type is invalid',
+//       );
+//   }
+
+//   const days = moment(payload.endDate).diff(moment(payload.startDate), 'days');
+//   if (days <= 0) {
+//     throw new AppError(
+//       httpStatus.BAD_REQUEST,
+//       'End date must be after start date',
+//     );
+//   }
+
+//   //@ts-ignore
+//   payload.author = referenceItem.author;
+//   //@ts-ignore
+//   payload.reference = referenceItem?._id;
+//   payload.totalPrice = pricePerDay * days;
+
+//   const result = await Bookings.create(payload);
+
+//   if (!result) {
+//     throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create booking');
+//   }
+
+//   return result;
+// };
 
 const createBookings = async (payload: IBookings) => {
   let referenceItem: IRoomTypes | IApartment | null = null;
-  let pricePerDay = 0;
-  const startDateUTC = moment(payload.startDate).utc().toDate();
-  const endDateUTC = moment(payload.endDate).utc().toDate();
-  const dateRange = getDateRange(startDateUTC, endDateUTC);
-  const expireAt = new Date(Date.now() + 5 * 60 * 1000);
+  const startDateUTC = moment(payload.startDate).utc();
+  const endDateUTC = moment(payload.endDate).utc();
+  // const dateRange = getDateRange(startDateUTC, endDateUTC);
+  // const expireAt = new Date(Date.now() + 5 * 60 * 1000);
   switch (payload.modelType) {
     case BOOKING_MODEL_TYPE.Rooms:
       referenceItem = await RoomTypes.findById(payload.reference);
@@ -62,28 +173,12 @@ const createBookings = async (payload: IBookings) => {
         );
       }
 
-      pricePerDay =
-        (referenceItem as IRoomTypes).pricePerNight * payload?.totalRooms;
+      // pricePerDay = (referenceItem as IRoomTypes).pricePerNight * payload?.totalRooms;
       break;
 
     //Apartment type booking
     case BOOKING_MODEL_TYPE.Apartment:
       //check apartment are available or not
-      const booking = await Bookings.find({
-        isDeleted: false,
-        reference: payload?.reference,
-        modelType: BOOKING_MODEL_TYPE.Apartment,
-        startDate: { $lte: moment(payload?.endDate).utc().toDate() }, // booking start <= searchEndDate
-        endDate: { $gte: moment(payload?.startDate).utc().toDate() }, // booking end >= searchStartDate
-      });
-
-      if (booking?.length > 0) {
-        throw new AppError(
-          httpStatus?.BAD_REQUEST,
-          'This apartment already booked in this timeline',
-        );
-      }
-
       referenceItem = await Apartment.findById(payload.reference).populate(
         'author',
       );
@@ -92,13 +187,21 @@ const createBookings = async (payload: IBookings) => {
         throw new AppError(httpStatus.BAD_REQUEST, 'Apartment not found!');
       }
 
-      if (!(referenceItem?.author as IUser)?.stripeAccountId) {
+      const calender = await Calender.find({
+        modelType: BOOKING_MODEL_TYPE.Apartment,
+        reference: payload.reference,
+        date: {
+          $gte: startDateUTC?.toDate(),
+          $lte: endDateUTC?.toDate(),
+        },
+      });
+
+      if (!calender || calender?.length > 0) {
         throw new AppError(
-          httpStatus.BAD_REQUEST,
-          'This Hotel Owner does not have a Stripe account',
+          httpStatus.CONFLICT,
+          'Some of the selected dates are already booked or blocked.',
         );
       }
-      pricePerDay = (referenceItem as IApartment).price;
       break;
 
     default:
@@ -116,11 +219,16 @@ const createBookings = async (payload: IBookings) => {
     );
   }
 
+  const totalPrice = days * (referenceItem as IApartment)?.price;
+  payload['totalPrice'] = totalPrice;
+  payload['depositAmount'] = Number((totalPrice * 0.15).toFixed(2)); // 15%
+  payload['remainingAmount'] = Number(
+    (totalPrice - payload.depositAmount).toFixed(2),
+  );
   //@ts-ignore
-  payload.author = referenceItem.author;
+  payload[author] = referenceItem?.author;
   //@ts-ignore
   payload.reference = referenceItem?._id;
-  payload.totalPrice = pricePerDay * days;
 
   const result = await Bookings.create(payload);
 
@@ -129,102 +237,99 @@ const createBookings = async (payload: IBookings) => {
   }
 
   return result;
-};
+}; 
 
 const createApartmentBooking = async (payload: IBookings) => {
   const session = await startSession();
-  session.startTransaction();
-  let referenceItem: IApartment | null = null;
-  let pricePerDay = 0;
-  const startDateUTC = moment(payload.startDate).utc().toDate();
-  const endDateUTC = moment(payload.endDate).utc().toDate();
 
   try {
-    // const booking = await Bookings.find({
-    //   isDeleted: false,
-    //   reference: payload?.reference,
-    //   modelType: BOOKING_MODEL_TYPE.Apartment,
-    //   startDate: { $lte: moment(payload?.endDate).utc().toDate() },
-    //   endDate: { $gte: moment(payload?.startDate).utc().toDate() },
-    // });
+    session.startTransaction();
 
-    // if (booking?.length > 0) {
-    //   throw new AppError(
-    //     httpStatus?.BAD_REQUEST,
-    //     'This apartment already booked in this timeline',
-    //   );
-    // }
+    const startDateUTC = moment(payload.startDate).utc().startOf('day');
+    const endDateUTC = moment(payload.endDate).utc().endOf('day');
 
-    referenceItem = await Apartment.findById(payload.reference).populate(
-      'author',
-    );
+    const apartment = await Apartment.findById(payload.reference)
+      .populate('author')
+      .session(session);
 
-    if (!referenceItem) {
+    if (!apartment) {
       throw new AppError(httpStatus.BAD_REQUEST, 'Apartment not found!');
     }
 
-    if (!(referenceItem?.author as IUser)?.stripeAccountId) {
+    // Check calendar conflict
+    const calendar = await Calender.find({
+      modelType: BOOKING_MODEL_TYPE.Apartment,
+      reference: apartment._id,
+      date: {
+        $gte: startDateUTC.toDate(),
+        $lte: endDateUTC.toDate(),
+      },
+    }).session(session);
+
+    if (calendar.length > 0) {
       throw new AppError(
-        httpStatus.BAD_REQUEST,
-        'This Hotel Owner does not have a Stripe account',
+        httpStatus.CONFLICT,
+        'Some of the selected dates are already booked or blocked.',
       );
     }
-    pricePerDay = (referenceItem as IApartment).price;
 
-    const days = moment(payload.endDate).diff(
+    // Total nights
+    const totalDays = moment(payload.endDate).diff(
       moment(payload.startDate),
       'days',
     );
-    if (days <= 0) {
+
+    if (totalDays <= 0) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        'End date must be after start date',
+        'End date must be after start date.',
       );
     }
 
+    // Price calculation
+    const totalPrice = totalDays * apartment.price;
+
+    payload.totalPrice = totalPrice;
+    payload.depositAmount = Number((totalPrice * 0.15).toFixed(2));
+    payload.remainingAmount = Number(
+      (totalPrice - payload.depositAmount).toFixed(2),
+    );
+
     //@ts-ignore
-    payload.author = referenceItem.author;
+    payload.author = apartment.author._id;
     //@ts-ignore
-    payload.reference = referenceItem?._id;
-    payload.totalPrice = pricePerDay * days;
-    const dateRange = getDateRange(startDateUTC, endDateUTC);
-    const expireAt = new Date(Date.now() + 5 * 60 * 1000);
+    payload.reference = apartment?._id;
 
-    const [booking] = await Bookings.create([payload], { session });
+    // Create booking
+    const booking = await Bookings.create([payload], { session });
 
-    if (!booking) {
-      throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create booking');
-    }
+    // Create calendar entries
+    const dateRange = getDateRange(
+      startDateUTC.clone().startOf('day').toDate(),
+      moment(payload.endDate).utc().startOf('day').toDate(),
+    );
 
-    try {
-      await Calender.insertMany(
-        dateRange.map(date => ({
-          reference: payload.reference,
-          modelType: BOOKING_MODEL_TYPE.Apartment,
-          date,
+    const calendarPayload = dateRange.map(date => ({
+      reference: apartment._id,
+      modelType: BOOKING_MODEL_TYPE.Apartment,
+      bookingId: booking[0]._id,
+      date, 
+      type: CALENDAR_BLOCK_TYPE.booking,
+    }));
 
-          type: CALENDAR_BLOCK_TYPE.manual,
-          bookingId: booking?._id,
-          blockedBy: payload?.user,
-          expireAt,
-        })),
-        { session, ordered: true },
-      );
-    } catch (err: any) {
-      if (err?.code === 11000) {
-        throw new AppError(
-          httpStatus.CONFLICT,
-          'Selected dates are no longer available. Please choose different dates.',
-        );
-      }
-      throw err;
-    }
+    await Calender.insertMany(calendarPayload, { session });
 
-    return booking;
-  } catch (error: any) {
-    throw new AppError(OK, error?.message || 'Booking Filed');
+    await session.commitTransaction();
+
+    return booking[0];
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
   }
 };
+
 const getAllBookings = async (query: Record<string, any>) => {
   const { filters, pagination } = await pickQuery(query);
 

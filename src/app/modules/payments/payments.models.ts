@@ -1,39 +1,65 @@
 import { model, Schema } from 'mongoose';
 import { IPayments, IPaymentsModules } from './payments.interface';
+import generateCryptoString from '../../utils/generateCryptoString';
 
 const paymentsSchema = new Schema<IPayments>(
   {
-    user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    author: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    amount: { type: Number, required: true },
+    id: {
+      type: String,
+      unique: true,
+      default: () => generateCryptoString(6, 'PAY'),
+    },
+    bookings: {
+      type: Schema.Types.ObjectId,
+      ref: 'Bookings',
+      required: true,
+    },
+
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+
+    author: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+
+    amount: {
+      type: Number,
+      required: true,
+    },
+
+    currency: {
+      type: String,
+      enum: ['DZD', 'EUR', 'USD'],
+      // required: true,
+    },
+
     status: {
       type: String,
       enum: ['pending', 'paid', 'refunded', 'failed'],
       default: 'pending',
     },
-    receiptUrl: {
-      type: String,
-      default: null,
-    },
-    currency: {
-      type: String,
-      default: null,
-    },
-    paymentMethod: {
-      type: String,
-      enum: ['stripe'],
-      default: 'stripe',
-    },
-    adminAmount: {
-      type: Number,
-      required: true,
-    },
-    hotelOwnerAmount: {
-      type: Number,
-      required: true,
-    },
     tranId: { type: String, unique: true, sparse: true },
-    bookings: { type: Schema.Types.ObjectId, ref: 'Bookings', required: true },
+
+    paymentGateway: {
+      type: String,
+      enum: ['stripe', 'chargily'],
+    },
+    payment_method: {
+      type: String,
+    },
+    paymentIntentId: {
+      type: String,
+    },
+    refundedAmount: { type: Number },
+    refundReason: {
+      type: String,
+    },
+
     isDeleted: { type: Boolean, default: false },
   },
   {
@@ -41,7 +67,23 @@ const paymentsSchema = new Schema<IPayments>(
   },
 );
 
-paymentsSchema.index({ author: 1, user: 1 });
-paymentsSchema.index({ tranId: 1, bookings: 1 });
+paymentsSchema.index({
+  bookings: 1,
+});
+
+paymentsSchema.index({
+  user: 1,
+  author: 1,
+});
+
+paymentsSchema.index({
+  tranId: 1,
+});
+
+paymentsSchema.index({
+  paymentGateway: 1,
+  status: 1,
+});
+
 const Payments = model<IPayments, IPaymentsModules>('Payments', paymentsSchema);
 export default Payments;
