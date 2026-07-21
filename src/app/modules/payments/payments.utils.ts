@@ -60,7 +60,7 @@ export const createStripeCheckoutUrl = async (
   payment: IPayments,
   redirectType?: string,
   currency?: string,
-): Promise<string> => {
+): Promise<string> => { 
   const user = await User.IsUserExistId(payment?.user?.toString());
   if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User Not Found!');
   const customerId = await getOrCreateStripeCustomerId(user);
