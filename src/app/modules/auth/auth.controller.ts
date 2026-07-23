@@ -7,7 +7,7 @@ import config from '../../config';
 
 // login
 const login = catchAsync(async (req: Request, res: Response) => {
-  const result = await authServices.login(req.body);
+  const result = await authServices.login(req.body, req);
   const { refreshToken } = result;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cookieOptions: any = {
@@ -29,7 +29,7 @@ const login = catchAsync(async (req: Request, res: Response) => {
   });
 });
 const registerWithFacebook = catchAsync(async (req: Request, res: Response) => {
-  const result = await authServices.registerWithFacebook(req.body);
+  const result = await authServices.registerWithFacebook(req.body, req);
   const { refreshToken } = result;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cookieOptions: any = {
@@ -51,7 +51,7 @@ const registerWithFacebook = catchAsync(async (req: Request, res: Response) => {
   });
 });
 const registerWithGoogle = catchAsync(async (req: Request, res: Response) => {
-  const result = await authServices.registerWithGoogle(req.body);
+  const result = await authServices.registerWithGoogle(req.body, req);
   const { refreshToken } = result;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cookieOptions: any = {
@@ -75,7 +75,11 @@ const registerWithGoogle = catchAsync(async (req: Request, res: Response) => {
 
 // change password
 const changePassword = catchAsync(async (req: Request, res: Response) => {
-  const result = await authServices.changePassword(req?.user?.userId, req.body);
+  const result = await authServices.changePassword(
+    req?.user?.userId,
+    req.body,
+    req,
+  );
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

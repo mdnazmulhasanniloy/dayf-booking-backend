@@ -10,7 +10,9 @@ import app from './app';
 import config from './app/config';
 import initializeSocketIO from './socket';
 import { defaultTask } from './app/utils/defaultTask';
-import ChargilyService from './app/builder/Chargily';
+import './app/worker/mail.worker';
+import './app/worker/notification.worker';
+import firebaseAdmin from './app/utils/firebase';
 //@ts-ignore
 // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unused-vars
 const colors = require('colors');
@@ -23,6 +25,37 @@ async function main() {
   //   name: "user?.email",
   //   email: "nazmul@gmail.com",
   // });
+  // try {
+  //   const response = await firebaseAdmin.messaging().send({
+  //     token:
+  //       'c40gw41R0Mqc7VCx3Dj5aR:APA91bHGgekptpcK5qA6WBkSWrTiIQmUGLi8saxIIb3wXewN3VRvNPOizC_95uWOPXKco4hn-8cOdAy606Q4o180zDo5f3NnjOJ8N7fUtECZ_B-vyeSu7GA',
+  //     notification: {
+  //       title: 'Hello',
+  //       body: 'Test notification',
+  //     },
+
+  //     data: {
+  //       type: 'test',
+  //       screen: 'home',
+  //     },
+
+  //     android: {
+  //       priority: 'high',
+  //     },
+
+  //     apns: {
+  //       payload: {
+  //         aps: {
+  //           sound: 'default',
+  //         },
+  //       },
+  //     },
+  //   });
+
+  //   console.log('Notification sent:', response);
+  // } catch (error) {
+  //   console.error('FCM Error:', error);
+  // }
 
   // console.log(customer);
   try {

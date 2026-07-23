@@ -13,6 +13,7 @@ export interface IApartment {
   name: string;
   shortDescription: string;
   description: string;
+  status: 'pending' | 'approved' | 'declined';
   maxGuests: number;
   totalBadRooms: number;
   bads: number;
@@ -36,20 +37,6 @@ export interface IApartment {
   isDeleted: boolean;
   avgRating: number;
   reviews: ObjectId;
-
-  // profile: string;
-  // coverImage: string;
-  // coverColor: string;
-  //
-  // guests: { adult: number; children: number; infants: number };
-  // totalCapacity: number;
-
-  // roomSize: number;
-  // isAvailable: boolean;
-
-  // facilities: IFacilities;
-  // othersFacilities: string[];
-  // policy: string;
 }
 
 export type IApartmentModules = Model<IApartment, Record<string, unknown>>;

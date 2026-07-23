@@ -1,6 +1,7 @@
 import { model, Schema, Types } from 'mongoose';
 import { IApartment, IApartmentModules } from './apartment.interface';
 import generateCryptoString from '../../utils/generateCryptoString';
+import { APARTMENT_STATUS } from './apartment.constants';
 
 const LocationSchema = new Schema({
   type: { type: String, required: true },
@@ -19,28 +20,34 @@ const apartmentSchema = new Schema<IApartment>(
       unique: true,
       default: () => generateCryptoString(10),
     },
+
     author: {
       type: Types.ObjectId,
       ref: 'User',
       required: true,
     },
+
     images: {
       type: [ImageSchema],
       default: [],
     },
+
     price: {
       type: Number,
       required: true,
       min: 0,
     },
+
     name: {
       type: String,
       required: true,
       trim: true,
     },
+
     banner: {
       type: String,
     },
+
     shortDescription: {
       type: String,
       required: true,
@@ -142,9 +149,10 @@ const apartmentSchema = new Schema<IApartment>(
       default: '',
     },
 
-    isApproved: {
-      type: Boolean,
-      default: false,
+    status: {
+      type: String,
+      enum: Object.values(APARTMENT_STATUS),
+      default: APARTMENT_STATUS.pending,
     },
 
     isDeleted: {
@@ -189,7 +197,7 @@ apartmentSchema.index({ location: '2dsphere' });
 
 // Search Indexes
 apartmentSchema.index({ author: 1 });
-apartmentSchema.index({ isApproved: 1 });
+apartmentSchema.index({ status: 1 });
 apartmentSchema.index({ isDeleted: 1 });
 apartmentSchema.index({ propertyType: 1 });
 apartmentSchema.index({ wilaya: 1 });

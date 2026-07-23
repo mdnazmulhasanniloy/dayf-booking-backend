@@ -28,14 +28,9 @@ const connectRedis = async () => {
 };
 
 const eventQueue = new Queue('event_notification', { connection });
-// const eventQueue = new Queue('event_notification', {
-//   connection: {
-//     host: 'localhost',
-//     port: 6379,
-//   },
-// });
 
 const notificationQueue = new Queue('general_notification', { connection });
+const sendMailQueue = new Queue('general_mail', { connection });
 
 export {
   pubClient,
@@ -44,4 +39,5 @@ export {
   eventQueue,
   notificationQueue,
   connection,
+  sendMailQueue,
 };

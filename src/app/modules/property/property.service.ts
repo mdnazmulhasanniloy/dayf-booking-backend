@@ -11,6 +11,7 @@ import generateRandomString from '../../utils/generateRandomString';
 import RoomTypes from '../roomTypes/roomTypes.models';
 import { IUser } from '../user/user.interface';
 import { User } from '../user/user.models';
+import { APARTMENT_STATUS } from '../apartment/apartment.constants';
 
 const createProperty = async (payload: IProperty, files: any) => {
   const author: IUser | null = await User.findById(payload?.author);
@@ -104,7 +105,7 @@ const getAllProperty = async (query: Record<string, any>) => {
       },
     });
   }
-  
+
   if (ratingsFilter) {
     const ratingsArray = ratingsFilter?.split(',').map(Number);
     pipeline.push({
@@ -310,8 +311,6 @@ const getAllProperty = async (query: Record<string, any>) => {
   };
 };
 
-
-
 const getPropertyById = async (id: string) => {
   const result = await Property.findById(id).populate([
     { path: 'author', select: 'name email profile phoneNumber address' },
@@ -441,69 +440,15 @@ const deleteProperty = async (id: string) => {
   }
 };
 const getHamePageData = async () => {
-  // const topProperties = await Property.aggregate([
-  //   // Step 1: Match non-deleted properties
-  //   { $match: { isDeleted: false } },
-  //   {
-  //     $lookup: {
-  //       from: 'roomtypes',
-  //       localField: '_id',
-  //       foreignField: 'property',
-  //       as: 'roomTypes',
-  //       pipeline: [
-  //         { $match: { isDeleted: false } },
-  //         { $project: { pricePerNight: 1 } },
-  //       ],
-  //     },
-  //   },
-
-  //   {
-  //     $addFields: {
-  //       minPrice: {
-  //         $cond: [
-  //           { $gt: [{ $size: '$roomTypes' }, 0] },
-  //           { $min: '$roomTypes.pricePerNight' },
-  //           null,
-  //         ],
-  //       },
-  //       maxPrice: {
-  //         $cond: [
-  //           { $gt: [{ $size: '$roomTypes' }, 0] },
-  //           { $max: '$roomTypes.pricePerNight' },
-  //           null,
-  //         ],
-  //       },
-  //     },
-  //   },
-  //   {
-  //     $lookup: {
-  //       from: 'facilities',
-  //       localField: 'facilities',
-  //       foreignField: '_id',
-  //       as: 'facilities',
-  //     },
-  //   },
-  //   {
-  //     $addFields: {
-  //       isProperty: true,
-  //     },
-  //   },
-  //   { $sort: { avgRating: -1 } },
-
-  //   // Step 6: Limit result
-  //   { $limit: 10 },
-  // ]);
-
-  const topHotelRooms = await Apartment.find({ isDeleted: false })
+  const topHotelRooms = await Apartment.find({
+    isDeleted: false,
+    status: APARTMENT_STATUS.approved,
+  })
     .populate('facilities')
     .sort({ avgRating: -1 })
     .limit(10)
     .lean();
 
-  // Combine and shuffle using Array.sort and Math.random
-  // const mixedData = [...topProperties, ...topHotelRooms].sort(
-  //   () => 0.5 - Math.random(),
-  // );
   const mixedData = [...topHotelRooms].sort(() => 0.5 - Math.random());
 
   return mixedData;

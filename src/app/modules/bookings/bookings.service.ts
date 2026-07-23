@@ -7,7 +7,7 @@ import { startSession, Types } from 'mongoose';
 import pickQuery from '../../utils/pickQuery';
 import { paginationHelper } from '../../helpers/pagination.helpers';
 import moment from 'moment';
-import { BOOKING_STATUS } from './bookings.constants';
+import { BOOKING_STATUS, PAYMENT_STATUS } from './bookings.constants';
 import { modeType } from '../notification/notification.interface';
 import { IApartment } from '../apartment/apartment.interface';
 import { IRoomTypes } from '../roomTypes/roomTypes.interface';
@@ -16,6 +16,7 @@ import { notificationQueue } from '../../redis';
 import Calender from '../calender/calender.models';
 import { getDateRange } from '../calender/calender.utils';
 import { CALENDAR_BLOCK_TYPE } from '../calender/calender.interface';
+import { APARTMENT_STATUS } from '../apartment/apartment.constants';
 
 // const createBookings = async (payload: IBookings) => {
 //   let referenceItem: IRoomTypes | IApartment | null = null;
@@ -237,96 +238,138 @@ const createBookings = async (payload: IBookings) => {
   }
 
   return result;
-}; 
+};
 
 const createApartmentBooking = async (payload: IBookings) => {
   const session = await startSession();
 
   try {
     session.startTransaction();
+ 
 
     const startDateUTC = moment(payload.startDate).utc().startOf('day');
-    const endDateUTC = moment(payload.endDate).utc().endOf('day');
+    const endDateUTC = moment(payload.endDate).utc().startOf('day');
 
     const apartment = await Apartment.findById(payload.reference)
       .populate('author')
       .session(session);
 
     if (!apartment) {
-      throw new AppError(httpStatus.BAD_REQUEST, 'Apartment not found!');
+      throw new AppError(httpStatus.NOT_FOUND, 'Apartment not found.');
     }
 
-    // Check calendar conflict
-    const calendar = await Calender.find({
-      modelType: BOOKING_MODEL_TYPE.Apartment,
-      reference: apartment._id,
-      date: {
-        $gte: startDateUTC.toDate(),
-        $lte: endDateUTC.toDate(),
-      },
-    }).session(session);
-
-    if (calendar.length > 0) {
+    if (apartment.isDeleted) {
       throw new AppError(
-        httpStatus.CONFLICT,
-        'Some of the selected dates are already booked or blocked.',
+        httpStatus.BAD_REQUEST,
+        'Apartment is no longer available.',
       );
     }
 
-    // Total nights
-    const totalDays = moment(payload.endDate).diff(
-      moment(payload.startDate),
-      'days',
-    );
+    if (apartment.status !== APARTMENT_STATUS.approved) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'Apartment is not available for booking.',
+      );
+    }
 
-    if (totalDays <= 0) {
+    if (payload.guest > apartment.maxGuests) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `Maximum ${apartment.maxGuests} guests are allowed.`,
+      );
+    }
+
+    const totalNights = endDateUTC.diff(startDateUTC, 'days');
+
+    if (totalNights <= 0) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
         'End date must be after start date.',
       );
     }
 
-    // Price calculation
-    const totalPrice = totalDays * apartment.price;
+    if (totalNights < apartment.minimumNights) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `Minimum ${apartment.minimumNights} night(s) required.`,
+      );
+    }
 
-    payload.totalPrice = totalPrice;
-    payload.depositAmount = Number((totalPrice * 0.15).toFixed(2));
-    payload.remainingAmount = Number(
-      (totalPrice - payload.depositAmount).toFixed(2),
-    );
+    // Checkout day block হবে না
+    const existingBooking = await Calender.findOne({
+      modelType: BOOKING_MODEL_TYPE.Apartment,
+      reference: apartment._id,
+      date: {
+        $gte: startDateUTC.toDate(),
+        $lt: endDateUTC.toDate(),
+      },
+    }).session(session);
 
+    if (existingBooking) {
+      throw new AppError(
+        httpStatus.CONFLICT,
+        'Selected dates are already booked.',
+      );
+    }
+
+    // Price
+    const totalPrice = apartment.price * totalNights;
+    const depositAmount = Number((totalPrice * 0.15).toFixed(2));
+    const remainingAmount = Number((totalPrice - depositAmount).toFixed(2));
+    //@ts-ignore
+    payload.reference = apartment._id;
     //@ts-ignore
     payload.author = apartment.author._id;
-    //@ts-ignore
-    payload.reference = apartment?._id;
 
-    // Create booking
-    const booking = await Bookings.create([payload], { session });
+    payload.totalPrice = totalPrice;
+    payload.depositAmount = depositAmount;
+    payload.remainingAmount = remainingAmount;
 
-    // Create calendar entries
+    payload.status = BOOKING_STATUS.pending;
+    payload.paymentStatus = PAYMENT_STATUS.pending;
+
+    const [booking] = await Bookings.create([payload], {
+      session,
+    });
+
+    // Checkout date বাদ
     const dateRange = getDateRange(
-      startDateUTC.clone().startOf('day').toDate(),
-      moment(payload.endDate).utc().startOf('day').toDate(),
+      startDateUTC.toDate(),
+      endDateUTC.clone().subtract(1, 'day').toDate(),
     );
 
     const calendarPayload = dateRange.map(date => ({
       reference: apartment._id,
       modelType: BOOKING_MODEL_TYPE.Apartment,
-      bookingId: booking[0]._id,
-      date, 
+      bookingId: booking._id,
+      date: moment(date).utc().startOf('day').toDate(),
       type: CALENDAR_BLOCK_TYPE.booking,
     }));
 
-    await Calender.insertMany(calendarPayload, { session });
+    try {
+      await Calender.insertMany(calendarPayload, {
+        session,
+        ordered: true,
+      });
+    } catch (error: any) {
+      if (error.code === 11000) {
+        throw new AppError(
+          httpStatus.CONFLICT,
+          'Selected dates are already booked.',
+        );
+      }
+
+      throw error;
+    }
 
     await session.commitTransaction();
 
-    return booking[0];
+    return booking;
   } catch (error) {
     await session.abortTransaction();
     throw error;
   } finally {
-    session.endSession();
+    await session.endSession();
   }
 };
 
