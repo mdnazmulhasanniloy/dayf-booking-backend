@@ -110,20 +110,16 @@ const bookingsSchema = new Schema<IBookings>(
       default: 15,
     },
 
-    // currency: {
-    //   type: String,
-    //   enum: ['DZD', 'USD', "EUR"],
-    //   required: true,
-    // },
-
     paymentStatus: {
       type: String,
       enum: Object.values(PAYMENT_STATUS),
       default: PAYMENT_STATUS.pending,
     },
-
+    isReviewed: {
+      type: Boolean,
+      default: false,
+    },
     // Booking Status
-
     status: {
       type: String,
       enum: Object.values(BOOKING_STATUS),
@@ -136,7 +132,6 @@ const bookingsSchema = new Schema<IBookings>(
     },
 
     // Metadata
-
     isDeleted: {
       type: Boolean,
       default: false,
@@ -147,7 +142,7 @@ const bookingsSchema = new Schema<IBookings>(
   },
 );
 
-// Hooks 
+// Hooks
 
 bookingsSchema.pre('save', function (next) {
   if (this.startDate && this.endDate && this.startDate >= this.endDate) {

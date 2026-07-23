@@ -118,7 +118,7 @@ const resendOtp = async (email: string) => {
 
     await sendEmail(
       user?.email,
-      'Your One Time OTP',
+      'Your Dayf Verification Code',
       fs.readFileSync(otpEmailPath, 'utf8').replace('{{otp}}', otp),
     );
 

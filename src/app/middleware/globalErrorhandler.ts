@@ -13,6 +13,14 @@ import { MulterError } from 'multer';
 import handelMulterError from '../error/MulterError';
 
 const globalErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  if (typeof err?.redirectUrl === 'string') {
+    return res.redirect(err.redirectUrl);
+  }
+
   // eslint-disable-next-line no-console
   //setting default values
   let statusCode = 500;

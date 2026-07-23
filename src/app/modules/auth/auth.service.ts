@@ -8,7 +8,7 @@ import {
   TResetPassword,
 } from './auth.interface';
 import config from '../../config';
-import { createToken, verifyToken } from './auth.utils';
+import { createToken, getLocationFromIP, verifyToken } from './auth.utils';
 import { generateOtp } from '../../utils/otpGenerator';
 import moment from 'moment';
 import { sendEmail } from '../../utils/mailSender';
@@ -20,9 +20,12 @@ import fs from 'fs';
 import { REGISTER_WITH, USER_ROLE } from '../user/user.constants';
 import { DecodedIdToken } from 'firebase-admin/lib/auth/token-verifier';
 import firebaseAdmin from '../../utils/firebase';
+import { sendMailQueue } from '../../redis';
+import { Request } from 'express';
+import { UAParser } from 'ua-parser-js';
 
 // Login
-const login = async (payload: TLogin) => {
+const login = async (payload: TLogin, req: Request) => {
   try {
     payload.email = payload?.email?.trim().toLowerCase();
     const user: IUser | null = await User.isUserExist(payload?.email);
@@ -80,6 +83,36 @@ const login = async (payload: TLogin) => {
       config.jwt_refresh_expires_in as string,
     );
 
+    const ip =
+      req.headers['x-forwarded-for']?.toString().split(',')[0] ||
+      req.socket.remoteAddress ||
+      '';
+
+    const parser = new UAParser(req.headers['user-agent']);
+    const result = parser.getResult();
+    const geo = await getLocationFromIP(ip);
+    console.log('🚀 ~ login ~ geo:', geo);
+
+    const device = result.device.model || 'Desktop';
+    const otpEmailPath = path.join(
+      __dirname,
+      '../../../../public/view/auth/login_alert.html',
+    );
+    const html = fs
+      .readFileSync(otpEmailPath, 'utf8')
+      .replace('{{userName}}', user?.name)
+      .replace('{{deviceName}}', device)
+      .replace('{{location}}', `${geo?.city}, ${geo?.country_name}`)
+      .replace('{{ipAddress}}', ip)
+      .replace('{{loginTime}}', moment().format('lll'));
+
+    const loginAlertMail = {
+      email: user?.email,
+      subject: 'New Login to Your Dayf Account',
+      html: html,
+    };
+    await sendMailQueue.add('new_mail', loginAlertMail);
+
     return {
       user,
       accessToken,
@@ -94,7 +127,7 @@ const login = async (payload: TLogin) => {
 };
 
 // register with google
-const registerWithGoogle = async (payload: any) => {
+const registerWithGoogle = async (payload: any, req: Request) => {
   console.log();
   try {
     const decodedToken: DecodedIdToken | null = await firebaseAdmin
@@ -149,6 +182,34 @@ const registerWithGoogle = async (payload: any) => {
         config.jwt_refresh_secret as string,
         config.jwt_refresh_expires_in as string,
       );
+
+      const ip =
+        req.headers['x-forwarded-for']?.toString().split(',')[0] ||
+        req.socket.remoteAddress ||
+        '';
+
+      const parser = new UAParser(req.headers['user-agent']);
+      const result = parser.getResult();
+      const geo = await getLocationFromIP(ip);
+      const device = result.device.model || 'Desktop';
+      const otpEmailPath = path.join(
+        __dirname,
+        '../../../../public/view/auth/login_alert.html',
+      );
+      const html = fs
+        .readFileSync(otpEmailPath, 'utf8')
+        .replace('{{userName}}', existingUser?.name)
+        .replace('{{deviceName}}', device)
+        .replace('{{location}}', `${geo?.city}, ${geo?.country}`)
+        .replace('{{ipAddress}}', ip)
+        .replace('{{loginTime}}', moment().format('lll'));
+
+      const loginAlertMail = {
+        email: existingUser?.email,
+        subject: 'New Login to Your Dayf Account',
+        html: html,
+      };
+      await sendMailQueue.add('new_mail', loginAlertMail);
 
       return {
         user: existingUser,
@@ -215,6 +276,34 @@ const registerWithGoogle = async (payload: any) => {
       config.jwt_refresh_expires_in as string,
     );
 
+    const ip =
+      req.headers['x-forwarded-for']?.toString().split(',')[0] ||
+      req.socket.remoteAddress ||
+      '';
+
+    const parser = new UAParser(req.headers['user-agent']);
+    const result = parser.getResult();
+    const geo = await getLocationFromIP(ip);
+    const device = result.device.model || 'Desktop';
+    const otpEmailPath = path.join(
+      __dirname,
+      '../../../../public/view/auth/login_alert.html',
+    );
+    const html = fs
+      .readFileSync(otpEmailPath, 'utf8')
+      .replace('{{userName}}', user?.name)
+      .replace('{{deviceName}}', device)
+      .replace('{{location}}', `${geo?.city}, ${geo?.country}`)
+      .replace('{{ipAddress}}', ip)
+      .replace('{{loginTime}}', moment().format('lll'));
+
+    const loginAlertMail = {
+      email: user?.email,
+      subject: 'New Login to Your Dayf Account',
+      html: html,
+    };
+    await sendMailQueue.add('new_mail', loginAlertMail);
+
     return {
       user,
       accessToken,
@@ -226,7 +315,7 @@ const registerWithGoogle = async (payload: any) => {
   }
 };
 
-const registerWithFacebook = async (payload: any) => {
+const registerWithFacebook = async (payload: any, req: Request) => {
   try {
     const decodedToken: DecodedIdToken | null = await firebaseAdmin
       .auth()
@@ -273,6 +362,33 @@ const registerWithFacebook = async (payload: any) => {
         config.jwt_refresh_expires_in as string,
       );
 
+      const ip =
+        req.headers['x-forwarded-for']?.toString().split(',')[0] ||
+        req.socket.remoteAddress ||
+        '';
+
+      const parser = new UAParser(req.headers['user-agent']);
+      const result = parser.getResult();
+      const geo = await getLocationFromIP(ip);
+      const device = result.device.model || 'Desktop';
+      const otpEmailPath = path.join(
+        __dirname,
+        '../../../../public/view/auth/login_alert.html',
+      );
+      const html = fs
+        .readFileSync(otpEmailPath, 'utf8')
+        .replace('{{userName}}', existingUser?.name)
+        .replace('{{deviceName}}', device)
+        .replace('{{location}}', `${geo?.city}, ${geo?.country}`)
+        .replace('{{ipAddress}}', ip)
+        .replace('{{loginTime}}', moment().format('lll'));
+
+      const loginAlertMail = {
+        email: existingUser?.email,
+        subject: 'New Login to Your Dayf Account',
+        html: html,
+      };
+      await sendMailQueue.add('new_mail', loginAlertMail);
       return {
         user: existingUser,
         accessToken,
@@ -315,7 +431,34 @@ const registerWithFacebook = async (payload: any) => {
       config.jwt_refresh_secret as string,
       config.jwt_refresh_expires_in as string,
     );
+    const ip =
+      req.headers['x-forwarded-for']?.toString().split(',')[0] ||
+      req.socket.remoteAddress ||
+      '';
 
+    const parser = new UAParser(req.headers['user-agent']);
+    const result = parser.getResult();
+    const geo = await getLocationFromIP(ip);
+    const device = result.device.model || 'Desktop';
+    const otpEmailPath = path.join(
+      __dirname,
+      '../../../../public/view/auth/login_alert.html',
+    );
+    const html = fs
+      .readFileSync(otpEmailPath, 'utf8')
+      .replace('{{userName}}', user?.name)
+      .replace('{{deviceName}}', device)
+      .replace('{{location}}', `${geo?.city}, ${geo?.country}`)
+      .replace('{{ipAddress}}', ip)
+      .replace('{{loginTime}}', moment().format('lll'));
+
+    const loginAlertMail = {
+      email: user?.email,
+      subject: 'New Login to Your Dayf Account',
+      html: html,
+    };
+
+    await sendMailQueue.add('new_mail', loginAlertMail);
     return {
       user,
       accessToken,
@@ -327,7 +470,11 @@ const registerWithFacebook = async (payload: any) => {
 };
 
 // Change password
-const changePassword = async (id: string, payload: TChangePassword) => {
+const changePassword = async (
+  id: string,
+  payload: TChangePassword,
+  req: Request,
+) => {
   const user = await User.IsUserExistId(id);
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
@@ -359,6 +506,32 @@ const changePassword = async (id: string, payload: TChangePassword) => {
     { new: true },
   );
 
+  const ip =
+    req.headers['x-forwarded-for']?.toString().split(',')[0] ||
+    req.socket.remoteAddress ||
+    '';
+
+  const parser = new UAParser(req.headers['user-agent']);
+  const dev = parser.getResult();
+  const geo = await getLocationFromIP(ip);
+  const device = dev.device.model || 'Desktop';
+  const otpEmailPath = path.join(
+    __dirname,
+    '../../../../public/view/auth/password_changed.html',
+  );
+  const html = fs
+    .readFileSync(otpEmailPath, 'utf8')
+    .replace('{{userName}}', user?.name)
+    .replace('{{deviceName}}', device)
+    .replace('{{ipAddress}}', ip)
+    .replace('{{changeTime}}', moment().format('lll'));
+
+  const loginAlertMail = {
+    email: result?.email,
+    subject: 'Your Dayf Password Was Changed',
+    html: html,
+  };
+  await sendMailQueue.add('new_mail', loginAlertMail);
   return result;
 };
 
@@ -399,9 +572,18 @@ const forgotPassword = async (email: string) => {
 
   await sendEmail(
     user?.email,
-    'Your reset password OTP is',
+    'Your Dayf Password Reset Code',
     fs.readFileSync(otpEmailPath, 'utf8').replace('{{otp}}', otp),
   );
+
+  const html = fs.readFileSync(otpEmailPath, 'utf8').replace('{{otp}}', otp);
+
+  const forgetPassAlertMail = {
+    email: email,
+    subject: 'Your Dayf Password Reset Code',
+    html: html,
+  };
+  await sendMailQueue.add('new_mail', forgetPassAlertMail);
 
   return { email, token };
 };

@@ -48,7 +48,7 @@ export interface CreateCheckoutParams {
   collect_shipping_address?: boolean;
   percentage_discount?: number; // prohibited together with amount_discount
   amount_discount?: number; // prohibited together with percentage_discount
-  metadata?: Record<string, unknown>[];
+  metadata?: Record<string, unknown>;
 }
 
 export interface ChargilyCheckout {

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en" style="margin: 0; padding: 0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/uploads/logo/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/uploads/logo/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/uploads/logo/favicon-16x16.png" />
+    <link rel="manifest" href="/uploads/logo/site.webmanifest" />
+    <title>Booking Cancelled</title>
+  </head>
+  <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="center">
+          <table width="100%" style="max-width: 600px; background-color: #ffffff; margin-top: 40px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);">
+            <!-- Logo -->
+            <tr>
+              <td align="center" style="padding: 30px 20px">
+                <img src="http://103.186.20.117:8000/uploads/logo/logo.png" alt="DAYF BOOKING" width="160" style="display: block" />
+              </td>
+            </tr>
+
+            <!-- Heading + intro -->
+            <tr>
+              <td style="padding: 0 40px">
+                <h2 style="color: #00115a; margin-bottom: 8px;">A Booking Was Cancelled</h2>
+                <p style="font-size: 16px; color: #333; line-height: 1.5;">Hi {{hostName}}, a guest has cancelled their booking for your apartment {{apartmentName}}.</p>
+              </td>
+            </tr>
+
+                        <!-- Status badge -->
+            <tr>
+              <td align="center" style="padding: 15px 40px">
+                <div style="background: linear-gradient(135deg, #dc2626, #ef4444); color: #ffffff; font-size: 16px; font-weight: bold; letter-spacing: 1px; padding: 12px 28px; border-radius: 30px; display: inline-block;">
+                  BOOKING CANCELLED
+                </div>
+              </td>
+            </tr>
+
+
+                        <!-- Details -->
+            <tr>
+              <td style="padding: 10px 40px">
+                <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #eee; border-radius: 8px; overflow: hidden;">
+                  <tr>
+                    <td style="padding: 12px 16px; font-size: 14px; color: #777; background-color: #fafafa; border-bottom: 1px solid #eee; width: 40%;">Booking ID</td>
+                    <td style="padding: 12px 16px; font-size: 14px; color: #222; font-weight: bold; border-bottom: 1px solid #eee;">{{bookingId}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 16px; font-size: 14px; color: #777; background-color: #fafafa; border-bottom: 1px solid #eee; width: 40%;">Apartment</td>
+                    <td style="padding: 12px 16px; font-size: 14px; color: #222; font-weight: bold; border-bottom: 1px solid #eee;">{{apartmentName}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 16px; font-size: 14px; color: #777; background-color: #fafafa; border-bottom: 1px solid #eee; width: 40%;">Check-in</td>
+                    <td style="padding: 12px 16px; font-size: 14px; color: #222; font-weight: bold; border-bottom: 1px solid #eee;">{{checkIn}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 16px; font-size: 14px; color: #777; background-color: #fafafa; border-bottom: 1px solid #eee; width: 40%;">Check-out</td>
+                    <td style="padding: 12px 16px; font-size: 14px; color: #222; font-weight: bold; border-bottom: 1px solid #eee;">{{checkOut}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 16px; font-size: 14px; color: #777; background-color: #fafafa; border-bottom: 1px solid #eee; width: 40%;">Guests</td>
+                    <td style="padding: 12px 16px; font-size: 14px; color: #222; font-weight: bold; border-bottom: 1px solid #eee;">{{guests}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 16px; font-size: 14px; color: #777; background-color: #fafafa; border-bottom: 1px solid #eee; width: 40%;">Total Amount</td>
+                    <td style="padding: 12px 16px; font-size: 14px; color: #222; font-weight: bold; border-bottom: 1px solid #eee;">{{amount}} {{currency}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 16px; font-size: 14px; color: #777; background-color: #fafafa; border-bottom: 1px solid #eee; width: 40%;">Guest</td>
+                    <td style="padding: 12px 16px; font-size: 14px; color: #222; font-weight: bold; border-bottom: 1px solid #eee;">{{userName}}</td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+
+
+                        <!-- CTA -->
+            <tr>
+              <td align="center" style="padding: 10px 40px 20px">
+                <a href="{{hostBookingUrl}}" style="background: linear-gradient(135deg, #007acc, #00b4d8); color: #ffffff; text-decoration: none; font-size: 15px; font-weight: bold; padding: 14px 36px; border-radius: 8px; display: inline-block;">View Calendar</a>
+              </td>
+            </tr>
+
+
+            <!-- Support / note -->
+            <tr>
+              <td style="padding: 10px 40px 30px">
+                <p style="font-size: 14px; color: #666; line-height: 1.5;">Your apartment's availability has been updated automatically for these dates.</p>
+                <p style="font-size: 14px; color: #666">
+                  Need help?
+                  <a href="mailto:support@dayfbooking.com" style="color: #00115a; text-decoration: none">support@dayfbooking.com</a>
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td align="center" style="background-color: #f4f4f4; padding: 20px; border-radius: 0 0 10px 10px; font-size: 12px; color: #999;">
+                &copy; 2025 DAYF BOOKING. All rights reserved.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

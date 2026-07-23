@@ -480,11 +480,6 @@ const getDashboardTopCardDetails = async () => {
             $group: { _id: null, total: { $sum: '$amount' } },
           },
         ],
-        totalCommission: [
-          {
-            $group: { _id: null, total: { $sum: '$adminAmount' } },
-          },
-        ],
       },
     },
   ]).then(data => data[0]);
@@ -493,7 +488,6 @@ const getDashboardTopCardDetails = async () => {
     thisMontTotalBookings: bookingData?.thisMontTotalBookings[0]?.Bookings || 0,
     totalHotelOwner,
     totalEarning: payment?.totalEarnings[0]?.total || 0,
-    totalCommission: payment?.totalCommission[0]?.total || 0,
   };
 };
 
@@ -562,8 +556,6 @@ const getBookingOverview = async (query: Record<string, any>) => {
   const startDate = moment(date).startOf('month').toDate();
   const endDate = moment(date).endOf('month').toDate();
 
-  console.log(startDate);
-  console.log(endDate);
   const bookingData = await Bookings.aggregate([
     {
       $match: {
@@ -629,7 +621,6 @@ const getRevenueOverview = async (query: Record<string, any>) => {
     {
       $group: {
         _id: { month: '$month' }, // Group by month
-        commissions: { $sum: '$adminAmount' }, // Sum the adminAmount for commissions
         totalRevenue: { $sum: '$amount' }, // Sum the total payment amount
       },
     },
@@ -641,14 +632,14 @@ const getRevenueOverview = async (query: Record<string, any>) => {
   // Format the output to ensure all months are present, even if some months have no data
   const formattedRevenueData = Array.from({ length: 12 }, (_, index) => ({
     month: moment().month(index).format('MMM'), // Month name (e.g., Jan, Feb, ...)
-    commissions: 0, // Default commission to 0
-    totalRevenue: 0, // Default revenue to 0
+
+    totalRevenue: 0,
   }));
 
   // Populate the data from the aggregation result
   revenueData.forEach(entry => {
     const monthIndex = entry._id.month - 1; // Adjust for zero-based indexing
-    formattedRevenueData[monthIndex].commissions = entry.commissions;
+
     formattedRevenueData[monthIndex].totalRevenue = entry.totalRevenue;
   });
 
@@ -793,7 +784,7 @@ const getPropertiesOverview = async (query: Record<string, any>) => {
       $group: {
         _id: '$reference',
         totalBookings: { $sum: 1 },
-        totalRevenue: { $sum: '$totalPrice' },
+        totalRevenue: { $sum: '$depositAmount' },
       },
     },
     {
@@ -851,7 +842,7 @@ const getAdminDashboard = async (query: Record<string, any>) => {
       $facet: {
         totalEarnings: [
           {
-            $group: { _id: null, total: { $sum: '$hotelOwnerAmount' } },
+            $group: { _id: null, total: { $sum: '$depositAmount' } },
           },
         ],
         toDayEarnings: [
@@ -864,7 +855,7 @@ const getAdminDashboard = async (query: Record<string, any>) => {
             },
           },
           {
-            $group: { _id: null, total: { $sum: '$hotelOwnerAmount' } },
+            $group: { _id: null, total: { $sum: '$depositAmount' } },
           },
         ],
       },
@@ -1152,12 +1143,12 @@ const getAdminEarning = async (query: Record<string, any>) => {
       $facet: {
         totalEarnings: [
           {
-            $group: { _id: null, total: { $sum: '$adminAmount' } },
+            $group: { _id: null, total: { $sum: '$depositAmount' } },
           },
         ],
         totalAppTransitionAmount: [
           {
-            $group: { _id: null, total: { $sum: '$amount' } },
+            $group: { _id: null, total: { $sum: '$depositAmount' } },
           },
         ],
         toDayEarnings: [

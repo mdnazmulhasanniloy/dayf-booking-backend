@@ -1,7 +1,13 @@
 import nodemailer from 'nodemailer';
+import type { SendMailOptions } from 'nodemailer';
 import config from '../config';
 
-export const sendEmail = async (to: string, subject: string, html: string) => {
+export const sendEmail = async (
+  to: string,
+  subject: string,
+  html: string,
+  attachments?: SendMailOptions['attachments'],
+) => {
   try {
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
@@ -19,8 +25,10 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
       subject,
       text: '',
       html,
+      attachments,
     });
   } catch (error) {
-    console.log(error);
+    console.error('Email sending failed:', error);
+    throw error;
   }
 };

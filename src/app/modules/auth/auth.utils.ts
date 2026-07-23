@@ -58,3 +58,8 @@ export async function verifyFacebookToken(accessToken: string) {
     };
   }
 }
+
+export async function getLocationFromIP(ip: string) {
+  const { data } = await axios.get(`https://ipapi.co/${ip}/json/`);
+  return data;
+}

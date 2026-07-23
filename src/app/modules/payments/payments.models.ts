@@ -38,6 +38,10 @@ const paymentsSchema = new Schema<IPayments>(
       // required: true,
     },
 
+    paidAt: {
+      type: Date,
+    },
+
     status: {
       type: String,
       enum: ['pending', 'paid', 'refunded', 'failed'],

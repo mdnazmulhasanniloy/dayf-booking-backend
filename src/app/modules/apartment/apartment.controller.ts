@@ -4,6 +4,7 @@ import { apartmentService } from './apartment.service';
 import sendResponse from '../../utils/sendResponse';
 import { notificationQueue } from '../../redis';
 import { modeType } from '../notification/notification.interface';
+import { APARTMENT_STATUS } from './apartment.constants';
 
 const createApartment = catchAsync(async (req: Request, res: Response) => {
   req.body.author = req?.user?.userId;
@@ -63,7 +64,28 @@ const updateApartment = catchAsync(async (req: Request, res: Response) => {
 
 const approvedApartment = catchAsync(async (req: Request, res: Response) => {
   const result = await apartmentService.updateApartment(req.params.id, {
-    isApproved: true,
+    status: APARTMENT_STATUS.approved,
+  });
+
+  const adminNotification = {
+    receiver: result.author,
+    message: `Approval Request: ${result?.name || 'New Apartment'}`,
+    description: `A user has submitted a new apartment for approval. Please review the listing and take the appropriate action.`,
+    refference: result?._id,
+    model_type: modeType.Apartment,
+  };
+
+  await notificationQueue.add('new_notification', adminNotification);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Apartment updated successfully',
+    data: result,
+  });
+});
+const declinedApartment = catchAsync(async (req: Request, res: Response) => {
+  const result = await apartmentService.updateApartment(req.params.id, {
+    status: APARTMENT_STATUS.declined,
   });
 
   const adminNotification = {
@@ -101,4 +123,5 @@ export const apartmentController = {
   deleteApartment,
   getMyApartment,
   approvedApartment,
+  declinedApartment,
 };

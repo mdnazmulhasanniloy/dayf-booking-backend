@@ -22,7 +22,12 @@ router.post(
 router.patch(
   '/approved/:id',
   auth(USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.super_admin),
-  apartmentController.updateApartment,
+  apartmentController.approvedApartment,
+);
+router.patch(
+  '/declined/:id',
+  auth(USER_ROLE.admin, USER_ROLE.sub_admin, USER_ROLE.super_admin),
+  apartmentController.declinedApartment,
 );
 router.patch(
   '/:id',

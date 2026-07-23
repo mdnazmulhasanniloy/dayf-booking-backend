@@ -25,10 +25,11 @@ export interface IPayments {
   status: TPaymentStatus;
 
   tranId?: string;
+  paidAt?: Date;
 
   paymentGateway?: TPaymentGateway;
 
-  payment_method?: number;
+  payment_method?: string;
   refundedAmount?: number;
 
   paymentIntentId?: string;

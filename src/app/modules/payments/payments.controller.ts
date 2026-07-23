@@ -36,31 +36,14 @@ const confirmPayment = catchAsync(async (req: Request, res: Response) => {
   const result = await paymentsService.confirmPayment(req?.query, res);
   if (result?.device === 'website') {
     return res.redirect(
-      `${config.client_Url}/booking/success?bookingId=${result?.bookings}`,
+      `${config.client_Url}/booking/success?paymentId=${result?._id}`,
     );
   }
-
-  // res.render('paymentSuccess', { paymentDetails });
-  // res.render('paymentSuccess', {
-  //   paymentDetails: result?.chargeDetails,
-  //   device: result?.device,
-  //   bookingId: result?.bookings,
-  // });
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
     data: result,
     message: 'payment successful',
-  });
-});
-
-const createPayments = catchAsync(async (req: Request, res: Response) => {
-  const result = await paymentsService.createPayments(req.body);
-  sendResponse(res, {
-    statusCode: 201,
-    success: true,
-    message: 'Payments created successfully',
-    data: result,
   });
 });
 
@@ -104,8 +87,21 @@ const deletePayments = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const downloadReceipt = catchAsync(async (req: Request, res: Response) => {
+  const pdfBuffer = await paymentsService.downloadReceipt(
+    req.params.paymentId,
+  );
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="receipt-${req?.params?.paymentId}.pdf"`,
+  );
+  res.setHeader('Content-Length', pdfBuffer.length.toString());
+  res.setHeader('Cache-Control', 'private, no-store');
+  return res.end(pdfBuffer);
+});
 export const paymentsController = {
-  createPayments,
   getAllPayments,
   getPaymentsById,
   updatePayments,
@@ -113,4 +109,5 @@ export const paymentsController = {
   confirmPayment,
   checkout,
   chargilyConfirmPayment,
+  downloadReceipt,
 };

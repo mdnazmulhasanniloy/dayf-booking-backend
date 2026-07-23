@@ -18,8 +18,8 @@ export const buildChargilyRedirectUrls = (
   paymentId: string,
   redirectType?: string,
 ) => {
-  const success_url = `${config.client_Url}/booking/success`;
-  const failed_url = `${config.client_Url}/booking/failed`;
+  const success_url = `${config.client_Url}/booking/success?paymentId=${paymentId}`;
+  const failed_url = `${config.client_Url}/booking/failed?paymentId=${paymentId}`;
   const notification_url = `${config.server_url}/payments/chargily?paymentId=${paymentId}&device=${redirectType ?? ''}`;
   return { success_url, failed_url, notification_url };
 };
@@ -60,7 +60,7 @@ export const createStripeCheckoutUrl = async (
   payment: IPayments,
   redirectType?: string,
   currency?: string,
-): Promise<string> => { 
+): Promise<string> => {
   const user = await User.IsUserExistId(payment?.user?.toString());
   if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User Not Found!');
   const customerId = await getOrCreateStripeCustomerId(user);
@@ -137,6 +137,9 @@ export const createChargilyCheckoutUrl = async (
     failure_url: failed_url,
     webhook_endpoint: notification_url,
     customer_id: customerId,
+    metadata: {
+      paymentId: payment._id?.toString(),
+    },
   });
 
   if (!checkoutSession?.checkout_url) {
@@ -149,18 +152,22 @@ export const createChargilyCheckoutUrl = async (
   return checkoutSession.checkout_url;
 };
 
-export const chargilyError = (
-  res: Response,
-  message: string,
-  device?: string,
-) => {
-  const params = new URLSearchParams({
-    message,
-  });
+// export const chargilyError = (
+//   res: Response,
+//   message: string,
+//   paymentId: string,
+//   device?: string,
+// ): AppError => {
+//   const error = new AppError(httpStatus.BAD_REQUEST, message) as AppError & {
+//     redirectUrl?: string;
+//   };
 
-  if (device === 'website') {
-    return res.redirect(`${config.client_Url}/payment?${params.toString()}`);
-  }
+//   if (device === 'website') {
+//     error.redirectUrl =
+//       `${config.client_Url}/booking/failed?message=${encodeURIComponent(
+//         message,
+//       )}&paymentId=${paymentId}`;
+//   }
 
-  throw new AppError(httpStatus.BAD_REQUEST, message);
-};
+//   return error;
+// };
