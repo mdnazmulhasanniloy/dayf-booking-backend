@@ -15,11 +15,6 @@ router.patch(
   auth(USER_ROLE.user, USER_ROLE.hotel_owner),
   bookingsController.completeBooking,
 );
-router.patch(
-  '/canceled/:id',
-  auth(USER_ROLE.user),
-  bookingsController.cancelBooking,
-);
 // router.patch('/:id', bookingsController.updateBookings);
 router.delete('/:id', bookingsController.deleteBookings);
 router.get(

@@ -37,6 +37,8 @@ export interface IApartment {
   isDeleted: boolean;
   avgRating: number;
   reviews: ObjectId;
+  boostedUntil?: Date | null;
+  boostReason?: string | null;
 }
 
 export type IApartmentModules = Model<IApartment, Record<string, unknown>>;

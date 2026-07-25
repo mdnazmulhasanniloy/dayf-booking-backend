@@ -45,9 +45,17 @@ const createReceiptAttachment = async (payment: any, booking: any) => {
     checkOut: booking?.endDate
       ? new Date(booking.endDate).toLocaleDateString('en-GB')
       : '',
+    durationNights:
+      booking?.startDate && booking?.endDate
+        ? Math.max(moment(booking.endDate).diff(moment(booking.startDate), 'days'), 0)
+        : 0,
     guestName: payment?.user?.name ?? 'Guest',
     guestEmail: payment?.user?.email ?? '',
     amount: payment.amount,
+    perNightPrice: Number(booking?.reference?.price ?? 0),
+    totalPrice: Number(booking?.totalPrice ?? payment.amount ?? 0),
+    depositAmount: Number(booking?.depositAmount ?? payment.amount ?? 0),
+    remainingAmount: Number(booking?.remainingAmount ?? 0),
     currency: payment.currency ?? 'USD',
     paymentMethod: String(payment.payment_method ?? 'card'),
     paymentGateway: payment.paymentGateway ?? 'stripe',
@@ -926,9 +934,17 @@ const downloadReceipt = async (id: string) => {
     checkOut: booking?.endDate
       ? new Date(booking.endDate).toLocaleDateString('en-GB')
       : '',
+    durationNights:
+      booking?.startDate && booking?.endDate
+        ? Math.max(moment(booking.endDate).diff(moment(booking.startDate), 'days'), 0)
+        : 0,
     guestName: (payment.user as any)?.name ?? 'Guest',
     guestEmail: (payment.user as any)?.email ?? '',
     amount: payment.amount,
+    perNightPrice: Number(booking?.reference?.price ?? 0),
+    totalPrice: Number(booking?.totalPrice ?? payment.amount ?? 0),
+    depositAmount: Number(booking?.depositAmount ?? payment.amount ?? 0),
+    remainingAmount: Number(booking?.remainingAmount ?? 0),
     currency: payment.currency ?? 'USD',
     paymentMethod: String(payment.payment_method ?? 'card'),
     paymentGateway: payment.paymentGateway ?? 'stripe',

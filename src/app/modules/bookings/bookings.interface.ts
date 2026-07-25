@@ -13,7 +13,7 @@ export interface IBookings {
   reference: ObjectId | IRoomTypes | IApartment;
   totalRooms: number;
   paymentStatus: 'pending' | 'paid' | 'refunded' | 'failed';
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  status: 'pending' | 'confirmed' | 'cancelled' | 'no_show' | 'completed';
   tranId: string;
   author: ObjectId | IUser;
   user: ObjectId | IUser;
@@ -24,6 +24,17 @@ export interface IBookings {
   depositAmount: number;
   remainingAmount: number;
   commissionRate: number;
+  cancellationPolicySnapshot?: {
+    depositRate: number;
+    freeCancellationDays: number;
+    refundProcessingHours: number;
+    creditDelayMinBusinessDays: number;
+    creditDelayMaxBusinessDays: number;
+    listingBoostDays: number;
+    noShowReportWindowHours: number;
+    hostSuspensionDays: number;
+    policyText: string;
+  };
   guest: number;
   cancelReason: string;
   // currency: 'DZD' | 'USD';

@@ -22,6 +22,7 @@ import { supportsRoutes } from '../modules/supports/supports.route';
 import { carouselRoutes } from '../modules/carousel/carousel.route';
 import { galleryRoutes } from '../modules/gallery/gallery.route';
 import { calenderRoutes } from '../modules/calender/calender.route';
+import { refundRequestRoutes } from '../modules/refundRequest/refundRequest.route';
 
 const router = Router();
 const moduleRoutes = [
@@ -69,6 +70,10 @@ const moduleRoutes = [
   {
     path: '/bookings',
     route: bookingsRoutes,
+  },
+  {
+    path: '/refund-requests',
+    route: refundRequestRoutes,
   },
   {
     path: '/calender',

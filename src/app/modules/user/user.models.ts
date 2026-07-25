@@ -8,9 +8,18 @@ const userSchema: Schema<IUser> = new Schema(
   {
     status: {
       type: String,
-      enum: ['active', 'blocked'],
+      enum: ['active', 'blocked', 'suspended'],
       default: 'active',
     },
+    suspendedUntil: { type: Date, default: null },
+    suspensionReason: { type: String, default: null },
+    publicCancellationNotes: [
+      {
+        booking: { type: Schema.Types.ObjectId, ref: 'Bookings' },
+        note: { type: String, required: true },
+        createdAt: { type: Date, required: true },
+      },
+    ],
     name: {
       type: String,
       required: true,
