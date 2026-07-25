@@ -440,18 +440,36 @@ const deleteProperty = async (id: string) => {
   }
 };
 const getHamePageData = async () => {
-  const topHotelRooms = await Apartment.find({
+  const boostedApartments = await Apartment.find({
     isDeleted: false,
     status: APARTMENT_STATUS.approved,
+    boostedUntil: { $gt: new Date() },
   })
     .populate('facilities')
-    .sort({ avgRating: -1 })
+    .sort({ boostedUntil: -1, avgRating: -1 })
     .limit(10)
     .lean();
 
-  const mixedData = [...topHotelRooms].sort(() => 0.5 - Math.random());
+  const remainingSlots = Math.max(10 - boostedApartments.length, 0);
+  const regularApartments =
+    remainingSlots > 0
+      ? await Apartment.find({
+          _id: { $nin: boostedApartments.map(item => item._id) },
+          isDeleted: false,
+          status: APARTMENT_STATUS.approved,
+        })
+          .populate('facilities')
+          .sort({ avgRating: -1 })
+          .limit(remainingSlots)
+          .lean()
+      : [];
 
-  return mixedData;
+  return [
+    ...boostedApartments.map(item => ({ ...item, isBoosted: true })),
+    ...regularApartments
+      .sort(() => 0.5 - Math.random())
+      .map(item => ({ ...item, isBoosted: false })),
+  ];
 };
 
 export const propertyService = {

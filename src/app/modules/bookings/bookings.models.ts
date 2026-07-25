@@ -110,6 +110,18 @@ const bookingsSchema = new Schema<IBookings>(
       default: 15,
     },
 
+    cancellationPolicySnapshot: {
+      depositRate: { type: Number },
+      freeCancellationDays: { type: Number },
+      refundProcessingHours: { type: Number },
+      creditDelayMinBusinessDays: { type: Number },
+      creditDelayMaxBusinessDays: { type: Number },
+      listingBoostDays: { type: Number },
+      noShowReportWindowHours: { type: Number },
+      hostSuspensionDays: { type: Number },
+      policyText: { type: String },
+    },
+
     paymentStatus: {
       type: String,
       enum: Object.values(PAYMENT_STATUS),

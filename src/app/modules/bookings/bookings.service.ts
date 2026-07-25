@@ -16,6 +16,7 @@ import { notificationQueue } from '../../redis';
 import Calender from '../calender/calender.models';
 import { getDateRange } from '../calender/calender.utils';
 import { CALENDAR_BLOCK_TYPE } from '../calender/calender.interface';
+import { refundRequestService } from '../refundRequest/refundRequest.service';
 import { APARTMENT_STATUS } from '../apartment/apartment.constants';
 
 // const createBookings = async (payload: IBookings) => {
@@ -222,7 +223,23 @@ const createBookings = async (payload: IBookings) => {
 
   const totalPrice = days * (referenceItem as IApartment)?.price;
   payload['totalPrice'] = totalPrice;
-  payload['depositAmount'] = Number((totalPrice * 0.15).toFixed(2)); // 15%
+  const cancellationPolicy = await refundRequestService.getActivePolicy();
+  payload['depositAmount'] = Number(
+    (totalPrice * (cancellationPolicy.depositRate / 100)).toFixed(2),
+  );
+  payload.cancellationPolicySnapshot = {
+    depositRate: cancellationPolicy.depositRate,
+    freeCancellationDays: cancellationPolicy.freeCancellationDays,
+    refundProcessingHours: cancellationPolicy.refundProcessingHours,
+    creditDelayMinBusinessDays:
+      cancellationPolicy.creditDelayMinBusinessDays,
+    creditDelayMaxBusinessDays:
+      cancellationPolicy.creditDelayMaxBusinessDays,
+    listingBoostDays: cancellationPolicy.listingBoostDays,
+    noShowReportWindowHours: cancellationPolicy.noShowReportWindowHours,
+    hostSuspensionDays: cancellationPolicy.hostSuspensionDays,
+    policyText: cancellationPolicy.policyText,
+  };
   payload['remainingAmount'] = Number(
     (totalPrice - payload.depositAmount).toFixed(2),
   );
@@ -314,7 +331,10 @@ const createApartmentBooking = async (payload: IBookings) => {
 
     // Price
     const totalPrice = apartment.price * totalNights;
-    const depositAmount = Number((totalPrice * 0.15).toFixed(2));
+    const cancellationPolicy = await refundRequestService.getActivePolicy();
+    const depositAmount = Number(
+      (totalPrice * (cancellationPolicy.depositRate / 100)).toFixed(2),
+    );
     const remainingAmount = Number((totalPrice - depositAmount).toFixed(2));
     //@ts-ignore
     payload.reference = apartment._id;
@@ -324,6 +344,19 @@ const createApartmentBooking = async (payload: IBookings) => {
     payload.totalPrice = totalPrice;
     payload.depositAmount = depositAmount;
     payload.remainingAmount = remainingAmount;
+    payload.cancellationPolicySnapshot = {
+      depositRate: cancellationPolicy.depositRate,
+      freeCancellationDays: cancellationPolicy.freeCancellationDays,
+      refundProcessingHours: cancellationPolicy.refundProcessingHours,
+      creditDelayMinBusinessDays:
+        cancellationPolicy.creditDelayMinBusinessDays,
+      creditDelayMaxBusinessDays:
+        cancellationPolicy.creditDelayMaxBusinessDays,
+      listingBoostDays: cancellationPolicy.listingBoostDays,
+      noShowReportWindowHours: cancellationPolicy.noShowReportWindowHours,
+      hostSuspensionDays: cancellationPolicy.hostSuspensionDays,
+      policyText: cancellationPolicy.policyText,
+    };
 
     payload.status = BOOKING_STATUS.pending;
     payload.paymentStatus = PAYMENT_STATUS.pending;
@@ -579,56 +612,6 @@ const updateBookings = async (id: string, payload: Partial<IBookings>) => {
   return result;
 };
 
-/**
- *
- * @param id booking id
- * @todo : payment return after success
- * @returns return success
- */
-const cancelBooking = async (id: string) => {
-  const isExist = await Bookings.findById(id);
-  if (!isExist) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Booking not found!');
-  }
-
-  const duration = moment.duration(moment().diff(moment(isExist.createdAt)));
-  if (duration.asHours() > 5) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      'Cancellation is not allowed more than 5 hours after the booking was made.',
-    );
-  }
-
-  const result = await Bookings.findByIdAndUpdate(
-    id,
-    { status: BOOKING_STATUS.cancelled },
-    { new: true },
-  );
-
-  if (!result) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Failed to cancel booking');
-  }
-
-  const userNotification = {
-    receiver: result?.user,
-    message: 'Booking Cancellation Confirmation',
-    description: `Your booking with ID: ${result.id} has been successfully cancelled. If you have any questions or require further assistance, please contact our support team.`,
-    refference: result?._id,
-    model_type: modeType.Bookings,
-  };
-  const authorNotification = {
-    receiver: result?.author,
-    message: 'Booking Cancellation Alert',
-    description: `A booking has been cancelled. Booking ID: ${result.id} was scheduled from ${moment(isExist.startDate).format('MMMM Do YYYY')} to ${moment(isExist.endDate).format('MMMM Do YYYY')}. Please update your availability accordingly. If you need further details, please access your management dashboard or contact our support team.`,
-    refference: result?._id,
-    model_type: modeType.Bookings,
-  };
-  await notificationQueue.add('new_notification', userNotification);
-  await notificationQueue.add('new_notification', authorNotification);
-
-  return result;
-};
-
 const deleteBookings = async (id: string) => {
   const result = await Bookings.findByIdAndUpdate(
     id,
@@ -741,7 +724,6 @@ export const bookingsService = {
   getBookingsById,
   updateBookings,
   deleteBookings,
-  cancelBooking,
   completeBooking,
   getBookedDatesByMonth,
   createApartmentBooking,

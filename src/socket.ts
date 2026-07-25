@@ -15,6 +15,7 @@ import { chatService } from './app/modules/chat/chat.service';
 import { IChat } from './app/modules/chat/chat.interface';
 import Chat from './app/modules/chat/chat.models';
 import callbackFn from './app/utils/callbackFn';
+import { assertNoExternalContactDetails } from './app/utils/contactDetailsFilter';
 
 const socketTOUserId = new Map<string, string>();
 const userTOSocketId = new Map<string, string>();
@@ -219,6 +220,11 @@ const initializeSocketIO = (server: HttpServer) => {
       socket.on('send-message', async (payload, callback) => {
         try {
           payload.sender = user?._id;
+          await assertNoExternalContactDetails(payload.text, {
+            sender: payload.sender,
+            receiver: payload.receiver,
+            channel: 'socket',
+          });
 
           const alreadyExists = await Chat.findOne({
             participants: {

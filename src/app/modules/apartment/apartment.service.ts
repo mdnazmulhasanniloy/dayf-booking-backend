@@ -230,6 +230,14 @@ const getAllApartment = async (query: Record<string, any>) => {
   const { page, limit, skip, sort } =
     paginationHelper.calculatePagination(pagination);
 
+  pipeline.push({
+    $addFields: {
+      isBoosted: {
+        $gt: ['$boostedUntil', new Date()],
+      },
+    },
+  });
+
   if (sort) {
     const sortArray = sort.split(',').map(field => {
       const trimmedField = field.trim();
@@ -239,7 +247,11 @@ const getAllApartment = async (query: Record<string, any>) => {
       return { [trimmedField]: 1 };
     });
 
-    pipeline.push({ $sort: Object.assign({}, ...sortArray) });
+    pipeline.push({
+      $sort: { isBoosted: -1, ...Object.assign({}, ...sortArray) },
+    });
+  } else {
+    pipeline.push({ $sort: { isBoosted: -1, createdAt: -1 } });
   }
 
   pipeline.push({

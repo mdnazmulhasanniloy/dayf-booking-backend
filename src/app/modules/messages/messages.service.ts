@@ -7,8 +7,14 @@ import { IMessages } from './messages.interface';
 import Chat from '../chat/chat.models';
 import { chatService } from '../chat/chat.service';
 import { io } from '../../../server';
+import { assertNoExternalContactDetails } from '../../utils/contactDetailsFilter';
 
 const createMessages = async (payload: IMessages) => {
+  await assertNoExternalContactDetails(payload.text, {
+    sender: payload.sender,
+    receiver: payload.receiver,
+    channel: 'rest',
+  });
   const alreadyExists = await Chat.findOne({
     participants: { $all: [payload.sender, payload.receiver] },
   }).populate(['participants']);
@@ -82,6 +88,11 @@ const getAllMessages = async (query: Record<string, any>) => {
 
 // Update messages
 const updateMessages = async (id: string, payload: Partial<IMessages>) => {
+  await assertNoExternalContactDetails(payload.text, {
+    sender: payload.sender,
+    receiver: payload.receiver,
+    channel: 'rest',
+  });
   const result = await Message.findByIdAndUpdate(id, payload, { new: true });
   if (!result) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Message update failed');

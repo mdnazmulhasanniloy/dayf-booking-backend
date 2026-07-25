@@ -5,6 +5,13 @@ export interface IUser {
   // [x: string]: any;
   _id?: Types.ObjectId | string;
   status: string;
+  suspendedUntil?: Date;
+  suspensionReason?: string;
+  publicCancellationNotes?: Array<{
+    booking: Types.ObjectId;
+    note: string;
+    createdAt: Date;
+  }>;
   name: string;
   email: string;
   phoneNumber: string;

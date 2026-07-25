@@ -167,6 +167,16 @@ const apartmentSchema = new Schema<IApartment>(
       max: 5,
     },
 
+    boostedUntil: {
+      type: Date,
+      default: null,
+    },
+
+    boostReason: {
+      type: String,
+      default: null,
+    },
+
     reviews: [
       {
         type: Types.ObjectId,
@@ -202,6 +212,7 @@ apartmentSchema.index({ isDeleted: 1 });
 apartmentSchema.index({ propertyType: 1 });
 apartmentSchema.index({ wilaya: 1 });
 apartmentSchema.index({ municipality: 1 });
+apartmentSchema.index({ boostedUntil: -1 });
 
 const Apartment = model<IApartment, IApartmentModules>(
   'Apartment',

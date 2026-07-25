@@ -104,15 +104,6 @@ const updateBookings = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
-const cancelBooking = catchAsync(async (req: Request, res: Response) => {
-  const result = await bookingsService.cancelBooking(req.params.id);
-  sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: 'Bookings canceled successfully',
-    data: result,
-  });
-});
 const completeBooking = catchAsync(async (req: Request, res: Response) => {
   const result = await bookingsService.completeBooking(req.params.id);
   sendResponse(res, {
@@ -156,7 +147,6 @@ export const bookingsController = {
   getAllBookingsWithReference,
   getMyBookings,
   completeBooking,
-  cancelBooking,
   getBookingsForHotelOwner,
   getBookedDatesByMonth,
   createApartmentBooking,

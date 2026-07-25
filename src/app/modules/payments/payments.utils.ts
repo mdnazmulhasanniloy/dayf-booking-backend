@@ -127,7 +127,7 @@ export const createChargilyCheckoutUrl = async (
   const { success_url, failed_url, notification_url } =
     //@ts-ignore
     buildChargilyRedirectUrls(payment?._id?.toString(), redirectType);
-
+  console.log({ success_url, failed_url, notification_url });
   const amount = await convertFromUsd(payment?.amount, 'dzd');
 
   const checkoutSession = await ChargilyService.createCheckout({
