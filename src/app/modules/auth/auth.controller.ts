@@ -18,6 +18,7 @@ const login = catchAsync(async (req: Request, res: Response) => {
 
   if (config.NODE_ENV === 'production') {
     cookieOptions.sameSite = 'none';
+    cookieOptions.secure = true;
   }
   res.cookie('refreshToken', refreshToken, cookieOptions);
 
@@ -40,6 +41,7 @@ const registerWithFacebook = catchAsync(async (req: Request, res: Response) => {
 
   if (config.NODE_ENV === 'production') {
     cookieOptions.sameSite = 'none';
+    cookieOptions.secure = true;
   }
   res.cookie('refreshToken', refreshToken, cookieOptions);
 
@@ -62,6 +64,7 @@ const registerWithGoogle = catchAsync(async (req: Request, res: Response) => {
 
   if (config.NODE_ENV === 'production') {
     cookieOptions.sameSite = 'none';
+    cookieOptions.secure = true;
   }
   res.cookie('refreshToken', refreshToken, cookieOptions);
 
