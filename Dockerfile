@@ -1,15 +1,30 @@
-FROM node:20-bookworm-slim AS build
+FROM node:20-bookworm-slim AS base
 
 WORKDIR /app
 
-ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV PNPM_HOME=/pnpm \
+    PATH=/pnpm:$PATH \
+    PUPPETEER_SKIP_DOWNLOAD=true
 
-COPY package.json package-lock.json ./
-RUN npm ci
+RUN corepack enable \
+    && corepack prepare pnpm@10.15.1 --activate
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+FROM base AS build
+
+RUN pnpm install --frozen-lockfile
 
 COPY tsconfig.json ./
 COPY src ./src
-RUN npm run build
+
+RUN pnpm run build
+
+FROM base AS production-dependencies
+
+ENV NODE_ENV=production
+
+RUN pnpm install --prod --frozen-lockfile
 
 FROM node:20-bookworm-slim AS production
 
@@ -23,15 +38,10 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends chromium ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-COPY package.json package-lock.json ./
-RUN npm pkg delete scripts.prepare \
-    && npm ci --include=dev \
-    && npm cache clean --force
-
+COPY --from=production-dependencies --chown=node:node /app/node_modules ./node_modules
+COPY --chown=node:node package.json ./
 COPY --from=build /app/dist ./dist
-COPY public ./public
-
-RUN chown -R node:node /app
+COPY --chown=node:node public ./public
 
 USER node
 
