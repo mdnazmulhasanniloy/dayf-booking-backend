@@ -7,5 +7,5 @@ nn.ts
 package-lock.json
 generateFolder.ts
 dist/
-firebase-service-account.json
+firebase.json
 nginx
