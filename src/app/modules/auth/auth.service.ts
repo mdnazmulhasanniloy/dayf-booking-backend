@@ -91,7 +91,6 @@ const login = async (payload: TLogin, req: Request) => {
     const parser = new UAParser(req.headers['user-agent']);
     const result = parser.getResult();
     const geo = await getLocationFromIP(ip);
-    console.log('🚀 ~ login ~ geo:', geo);
 
     const device = result.device.model || 'Desktop';
     const otpEmailPath = path.join(
@@ -119,6 +118,7 @@ const login = async (payload: TLogin, req: Request) => {
       refreshToken,
     };
   } catch (error: any) {
+    console.log(error);
     throw new AppError(
       httpStatus.BAD_REQUEST,
       error?.message ?? 'User Login Failed.',
