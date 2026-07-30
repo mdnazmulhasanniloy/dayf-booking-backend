@@ -16,8 +16,8 @@ services:
       FIREBASE_SERVICE_ACCOUNT_PATH: /run/secrets/firebase-service-account.json
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
     ports:
-      - "${API_PORT:-1000}:1000"
-      - "${SOCKET_HOST_PORT:-1005}:1005"
+      - '${API_PORT:-1000}:1000'
+      - '${SOCKET_HOST_PORT:-1005}:1005'
     volumes:
       - ./firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
       - ./public:/app/public
@@ -30,9 +30,9 @@ services:
     healthcheck:
       test:
         [
-          "CMD",
-          "node",
-          "-e",
+          'CMD',
+          'node',
+          '-e',
           "fetch('http://127.0.0.1:8000/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
         ]
       interval: 30s
@@ -47,19 +47,19 @@ services:
     command:
       - redis-server
       - --appendonly
-      - "yes"
+      - 'yes'
       - --maxmemory
       - 256mb
       - --maxmemory-policy
       - noeviction
     ports:
-      - "6370:6379"
+      - '6370:6379'
     volumes:
       - redis_data:/data
     networks:
-      - any_day_app_net
+      - dayf_booking_net
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
