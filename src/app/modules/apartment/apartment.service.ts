@@ -69,6 +69,7 @@ const getAllApartment = async (query: Record<string, any>) => {
     priceRange, //10-100
     ratingsFilter,
     isApproved,
+    guests,
     ...filtersData
   } = filters;
 
@@ -161,41 +162,48 @@ const getAllApartment = async (query: Record<string, any>) => {
     });
   }
 
-  // if (startDate && endDate) {
-  //   const bookedApartments = await Bookings.aggregate([
-  //     {
-  //       $match: {
-  //         modelType: BOOKING_MODEL_TYPE.Apartment,
-  //         isDeleted: false,
-  //         startDate: { $lte: moment(endDate).utc().toDate() }, // booking start <= searchEndDate
-  //         endDate: { $gte: moment(startDate).utc().toDate() }, // booking end >= searchStartDate
-  //       },
-  //     },
-  //     {
-  //       $group: {
-  //         _id: null,
-  //         ids: { $push: { $toString: '$reference' } },
-  //       },
-  //     },
-  //     {
-  //       $project: {
-  //         _id: 0,
-  //         ids: 1,
-  //       },
-  //     },
-  //   ]);
-  //   const idArray =
-  //     bookedApartments[0]?.ids?.map((id: string) => new Types.ObjectId(id)) ||
-  //     [];
-  //   console.log(idArray);
-  //   pipeline.push({
-  //     $match: {
-  //       _id: { $nin: idArray },
-  //     },
-  //   });
-  // }
-
+  if (guests) {
+    pipeline.push({
+      $match: {
+        maxGuests: { $gte: Number(guests) },
+      },
+    });
+  }
   if (Object.entries(filtersData).length) {
+    // if (startDate && endDate) {
+    //   const bookedApartments = await Bookings.aggregate([
+    //     {
+    //       $match: {
+    //         modelType: BOOKING_MODEL_TYPE.Apartment,
+    //         isDeleted: false,
+    //         startDate: { $lte: moment(endDate).utc().toDate() }, // booking start <= searchEndDate
+    //         endDate: { $gte: moment(startDate).utc().toDate() }, // booking end >= searchStartDate
+    //       },
+    //     },
+    //     {
+    //       $group: {
+    //         _id: null,
+    //         ids: { $push: { $toString: '$reference' } },
+    //       },
+    //     },
+    //     {
+    //       $project: {
+    //         _id: 0,
+    //         ids: 1,
+    //       },
+    //     },
+    //   ]);
+    //   const idArray =
+    //     bookedApartments[0]?.ids?.map((id: string) => new Types.ObjectId(id)) ||
+    //     [];
+    //   console.log(idArray);
+    //   pipeline.push({
+    //     $match: {
+    //       _id: { $nin: idArray },
+    //     },
+    //   });
+    // }
+
     Object.entries(filtersData).forEach(([field, value]) => {
       if (/^\[.*?\]$/.test(value)) {
         const match = value.match(/\[(.*?)\]/);

@@ -19,6 +19,7 @@ import {
   CANCELLATION_TYPE,
   REFUND_REQUEST_STATUS,
 } from './refundRequest.constants';
+import { sendSmsSafely } from '../../utils/smsSender';
 
 const DEFAULT_POLICY: ICancellationPolicy = {
   name: 'DAYF Standard Policy',
@@ -144,8 +145,8 @@ const createCancellationRequest = async (
 ) => {
   const policy = await getActivePolicy();
   const booking = await Bookings.findById(bookingId).populate([
-    { path: 'user', select: 'name email' },
-    { path: 'author', select: 'name email' },
+    { path: 'user', select: 'name email phoneNumber' },
+    { path: 'author', select: 'name email phoneNumber' },
     { path: 'reference', select: 'name' },
   ]);
 
@@ -314,6 +315,14 @@ const createCancellationRequest = async (
          <p>Request status: <strong>${escapeHtml(refundRequest.status)}</strong></p>`,
       ),
     ),
+    sendSmsSafely(
+      guest?.phoneNumber,
+      `DAYF: Booking ${booking.bookingCode} has been cancelled. ${eligibilityMessage}`,
+    ),
+    sendSmsSafely(
+      host?.phoneNumber,
+      `DAYF: Booking ${booking.bookingCode} was cancelled by the guest.`,
+    ),
     queueEmail(
       host?.email,
       'A Guest Cancelled a DAYF Booking',
@@ -373,8 +382,8 @@ const createHostCancellationAction = async (
 ) => {
   const policy = await getActivePolicy();
   const booking = await Bookings.findById(bookingId).populate([
-    { path: 'user', select: 'name email' },
-    { path: 'author', select: 'name email' },
+    { path: 'user', select: 'name email phoneNumber' },
+    { path: 'author', select: 'name email phoneNumber' },
     { path: 'reference', select: 'name checkInTime' },
   ]);
   if (!booking || booking.isDeleted) {
@@ -583,6 +592,18 @@ const createHostCancellationAction = async (
         `<p>Booking <strong>${escapeHtml(booking.bookingCode)}</strong></p>
          <p>${escapeHtml(actionMessage)}</p>`,
       ),
+    ),
+    sendSmsSafely(
+      guest?.phoneNumber,
+      isNoShow
+        ? `DAYF: Booking ${booking.bookingCode} was marked as no-show.`
+        : `DAYF: Booking ${booking.bookingCode} was cancelled by the host.`,
+    ),
+    sendSmsSafely(
+      host?.phoneNumber,
+      isNoShow
+        ? `DAYF: No-show report for booking ${booking.bookingCode} was recorded.`
+        : `DAYF: Your cancellation of booking ${booking.bookingCode} was recorded.`,
     ),
     queueEmail(
       host?.email,

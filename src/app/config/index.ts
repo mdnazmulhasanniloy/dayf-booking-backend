@@ -18,6 +18,11 @@ const chargily = {
   chargily_secret_key: process.env.CHARGILY_SECRET_KEY,
   chargily_mode: process.env.CHARGILY_MODE,
 };
+const twilio = {
+  accountSid: process.env.TWILIO_ACCOUNT_SID,
+  authToken: process.env.TWILIO_AUTH_TOKEN,
+  phoneNumber: process.env.TWILIO_PHONE_NUMBER,
+};
 
 export default {
   NODE_ENV: process.env.NODE_ENV,
@@ -42,4 +47,5 @@ export default {
   aws,
   stripe,
   chargily,
+  twilio,
 };

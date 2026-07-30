@@ -9,6 +9,7 @@ import { User } from '../user/user.models';
 import { IUser } from '../user/user.interface';
 import fs from 'fs';
 import path from 'path';
+import { sendSms } from '../../utils/smsSender';
 
 const verifyOtp = async (token: string, otp: string | number) => {
   if (!token) {
@@ -118,7 +119,7 @@ const resendOtp = async (email: string) => {
 
     await sendEmail(
       user?.email,
-      'Your Dayf Verification Code',
+      'Your One Time OTP',
       fs.readFileSync(otpEmailPath, 'utf8').replace('{{otp}}', otp),
     );
 
@@ -129,7 +130,96 @@ const resendOtp = async (email: string) => {
   }
 };
 
+const sendPhoneOtp = async (email: string) => {
+  try {
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
+    if (!user) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'User not found');
+    }
+    if (!user.phoneNumber) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'Phone number is not available',
+      );
+    }
+
+    const otp = generateOtp();
+    const expiresAt = moment().add(3, 'minute');
+    await User.findByIdAndUpdate(user._id, {
+      $set: {
+        phoneVerification: {
+          otp,
+          expiresAt,
+          status: false,
+        },
+      },
+    });
+
+    const token = jwt.sign(
+      { email: user.email, userId: user._id, purpose: 'phone-verification' },
+      config.jwt_access_secret as Secret,
+      { expiresIn: '3m' },
+    );
+
+    await sendSms(
+      user.phoneNumber,
+      `Your DAYF phone verification code is ${otp}. It expires in 3 minutes.`,
+    );
+    return { token };
+  } catch (error: any) {
+    throw new AppError(httpStatus?.BAD_REQUEST, error?.message);
+    console.log(error);
+  }
+};
+
+const verifyPhoneOtp = async (token: string, otp: string | number) => {
+  if (!token) {
+    throw new AppError(httpStatus.UNAUTHORIZED, 'You are not authorized');
+  }
+
+  let decoded: JwtPayload;
+  try {
+    decoded = jwt.verify(
+      token,
+      config.jwt_access_secret as Secret,
+    ) as JwtPayload;
+  } catch {
+    throw new AppError(httpStatus.FORBIDDEN, 'Phone OTP session has expired');
+  }
+
+  if (decoded.purpose !== 'phone-verification') {
+    throw new AppError(httpStatus.FORBIDDEN, 'Invalid phone OTP token');
+  }
+
+  const user = await User.findById(decoded.userId).select('phoneVerification');
+  if (!user) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'User not found');
+  }
+  if (
+    !user.phoneVerification?.expiresAt ||
+    new Date() > user.phoneVerification.expiresAt
+  ) {
+    throw new AppError(httpStatus.FORBIDDEN, 'Phone OTP has expired');
+  }
+  if (Number(otp) !== Number(user.phoneVerification.otp)) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Phone OTP did not match');
+  }
+
+  await User.findByIdAndUpdate(user._id, {
+    $set: {
+      phoneVerification: {
+        otp: 0,
+        expiresAt: new Date(),
+        status: true,
+      },
+    },
+  });
+  return { verified: true };
+};
+
 export const otpServices = {
   verifyOtp,
   resendOtp,
+  sendPhoneOtp,
+  verifyPhoneOtp,
 };

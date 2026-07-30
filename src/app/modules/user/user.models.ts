@@ -107,6 +107,19 @@ const userSchema: Schema<IUser> = new Schema(
         default: false,
       },
     },
+    phoneVerification: {
+      otp: {
+        type: Schema.Types.Mixed,
+        default: 0,
+      },
+      expiresAt: {
+        type: Date,
+      },
+      status: {
+        type: Boolean,
+        default: false,
+      },
+    },
   },
   {
     timestamps: true,

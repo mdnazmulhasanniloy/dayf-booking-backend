@@ -27,6 +27,7 @@ import path from 'path';
 import fs from 'fs';
 import config from '../../config';
 import { generateReceiptPdf } from '../../utils/generateReceiptPdf';
+import { sendSmsSafely } from '../../utils/smsSender';
 
 const formatPaymentDate = (value?: Date | string | null) => {
   if (!value) return '';
@@ -47,7 +48,10 @@ const createReceiptAttachment = async (payment: any, booking: any) => {
       : '',
     durationNights:
       booking?.startDate && booking?.endDate
-        ? Math.max(moment(booking.endDate).diff(moment(booking.startDate), 'days'), 0)
+        ? Math.max(
+            moment(booking.endDate).diff(moment(booking.startDate), 'days'),
+            0,
+          )
         : 0,
     guestName: payment?.user?.name ?? 'Guest',
     guestEmail: payment?.user?.email ?? '',
@@ -125,8 +129,12 @@ const checkout = async (payload: IPayments): Promise<string> => {
   }
 };
 
-const confirmPayment = async (query: Record<string, any>, res: Response) => {
-  const { sessionId, paymentId, device } = query;
+const confirmPayment = async (
+  query: Record<string, any>,
+  device: string,
+  res: Response,
+) => {
+  const { sessionId, paymentId } = query;
   const session = await startSession();
   const PaymentSession = await StripeService.getPaymentSession(sessionId);
   const paymentIntentId = PaymentSession.payment_intent as string;
@@ -419,6 +427,16 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
     }
 
     await session.commitTransaction();
+    await Promise.all([
+      sendSmsSafely(
+        (bookings.user as IUser)?.phoneNumber,
+        `DAYF: Payment successful for booking ${bookings.bookingCode}. Amount: ${payment.amount} ${payment.currency?.toUpperCase()}. Transaction: ${payment.tranId}.`,
+      ),
+      sendSmsSafely(
+        (bookings.user as IUser)?.phoneNumber,
+        `DAYF: Your booking ${bookings.bookingCode} is confirmed. Check-in: ${moment(bookings.startDate).format('DD MMM YYYY')}, check-out: ${moment(bookings.endDate).format('DD MMM YYYY')}.`,
+      ),
+    ]);
     return { ...payment.toObject(), device, chargeDetails };
   } catch (error: any) {
     await session.abortTransaction();
@@ -832,6 +850,16 @@ const chargilyConfirmPayment = async (payload: any, paymentId: string) => {
     //   await sendMailQueue.add('new_mail', authorBookingAlertMail);
     // }
     await session.commitTransaction();
+    await Promise.all([
+      sendSmsSafely(
+        (bookings.user as IUser)?.phoneNumber,
+        `DAYF: Payment successful for booking ${bookings.bookingCode}. Amount: ${payment.amount} ${payment.currency?.toUpperCase()}. Transaction: ${payment.tranId}.`,
+      ),
+      sendSmsSafely(
+        (bookings.user as IUser)?.phoneNumber,
+        `DAYF: Your booking ${bookings.bookingCode} is confirmed. Check-in: ${moment(bookings.startDate).format('DD MMM YYYY')}, check-out: ${moment(bookings.endDate).format('DD MMM YYYY')}.`,
+      ),
+    ]);
 
     return {
       payment,
@@ -936,7 +964,10 @@ const downloadReceipt = async (id: string) => {
       : '',
     durationNights:
       booking?.startDate && booking?.endDate
-        ? Math.max(moment(booking.endDate).diff(moment(booking.startDate), 'days'), 0)
+        ? Math.max(
+            moment(booking.endDate).diff(moment(booking.startDate), 'days'),
+            0,
+          )
         : 0,
     guestName: (payment.user as any)?.name ?? 'Guest',
     guestEmail: (payment.user as any)?.email ?? '',

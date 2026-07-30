@@ -33,7 +33,11 @@ const chargilyConfirmPayment = catchAsync(
 );
 
 const confirmPayment = catchAsync(async (req: Request, res: Response) => {
-  const result = await paymentsService.confirmPayment(req?.query, res);
+  const result = await paymentsService.confirmPayment(
+    req.query,
+    req.query.device as string,
+    res,
+  );
   if (result?.device === 'website') {
     return res.redirect(
       `${config.client_Url}/booking/success?paymentId=${result?._id}`,

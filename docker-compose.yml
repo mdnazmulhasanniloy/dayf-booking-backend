@@ -1,0 +1,73 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dayf-booking-backend:latest
+    container_name: dayf_booking_api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      IP: 0.0.0.0
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      FIREBASE_SERVICE_ACCOUNT_PATH: /run/secrets/firebase-service-account.json
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+    ports:
+      - "${API_PORT:-1000}:1000"
+      - "${SOCKET_HOST_PORT:-1005}:1005"
+    volumes:
+      - ./firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
+      - ./public:/app/public
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - dayf_booking_net
+    init: true
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8000/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: dayf_booking_net
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - 256mb
+      - --maxmemory-policy
+      - noeviction
+    ports:
+      - "6370:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - any_day_app_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  redis_data:
+
+networks:
+  dayf_booking_net:
+    driver: bridge

@@ -1,3 +1,4 @@
+import bcrypt from 'bcrypt';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import httpStatus from 'http-status';
@@ -6,6 +7,7 @@ import { IUser } from './user.interface';
 import { User } from './user.models';
 import QueryBuilder from '../../builder/QueryBuilder';
 import { USER_ROLE } from './user.constants';
+import config from '../../config';
 export type IFilter = {
   searchTerm?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -15,10 +17,36 @@ const createUser = async (payload: IUser): Promise<IUser> => {
   const isExist = await User.isUserExist(payload.email as string);
 
   if (isExist) {
-    throw new AppError(
-      httpStatus.FORBIDDEN,
-      'User already exists with this email',
+    if (isExist?.verification?.status === true) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        'User already exists with this email',
+      );
+    }
+    if (!payload.password) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Password is required');
+    }
+    if (payload?.role === USER_ROLE.admin) {
+      console.log(payload.role, USER_ROLE.user);
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        'Only hotel owner and user can create account',
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(
+      payload?.password,
+      Number(config.bcrypt_salt_rounds),
     );
+
+    const user = await User.findByIdAndUpdate(isExist?._id, {
+      ...payload,
+      password: hashedPassword,
+    });
+    if (!user) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'User creation failed');
+    }
+    return user;
   }
 
   if (!payload.password) {

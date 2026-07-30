@@ -63,6 +63,7 @@ const refundRequestSchema = new Schema<IRefundRequest>(
     status: {
       type: String,
       enum: Object.values(REFUND_REQUEST_STATUS),
+      default: REFUND_REQUEST_STATUS.pending,
       required: true,
     },
     cancellationType: {

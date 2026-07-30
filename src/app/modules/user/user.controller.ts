@@ -5,7 +5,7 @@ import sendResponse from '../../utils/sendResponse';
 import httpStatus from 'http-status';
 import { uploadToS3 } from '../../utils/s3';
 import { otpServices } from '../otp/otp.service';
-import { User } from './user.models';  
+import { User } from './user.models';
 
 const createUser = catchAsync(async (req: Request, res: Response) => {
   if (req?.file) {
@@ -55,7 +55,6 @@ const getMyProfile = catchAsync(async (req: Request, res: Response) => {
 });
 
 const updateUser = catchAsync(async (req: Request, res: Response) => {
- 
   if (req?.file) {
     req.body.profile = await uploadToS3({
       file: req.file,
@@ -80,7 +79,6 @@ const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
       fileName: `images/user/profile/${Math.floor(100000 + Math.random() * 900000)}`,
     });
   }
- 
 
   const result = await userService.updateUser(req?.user?.userId, req.body);
   sendResponse(res, {
