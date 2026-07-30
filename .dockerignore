@@ -5,7 +5,7 @@
 .env
 .eslintignore
 .eslintrc
-.husky
+ 
 .prettierrc.json
 .vscode
 Dockerfile*
