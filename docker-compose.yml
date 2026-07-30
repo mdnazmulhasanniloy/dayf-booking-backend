@@ -1,6 +1,6 @@
 services:
   backend:
-    image: nazmulhasn/dayf_booking_backend:latest
+    image: nazmulhasn/dayf-booking-backend:latest
     container_name: dayf_booking_backend
     restart: unless-stopped
     env_file: .env
