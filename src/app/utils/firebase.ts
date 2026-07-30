@@ -1,10 +1,18 @@
-// src/utils/firebase.ts
 import admin from 'firebase-admin';
-import serviceAccount from '../../../firebase-service-account.json';
+import fs from 'fs';
+import path from 'path';
+
+const serviceAccountPath =
+  process.env.FIREBASE_SERVICE_ACCOUNT_PATH ||
+  path.join(process.cwd(), 'firebase-service-account.json');
+
+const serviceAccount = JSON.parse(
+  fs.readFileSync(serviceAccountPath, 'utf8'),
+) as admin.ServiceAccount;
 
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+    credential: admin.credential.cert(serviceAccount),
   });
 }
 

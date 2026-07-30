@@ -35,6 +35,11 @@ export interface IUser {
     expiresAt: Date;
     status: boolean;
   };
+  phoneVerification: {
+    otp: string | number;
+    expiresAt: Date;
+    status: boolean;
+  };
 }
 
 export interface UserModel extends Model<IUser> {

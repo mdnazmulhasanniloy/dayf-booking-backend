@@ -7,7 +7,12 @@ const guestValidationSchema = z.object({
     email: z
       .string({ required_error: 'Email is required' })
       .email({ message: 'Invalid email address' }),
-    phoneNumber: z.string({ required_error: 'Phone number is required' }),
+    phoneNumber: z
+      .string({ required_error: 'Phone number is required' })
+      .regex(/^\+[1-9]\d{7,14}$/, {
+        message:
+          'Phone number must use E.164 format, for example +8801712345678',
+      }),
     role: z.enum([...Role] as [string, ...string[]]).default(USER_ROLE.user),
     password: z.string({ required_error: 'Password is required' }),
   }),

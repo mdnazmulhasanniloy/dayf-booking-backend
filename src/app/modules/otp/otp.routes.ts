@@ -10,9 +10,29 @@ router.post(
   otpControllers.verifyOtp,
 );
 router.post(
+  '/verify-email-otp',
+  validateRequest(resentOtpValidations.verifyOtpZodSchema),
+  otpControllers.verifyOtp,
+);
+router.post(
   '/resend-otp',
   validateRequest(resentOtpValidations.resentOtpZodSchema),
   otpControllers.resendOtp,
+);
+router.post(
+  '/send-email-otp',
+  validateRequest(resentOtpValidations.resentOtpZodSchema),
+  otpControllers.resendOtp,
+);
+router.post(
+  '/send-phone-otp',
+  validateRequest(resentOtpValidations.phoneOtpZodSchema),
+  otpControllers.sendPhoneOtp,
+);
+router.post(
+  '/verify-phone-otp',
+  validateRequest(resentOtpValidations.verifyOtpZodSchema),
+  otpControllers.verifyPhoneOtp,
 );
 
 export const otpRoutes = router;

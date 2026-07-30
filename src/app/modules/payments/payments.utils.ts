@@ -7,7 +7,6 @@ import { IUser } from '../user/user.interface';
 import { User } from '../user/user.models';
 import { IPayments } from './payments.interface';
 import { convertFromUsd } from '../../builder/exchangerateservice';
-import { Response } from 'express';
 
 export const buildRedirectUrls = (paymentId: string, redirectType?: string) => {
   const success_url = `${config.server_url}/payments/confirm-payment?sessionId={CHECKOUT_SESSION_ID}&paymentId=${paymentId}&device=${redirectType ?? ''}`;

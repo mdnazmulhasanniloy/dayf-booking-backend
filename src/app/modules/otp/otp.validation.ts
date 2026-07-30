@@ -18,7 +18,16 @@ const resentOtpZodSchema = z.object({
   }),
 });
 
+const phoneOtpZodSchema = z.object({
+  body: z.object({
+    email: z
+      .string({ required_error: 'Email is required' })
+      .email({ message: 'Invalid email address' }),
+  }),
+});
+
 export const resentOtpValidations = {
   resentOtpZodSchema,
   verifyOtpZodSchema,
+  phoneOtpZodSchema,
 };
