@@ -13,13 +13,13 @@ services:
       IP: 0.0.0.0
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      FIREBASE_SERVICE_ACCOUNT_PATH: /run/secrets/firebase-service-account.json
+      FIREBASE_SERVICE_ACCOUNT_PATH: /run/secrets/firebase.json
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
     ports:
       - '${API_PORT:-1000}:1000'
       - '${SOCKET_HOST_PORT:-1005}:1005'
     volumes:
-      - ./firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
+      - ./firebase.json:/run/secrets/firebase.json:ro
       - ./public:/app/public
     depends_on:
       redis:

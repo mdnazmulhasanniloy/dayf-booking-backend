@@ -14,7 +14,7 @@ node_modules
 dist
 logs
 *.log
-firebase-service-account.json
+firebase.json
 *.postman_collection.json
 README.md
 SECURITY.md
