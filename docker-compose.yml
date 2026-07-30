@@ -9,7 +9,10 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      - NODE_ENV=production
+      NODE_ENV: production
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
     expose:
       - '1000'
       - '1005'

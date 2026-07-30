@@ -24,6 +24,67 @@ import { sendMailQueue } from '../../redis';
 import { Request } from 'express';
 import { UAParser } from 'ua-parser-js';
 
+const runPostLoginTasks = async (
+  user: IUser,
+  req: Request,
+  fcmToken?: string,
+) => {
+  const notificationTasks: Promise<unknown>[] = [];
+
+  if (fcmToken) {
+    notificationTasks.push(
+      firebaseAdmin.messaging().send({
+        token: fcmToken,
+        notification: {
+          title: 'Login Successful',
+          body: 'You have successfully logged in.',
+        },
+      }),
+      User.findByIdAndUpdate(user._id, { fcmToken }),
+    );
+  }
+
+  notificationTasks.push(
+    (async () => {
+      const ip =
+        req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() ||
+        req.socket.remoteAddress ||
+        '';
+      const parser = new UAParser(req.headers['user-agent']);
+      const result = parser.getResult();
+      const geo = await getLocationFromIP(ip);
+      const device = result.device.model || 'Desktop';
+      const loginAlertPath = path.join(
+        __dirname,
+        '../../../../public/view/auth/login_alert.html',
+      );
+      const html = fs
+        .readFileSync(loginAlertPath, 'utf8')
+        .replace('{{userName}}', user.name)
+        .replace('{{deviceName}}', device)
+        .replace(
+          '{{location}}',
+          `${geo?.city || 'Unknown'}, ${geo?.country_name || 'Unknown'}`,
+        )
+        .replace('{{ipAddress}}', ip)
+        .replace('{{loginTime}}', moment().format('lll'));
+
+      await sendMailQueue.add('new_mail', {
+        email: user.email,
+        subject: 'New Login to Your Dayf Account',
+        html,
+      });
+    })(),
+  );
+
+  const results = await Promise.allSettled(notificationTasks);
+  results.forEach(result => {
+    if (result.status === 'rejected') {
+      console.error('Post-login task failed:', result.reason);
+    }
+  });
+};
+
 // Login
 const login = async (payload: TLogin, req: Request) => {
   try {
@@ -52,20 +113,6 @@ const login = async (payload: TLogin, req: Request) => {
       throw new AppError(httpStatus.FORBIDDEN, 'User account is not verified');
     }
 
-    if (payload.fcmToken && payload.fcmToken !== '') {
-      await firebaseAdmin.messaging().send({
-        token: payload.fcmToken,
-        notification: {
-          title: 'Login Successful',
-          body: 'You have successfully logged in.',
-        },
-      });
-
-      await User.findByIdAndUpdate(user._id, {
-        fcmToken: payload.fcmToken,
-      });
-    }
-
     const jwtPayload: { userId: string; role: string } = {
       userId: user?._id?.toString() as string,
       role: user?.role,
@@ -83,34 +130,7 @@ const login = async (payload: TLogin, req: Request) => {
       config.jwt_refresh_expires_in as string,
     );
 
-    const ip =
-      req.headers['x-forwarded-for']?.toString().split(',')[0] ||
-      req.socket.remoteAddress ||
-      '';
-
-    const parser = new UAParser(req.headers['user-agent']);
-    const result = parser.getResult();
-    const geo = await getLocationFromIP(ip);
-
-    const device = result.device.model || 'Desktop';
-    const otpEmailPath = path.join(
-      __dirname,
-      '../../../../public/view/auth/login_alert.html',
-    );
-    const html = fs
-      .readFileSync(otpEmailPath, 'utf8')
-      .replace('{{userName}}', user?.name)
-      .replace('{{deviceName}}', device)
-      .replace('{{location}}', `${geo?.city}, ${geo?.country_name}`)
-      .replace('{{ipAddress}}', ip)
-      .replace('{{loginTime}}', moment().format('lll'));
-
-    const loginAlertMail = {
-      email: user?.email,
-      subject: 'New Login to Your Dayf Account',
-      html: html,
-    };
-    await sendMailQueue.add('new_mail', loginAlertMail);
+    void runPostLoginTasks(user, req, payload.fcmToken);
 
     return {
       user,
