@@ -186,15 +186,11 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
     }
 
     if (payments.status === PAYMENT_STATUS.paid) {
-      if (device === 'website') {
-        throw res.redirect(
-          `${config.client_Url}/booking/failed?message=${encodeURIComponent(
-            'This payment has already been completed.',
-          )}&paymentId=${paymentId}`,
-        );
-      } else {
-        throw new AppError(httpStatus.BAD_REQUEST, 'Payment record not found.');
-      }
+      return {
+        ...payments.toObject(),
+        device,
+        alreadyProcessed: true,
+      };
     } else if (payments.status === PAYMENT_STATUS.failed) {
       if (device === 'website') {
         throw res.redirect(
@@ -294,6 +290,12 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
       },
       { session },
     );
+
+    // Commit payment and booking state before optional notification work so
+    // the browser redirect is never blocked by Redis, PDF, email or SMS.
+    await session.commitTransaction();
+
+    void (async () => {
     const admin = await User.findOne({ role: USER_ROLE.admin });
     const userNotification = {
       receiver: bookings?.user, // User
@@ -425,7 +427,6 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
       await sendMailQueue.add('new_mail', authorBookingAlertMail);
     }
 
-    await session.commitTransaction();
     await Promise.all([
       sendSmsSafely(
         (bookings.user as IUser)?.phoneNumber,
@@ -436,9 +437,15 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
         `DAYF: Your booking ${bookings.bookingCode} is confirmed. Check-in: ${moment(bookings.startDate).format('DD MMM YYYY')}, check-out: ${moment(bookings.endDate).format('DD MMM YYYY')}.`,
       ),
     ]);
+    })().catch(error => {
+      console.error('Stripe post-payment task failed:', error);
+    });
+
     return { ...payment.toObject(), device, chargeDetails };
   } catch (error: any) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     if (paymentIntentId) {
       try {
         await StripeService.refund(paymentIntentId);
