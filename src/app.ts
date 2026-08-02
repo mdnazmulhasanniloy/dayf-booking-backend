@@ -43,7 +43,7 @@ app.use(
       'https://techcrafters.tech',
       'https://www.techcrafters.tech',
       'http://10.10.10.48:4000',
-      'https://dayf-booking-website.vercel.app/',
+      'https://dayf-booking-website.vercel.app',
       'https://dayf-booking-soumaya-dashboard-eight.vercel.app',
     ],
     credentials: true,
