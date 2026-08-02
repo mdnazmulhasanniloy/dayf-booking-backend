@@ -8,6 +8,15 @@ import AppError from '../error/AppError';
 import config from '../config';
 import { s3Client } from '../constants/aws';
 
+const S3_REQUEST_TIMEOUT_MS = 30_000;
+
+// AWS SDK's overloaded send() signature cannot infer a shared command union here.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sendS3Command = <T>(command: any) =>
+  s3Client.send(command, {
+    abortSignal: AbortSignal.timeout(S3_REQUEST_TIMEOUT_MS),
+  }) as Promise<T>;
+
 //upload a single file
 export const uploadToS3 = async (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,7 +30,7 @@ export const uploadToS3 = async (
   });
 
   try {
-    const key = await s3Client.send(command);
+    const key = await sendS3Command(command);
     if (!key) {
       throw new AppError(httpStatus.BAD_REQUEST, 'File Upload failed');
     }
@@ -30,6 +39,7 @@ export const uploadToS3 = async (
 
     return url;
   } catch (error) {
+    console.error('S3 upload failed:', error);
     throw new AppError(httpStatus.BAD_REQUEST, 'File Upload failed');
   }
 };
@@ -41,7 +51,7 @@ export const deleteFromS3 = async (key: string) => {
       Bucket: config.aws.bucket,
       Key: key,
     });
-    await s3Client.send(command);
+    await sendS3Command(command);
   } catch (error) {
     console.log('🚀 ~ deleteFromS3 ~ error:', error);
     throw new Error('s3 file delete failed');
@@ -69,9 +79,10 @@ export const uploadManyToS3 = async (
         Bucket: config.aws.bucket as string,
         Key: fileKey,
         Body: file?.buffer,
+        ContentType: file?.mimetype,
       });
 
-      await s3Client.send(command);
+      await sendS3Command(command);
 
       const url = `https://${config.aws.bucket}.s3.${config.aws.region}.amazonaws.com/${fileKey}`;
       return { url, key: newFileName };
@@ -80,7 +91,8 @@ export const uploadManyToS3 = async (
     const uploadedUrls = await Promise.all(uploadPromises);
     return uploadedUrls;
   } catch (error) {
-    throw new Error('File Upload failed');
+    console.error('S3 multi-file upload failed:', error);
+    throw new AppError(httpStatus.BAD_REQUEST, 'File Upload failed');
   }
 };
 
@@ -96,7 +108,7 @@ export const deleteManyFromS3 = async (keys: string[]) => {
 
     const command = new DeleteObjectsCommand(deleteParams);
 
-    const response = await s3Client.send(command);
+    const response = await sendS3Command(command);
 
     return response;
   } catch (error) {

@@ -23,41 +23,44 @@ const createApartment = async (payload: IApartment, files: any) => {
   if (files) {
     const { images, banner } = files;
 
-    if (images?.length) {
-      const imgsArray: { file: any; path: string; key?: string }[] = [];
+    const imageFiles = images?.map((image: any) => ({
+      file: image,
+      path: 'images/apartment',
+    }));
 
-      images?.map(async (image: any) => {
-        imgsArray.push({
-          file: image,
-          path: `images/apartment`,
-        });
-      });
+    const [uploadedImages, uploadedBanner] = await Promise.all([
+      imageFiles?.length ? uploadManyToS3(imageFiles) : undefined,
+      banner?.length
+        ? uploadToS3({
+            file: banner[0],
+            fileName: `images/apartment/banner/${Math.floor(100000 + Math.random() * 900000)}`,
+          })
+        : undefined,
+    ]);
 
-      payload.images = await uploadManyToS3(imgsArray);
-    }
-    if (banner?.length) {
-      const uploadedProfile = await uploadToS3({
-        file: banner[0],
-        fileName: `images/apartment/banner/${Math.floor(100000 + Math.random() * 900000)}`,
-      });
-      payload.banner = uploadedProfile as string;
-    }
+    if (uploadedImages) payload.images = uploadedImages;
+    if (uploadedBanner) payload.banner = uploadedBanner;
   }
   const result = await Apartment.create(payload);
   if (!result) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create apartment');
   }
 
-  const admin = await User.findOne({ role: USER_ROLE.admin });
-  const adminNotification = {
-    receiver: admin?._id,
-    message: `Approval Request: ${result?.name || 'New Apartment'}`,
-    description: `A user has submitted a new apartment for approval. Please review the listing and take the appropriate action.`,
-    refference: result?._id,
-    model_type: modeType.Apartment,
-  };
+  void (async () => {
+    const admin = await User.findOne({ role: USER_ROLE.admin }).select('_id');
+    if (!admin) return;
 
-  await notificationQueue.add('new_notification', adminNotification);
+    await notificationQueue.add('new_notification', {
+      receiver: admin._id,
+      message: `Approval Request: ${result?.name || 'New Apartment'}`,
+      description: `A user has submitted a new apartment for approval. Please review the listing and take the appropriate action.`,
+      refference: result._id,
+      model_type: modeType.Apartment,
+    });
+  })().catch(error => {
+    console.error('Apartment notification enqueue failed:', error);
+  });
+
   return result;
 };
 

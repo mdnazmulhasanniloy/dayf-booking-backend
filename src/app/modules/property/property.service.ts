@@ -28,32 +28,31 @@ const createProperty = async (payload: IProperty, files: any) => {
   if (files) {
     const { images, coverImage, profile } = files;
 
-    if (images?.length) {
-      const imgsArray: { file: any; path: string; key?: string }[] = [];
+    const imageFiles = images?.map((image: any) => ({
+      file: image,
+      path: 'images/property',
+    }));
 
-      images?.map(async (image: any) => {
-        imgsArray.push({
-          file: image,
-          path: `images/property`,
-        });
-      });
+    const [uploadedImages, uploadedCoverImage, uploadedProfile] =
+      await Promise.all([
+        imageFiles?.length ? uploadManyToS3(imageFiles) : undefined,
+        coverImage?.length
+          ? uploadToS3({
+              file: coverImage[0],
+              fileName: `images/property/cover/${generateRandomString(5)}`,
+            })
+          : undefined,
+        profile?.length
+          ? uploadToS3({
+              file: profile[0],
+              fileName: `images/property/profile/${generateRandomString(5)}`,
+            })
+          : undefined,
+      ]);
 
-      payload.images = await uploadManyToS3(imgsArray);
-    }
-
-    if (coverImage) {
-      payload.coverImage = (await uploadToS3({
-        file: coverImage[0],
-        fileName: `images/property/cover/${generateRandomString(5)}`,
-      })) as string;
-    }
-
-    if (profile) {
-      payload.profile = (await uploadToS3({
-        file: profile[0],
-        fileName: `images/property/profile/${generateRandomString(5)}`,
-      })) as string;
-    }
+    if (uploadedImages) payload.images = uploadedImages;
+    if (uploadedCoverImage) payload.coverImage = uploadedCoverImage;
+    if (uploadedProfile) payload.profile = uploadedProfile;
   }
 
   const result = await Property.create(payload);
