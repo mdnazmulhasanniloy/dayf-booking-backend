@@ -41,6 +41,8 @@ app.use(
       'https://socket.techcrafters.tech',
       'https://www.socket.techcrafters.tech',
       'https://techcrafters.tech',
+      'https://api.techcrafters.tech',
+      'https://socket.techcrafters.tech',
       'https://www.techcrafters.tech',
       'http://10.10.10.48:4000',
       'https://dayf-booking-website.vercel.app',
