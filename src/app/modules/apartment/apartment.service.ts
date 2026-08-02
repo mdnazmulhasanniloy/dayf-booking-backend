@@ -11,6 +11,9 @@ import { IUser } from '../user/user.interface';
 import { USER_ROLE } from '../user/user.constants';
 import { modeType } from '../notification/notification.interface';
 import { notificationQueue } from '../../redis';
+import Calender from '../calender/calender.models';
+import { BOOKING_MODEL_TYPE } from '../bookings/bookings.interface';
+import moment from 'moment';
 
 const createApartment = async (payload: IApartment, files: any) => {
   const author: IUser | null = await User.findById(payload?.author);
@@ -70,6 +73,8 @@ const getAllApartment = async (query: Record<string, any>) => {
     ratingsFilter,
     isApproved,
     guests,
+    startDate,
+    endDate,
     ...filtersData
   } = filters;
 
@@ -170,39 +175,43 @@ const getAllApartment = async (query: Record<string, any>) => {
     });
   }
   if (Object.entries(filtersData).length) {
-    // if (startDate && endDate) {
-    //   const bookedApartments = await Bookings.aggregate([
-    //     {
-    //       $match: {
-    //         modelType: BOOKING_MODEL_TYPE.Apartment,
-    //         isDeleted: false,
-    //         startDate: { $lte: moment(endDate).utc().toDate() }, // booking start <= searchEndDate
-    //         endDate: { $gte: moment(startDate).utc().toDate() }, // booking end >= searchStartDate
-    //       },
-    //     },
-    //     {
-    //       $group: {
-    //         _id: null,
-    //         ids: { $push: { $toString: '$reference' } },
-    //       },
-    //     },
-    //     {
-    //       $project: {
-    //         _id: 0,
-    //         ids: 1,
-    //       },
-    //     },
-    //   ]);
-    //   const idArray =
-    //     bookedApartments[0]?.ids?.map((id: string) => new Types.ObjectId(id)) ||
-    //     [];
-    //   console.log(idArray);
-    //   pipeline.push({
-    //     $match: {
-    //       _id: { $nin: idArray },
-    //     },
-    //   });
-    // }
+    if (startDate && endDate) {
+      const bookedApartments = await Calender.aggregate([
+        {
+          $match: {
+            modelType: BOOKING_MODEL_TYPE.Apartment,
+            date: {
+              $gte: moment(startDate).utc().startOf('day').toDate(),
+              $lte: moment(endDate).utc().endOf('day').toDate(),
+            },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            ids: {
+              $addToSet: '$reference',
+            },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            ids: 1,
+          },
+        },
+      ]);
+
+      const idArray = bookedApartments[0]?.ids || [];
+
+      pipeline.push({
+        $match: {
+          _id: {
+            $nin: idArray,
+          },
+        },
+      });
+    }
 
     Object.entries(filtersData).forEach(([field, value]) => {
       if (/^\[.*?\]$/.test(value)) {
