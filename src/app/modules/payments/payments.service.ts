@@ -232,8 +232,11 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
       transactionId: charge?.balance_transaction,
       paymentDate: paymentDate,
     };
-    const payment = await Payments.findByIdAndUpdate(
-      paymentId,
+    const payment = await Payments.findOneAndUpdate(
+      {
+        _id: paymentId,
+        status: PAYMENT_STATUS.pending,
+      },
       {
         status: PAYMENT_STATUS?.paid,
         paymentIntentId: paymentIntentId,
@@ -473,7 +476,9 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
   }
 };
 
-const chargilyConfirmPayment = async (
+const chargilyPaymentLocks = new Map<string, Promise<any>>();
+
+const processChargilyConfirmPayment = async (
   payload: any,
   paymentId: string,
   retryCount = 0,
@@ -619,6 +624,10 @@ const chargilyConfirmPayment = async (
         session,
       },
     );
+
+    // Keep the MongoDB transaction limited to database writes. Redis, PDF,
+    // email and SMS work below must not hold document locks open.
+    await session.commitTransaction();
 
     const admin = await User.findOne({
       role: USER_ROLE.admin,
@@ -853,7 +862,6 @@ const chargilyConfirmPayment = async (
     //   };
     //   await sendMailQueue.add('new_mail', authorBookingAlertMail);
     // }
-    await session.commitTransaction();
     await Promise.all([
       sendSmsSafely(
         (bookings.user as IUser)?.phoneNumber,
@@ -874,6 +882,21 @@ const chargilyConfirmPayment = async (
       await session.abortTransaction();
     }
 
+    // If the database transaction already committed, failures in optional
+    // notification/email/SMS work must not make Chargily retry the payment.
+    const completedPayment = await Payments.findOne({
+      _id: paymentId,
+      status: PAYMENT_STATUS.paid,
+    });
+    if (completedPayment) {
+      console.error('Post-payment task failed after commit:', error);
+      return {
+        payment: completedPayment,
+        checkout: verification.checkout,
+        alreadyProcessed: true,
+      };
+    }
+
     const isTransientTransactionError =
       error?.code === 112 ||
       error?.codeName === 'WriteConflict' ||
@@ -883,7 +906,7 @@ const chargilyConfirmPayment = async (
     if (isTransientTransactionError && retryCount < 3) {
       const retryDelayMs = 100 * 2 ** retryCount + Math.random() * 100;
       await new Promise(resolve => setTimeout(resolve, retryDelayMs));
-      return chargilyConfirmPayment(payload, paymentId, retryCount + 1);
+      return processChargilyConfirmPayment(payload, paymentId, retryCount + 1);
     }
 
     console.error(error);
@@ -891,6 +914,27 @@ const chargilyConfirmPayment = async (
   } finally {
     session.endSession();
   }
+};
+
+const chargilyConfirmPayment = async (
+  payload: any,
+  paymentId: string,
+): Promise<any> => {
+  const inFlightPayment = chargilyPaymentLocks.get(paymentId);
+  if (inFlightPayment) {
+    return inFlightPayment;
+  }
+
+  const paymentTask = processChargilyConfirmPayment(payload, paymentId).finally(
+    () => {
+      if (chargilyPaymentLocks.get(paymentId) === paymentTask) {
+        chargilyPaymentLocks.delete(paymentId);
+      }
+    },
+  );
+
+  chargilyPaymentLocks.set(paymentId, paymentTask);
+  return paymentTask;
 };
 
 const getAllPayments = async (query: Record<string, any>) => {
