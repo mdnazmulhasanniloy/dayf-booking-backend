@@ -7,7 +7,7 @@ import cors from 'cors';
 import express, { Application, Request, Response } from 'express';
 import globalErrorHandler from './app/middleware/globalErrorhandler';
 import notFound from './app/middleware/notfound';
-import router from './app/routes'; 
+import router from './app/routes';
 // import axios from 'axios';
 // import archiver from 'archiver';
 const app: Application = express();
@@ -43,6 +43,8 @@ app.use(
       'https://techcrafters.tech',
       'https://www.techcrafters.tech',
       'http://10.10.10.48:4000',
+      'https://dayf-booking-website.vercel.app/',
+      'https://dayf-booking-soumaya-dashboard-eight.vercel.app',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
