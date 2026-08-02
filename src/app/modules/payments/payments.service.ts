@@ -473,7 +473,11 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
   }
 };
 
-const chargilyConfirmPayment = async (payload: any, paymentId: string) => {
+const chargilyConfirmPayment = async (
+  payload: any,
+  paymentId: string,
+  retryCount = 0,
+): Promise<any> => {
   if (!payload?.data?.id) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Invalid Chargily payload');
   }
@@ -517,17 +521,21 @@ const chargilyConfirmPayment = async (payload: any, paymentId: string) => {
 
     const checkout = verification.checkout;
 
-    const payments = await Payments.findById(paymentId);
+    const payments = await Payments.findById(paymentId).session(session);
 
     if (!payments) {
       throw new AppError(httpStatus.NOT_FOUND, 'Payment record not found.');
     }
 
     if (payments.status === PAYMENT_STATUS.paid) {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        'This payment has already been completed.',
-      );
+      // Chargily can deliver the same webhook more than once. Acknowledge an
+      // already processed payment instead of running the booking flow again.
+      await session.abortTransaction();
+      return {
+        payment: payments,
+        checkout,
+        alreadyProcessed: true,
+      };
     }
 
     if (payments.status === PAYMENT_STATUS.failed) {
@@ -861,8 +869,23 @@ const chargilyConfirmPayment = async (payload: any, paymentId: string) => {
       payment,
       checkout,
     };
-  } catch (error) {
-    await session.abortTransaction();
+  } catch (error: any) {
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+
+    const isTransientTransactionError =
+      error?.code === 112 ||
+      error?.codeName === 'WriteConflict' ||
+      error?.errorLabels?.includes?.('TransientTransactionError') ||
+      error?.hasErrorLabel?.('TransientTransactionError');
+
+    if (isTransientTransactionError && retryCount < 3) {
+      const retryDelayMs = 100 * 2 ** retryCount + Math.random() * 100;
+      await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+      return chargilyConfirmPayment(payload, paymentId, retryCount + 1);
+    }
+
     console.error(error);
     throw error;
   } finally {
