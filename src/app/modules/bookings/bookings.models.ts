@@ -83,7 +83,7 @@ const bookingsSchema = new Schema<IBookings>(
       type: Date,
       default: () => {
         const expireAt = new Date();
-        expireAt.setMinutes(expireAt.getMinutes() + 5);
+        expireAt.setMinutes(expireAt.getMinutes() + 10);
         return expireAt;
       },
     },
