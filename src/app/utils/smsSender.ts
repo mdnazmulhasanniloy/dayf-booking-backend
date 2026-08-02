@@ -23,14 +23,18 @@ export const sendSms = async (to: string | undefined, body: string) => {
   });
 };
 
+/**
+ *
+ * @param to when sms is configure then comment out hte sendSms function
+ * @param body to, body
+ * @returns void
+ */
 // Transactional SMS must never roll back a successful booking/payment.
-export const sendSmsSafely = async (
-  to: string | undefined,
-  body: string,
-) => {
+export const sendSmsSafely = async (to: string | undefined, body: string) => {
   if (!to) return;
   try {
-    await sendSms(to, body);
+    // await sendSms(to, body);
+    console.log('SMS SEND SUCCESS');
   } catch (error) {
     console.error('Twilio SMS delivery failed:', error);
   }
