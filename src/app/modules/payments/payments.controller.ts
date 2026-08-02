@@ -34,10 +34,10 @@ const chargilyConfirmPayment = catchAsync(
 
 const confirmPayment = catchAsync(async (req: Request, res: Response) => {
   const result = await paymentsService.confirmPayment(
-    req.query,
-    req.query.device as string,
+    req.query, 
     res,
   );
+
   if (result?.device === 'website') {
     return res.redirect(
       `${config.client_Url}/booking/success?paymentId=${result?._id}`,
@@ -92,9 +92,7 @@ const deletePayments = catchAsync(async (req: Request, res: Response) => {
 });
 
 const downloadReceipt = catchAsync(async (req: Request, res: Response) => {
-  const pdfBuffer = await paymentsService.downloadReceipt(
-    req.params.paymentId,
-  );
+  const pdfBuffer = await paymentsService.downloadReceipt(req.params.paymentId);
 
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader(
