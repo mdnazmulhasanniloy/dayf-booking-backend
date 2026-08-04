@@ -176,16 +176,6 @@ const registerWithGoogle = async (payload: any, req: Request) => {
         throw new AppError(httpStatus.FORBIDDEN, 'This user is deleted');
       }
 
-      if (payload?.fcmToken && payload?.fcmToken !== '') {
-        await firebaseAdmin.messaging().send({
-          token: payload?.fcmToken,
-          notification: {
-            title: 'Login Successful',
-            body: 'You have successfully logged in.',
-          },
-        });
-      }
-
       const jwtPayload: { userId: string; role: string } = {
         userId: existingUser?._id?.toString() as string,
         role: existingUser?.role,
@@ -203,33 +193,7 @@ const registerWithGoogle = async (payload: any, req: Request) => {
         config.jwt_refresh_expires_in as string,
       );
 
-      const ip =
-        req.headers['x-forwarded-for']?.toString().split(',')[0] ||
-        req.socket.remoteAddress ||
-        '';
-
-      const parser = new UAParser(req.headers['user-agent']);
-      const result = parser.getResult();
-      const geo = await getLocationFromIP(ip);
-      const device = result.device.model || 'Desktop';
-      const otpEmailPath = path.join(
-        __dirname,
-        '../../../../public/view/auth/login_alert.html',
-      );
-      const html = fs
-        .readFileSync(otpEmailPath, 'utf8')
-        .replace('{{userName}}', existingUser?.name)
-        .replace('{{deviceName}}', device)
-        .replace('{{location}}', `${geo?.city}, ${geo?.country}`)
-        .replace('{{ipAddress}}', ip)
-        .replace('{{loginTime}}', moment().format('lll'));
-
-      const loginAlertMail = {
-        email: existingUser?.email,
-        subject: 'New Login to Your Dayf Account',
-        html: html,
-      };
-      await sendMailQueue.add('new_mail', loginAlertMail);
+      void runPostLoginTasks(existingUser, req, payload.fcmToken);
 
       return {
         user: existingUser,
@@ -247,16 +211,6 @@ const registerWithGoogle = async (payload: any, req: Request) => {
         httpStatus?.BAD_REQUEST,
         'You are not a registered user. Please register first.',
       );
-    }
-
-    if (payload?.fcmToken && payload?.fcmToken !== '') {
-      await firebaseAdmin.messaging().send({
-        token: payload?.fcmToken,
-        notification: {
-          title: 'Login Successful',
-          body: 'You have successfully logged in.',
-        },
-      });
     }
 
     const user = await User.create({
@@ -296,33 +250,7 @@ const registerWithGoogle = async (payload: any, req: Request) => {
       config.jwt_refresh_expires_in as string,
     );
 
-    const ip =
-      req.headers['x-forwarded-for']?.toString().split(',')[0] ||
-      req.socket.remoteAddress ||
-      '';
-
-    const parser = new UAParser(req.headers['user-agent']);
-    const result = parser.getResult();
-    const geo = await getLocationFromIP(ip);
-    const device = result.device.model || 'Desktop';
-    const otpEmailPath = path.join(
-      __dirname,
-      '../../../../public/view/auth/login_alert.html',
-    );
-    const html = fs
-      .readFileSync(otpEmailPath, 'utf8')
-      .replace('{{userName}}', user?.name)
-      .replace('{{deviceName}}', device)
-      .replace('{{location}}', `${geo?.city}, ${geo?.country}`)
-      .replace('{{ipAddress}}', ip)
-      .replace('{{loginTime}}', moment().format('lll'));
-
-    const loginAlertMail = {
-      email: user?.email,
-      subject: 'New Login to Your Dayf Account',
-      html: html,
-    };
-    await sendMailQueue.add('new_mail', loginAlertMail);
+    void runPostLoginTasks(user, req, payload.fcmToken);
 
     return {
       user,
@@ -382,33 +310,7 @@ const registerWithFacebook = async (payload: any, req: Request) => {
         config.jwt_refresh_expires_in as string,
       );
 
-      const ip =
-        req.headers['x-forwarded-for']?.toString().split(',')[0] ||
-        req.socket.remoteAddress ||
-        '';
-
-      const parser = new UAParser(req.headers['user-agent']);
-      const result = parser.getResult();
-      const geo = await getLocationFromIP(ip);
-      const device = result.device.model || 'Desktop';
-      const otpEmailPath = path.join(
-        __dirname,
-        '../../../../public/view/auth/login_alert.html',
-      );
-      const html = fs
-        .readFileSync(otpEmailPath, 'utf8')
-        .replace('{{userName}}', existingUser?.name)
-        .replace('{{deviceName}}', device)
-        .replace('{{location}}', `${geo?.city}, ${geo?.country}`)
-        .replace('{{ipAddress}}', ip)
-        .replace('{{loginTime}}', moment().format('lll'));
-
-      const loginAlertMail = {
-        email: existingUser?.email,
-        subject: 'New Login to Your Dayf Account',
-        html: html,
-      };
-      await sendMailQueue.add('new_mail', loginAlertMail);
+      void runPostLoginTasks(existingUser, req, payload.fcmToken);
       return {
         user: existingUser,
         accessToken,
@@ -451,34 +353,7 @@ const registerWithFacebook = async (payload: any, req: Request) => {
       config.jwt_refresh_secret as string,
       config.jwt_refresh_expires_in as string,
     );
-    const ip =
-      req.headers['x-forwarded-for']?.toString().split(',')[0] ||
-      req.socket.remoteAddress ||
-      '';
-
-    const parser = new UAParser(req.headers['user-agent']);
-    const result = parser.getResult();
-    const geo = await getLocationFromIP(ip);
-    const device = result.device.model || 'Desktop';
-    const otpEmailPath = path.join(
-      __dirname,
-      '../../../../public/view/auth/login_alert.html',
-    );
-    const html = fs
-      .readFileSync(otpEmailPath, 'utf8')
-      .replace('{{userName}}', user?.name)
-      .replace('{{deviceName}}', device)
-      .replace('{{location}}', `${geo?.city}, ${geo?.country}`)
-      .replace('{{ipAddress}}', ip)
-      .replace('{{loginTime}}', moment().format('lll'));
-
-    const loginAlertMail = {
-      email: user?.email,
-      subject: 'New Login to Your Dayf Account',
-      html: html,
-    };
-
-    await sendMailQueue.add('new_mail', loginAlertMail);
+    void runPostLoginTasks(user, req, payload.fcmToken);
     return {
       user,
       accessToken,
