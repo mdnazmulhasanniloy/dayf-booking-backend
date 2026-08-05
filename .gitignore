@@ -9,5 +9,3 @@ generateFolder.ts
 dist/
 firebase.json
 nginx
-pnpm-lock.yaml
-pnpm-workspace.yaml 
