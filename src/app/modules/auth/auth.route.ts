@@ -4,21 +4,28 @@ import auth from '../../middleware/auth';
 import validateRequest from '../../middleware/validateRequest';
 import { authValidation } from './auth.validation';
 import { USER_ROLE } from '../user/user.constants';
+import {
+  authRateLimiter,
+  passwordResetRateLimiter,
+} from '../../middleware/rateLimiter';
 
 const router = Router();
 
 router.post(
   '/login',
+  authRateLimiter,
   validateRequest(authValidation.loginZodValidationSchema),
   authControllers.login,
 );
 router.post(
   '/facebook',
+  authRateLimiter,
   validateRequest(authValidation.facebookZodValidationSchema),
   authControllers.registerWithFacebook,
 );
 router.post(
   '/google',
+  authRateLimiter,
   validateRequest(authValidation.googleZodValidationSchema),
   authControllers.registerWithGoogle,
 );
@@ -41,6 +48,14 @@ router.patch(
   authControllers.changePassword,
 );
 
-router.patch('/forgot-password', authControllers.forgotPassword);
-router.patch('/reset-password', authControllers.resetPassword);
+router.patch(
+  '/forgot-password',
+  passwordResetRateLimiter,
+  authControllers.forgotPassword,
+);
+router.patch(
+  '/reset-password',
+  passwordResetRateLimiter,
+  authControllers.resetPassword,
+);
 export const authRoutes = router;

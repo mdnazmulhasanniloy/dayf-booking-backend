@@ -625,9 +625,16 @@ const deleteBookings = async (id: string) => {
 };
 
 const completeBooking = async (id: string) => {
-  const isExist = await Bookings.findById(id);
+  const isExist = await Bookings.findById(id).select('status');
   if (!isExist) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Booking not found!');
+  }
+
+  // A client may retry this endpoint after a gateway timeout. Treat an
+  // already-completed booking as a successful, idempotent request and avoid
+  // enqueueing duplicate notifications.
+  if (isExist.status === BOOKING_STATUS.completed) {
+    return Bookings.findById(id);
   }
 
   const result = await Bookings.findByIdAndUpdate(
@@ -654,8 +661,20 @@ const completeBooking = async (id: string) => {
     refference: result?._id,
     model_type: modeType.Bookings,
   };
-  await notificationQueue.add('new_notification', userNotification);
-  await notificationQueue.add('new_notification', authorNotification);
+  // Completion is a database operation; notifications are best-effort side
+  // effects. Do not keep the HTTP response waiting for Redis/BullMQ, which can
+  // otherwise retry until the reverse proxy returns a timeout even though the
+  // booking was already completed.
+  void Promise.all([
+    notificationQueue.add('new_notification', userNotification, {
+      jobId: `booking-completed-user-${result._id}`,
+    }),
+    notificationQueue.add('new_notification', authorNotification, {
+      jobId: `booking-completed-author-${result._id}`,
+    }),
+  ]).catch(error => {
+    console.error('Booking completion notification enqueue failed:', error);
+  });
 
   return result;
 };

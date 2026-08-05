@@ -8,9 +8,11 @@ import express, { Application, Request, Response } from 'express';
 import globalErrorHandler from './app/middleware/globalErrorhandler';
 import notFound from './app/middleware/notfound';
 import router from './app/routes';
+import { apiRateLimiter } from './app/middleware/rateLimiter';
 // import axios from 'axios';
 // import archiver from 'archiver';
 const app: Application = express();
+app.set('trust proxy', 1);
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
 app.set('views', 'public/ejs');
@@ -101,7 +103,7 @@ app.use(
 //   }),
 // );
 
-app.use('/api/v1', router);
+app.use('/api/v1', apiRateLimiter, router);
 
 app.get('/', (req: Request, res: Response) => {
   res.send('server is running');
