@@ -1,7 +1,0 @@
-onlyBuiltDependencies:
-  - '@firebase/util'
-  - aws-sdk
-  - bcrypt
-  - msgpackr-extract
-  - protobufjs
-  - puppeteer
