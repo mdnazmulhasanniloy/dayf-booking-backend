@@ -50,7 +50,7 @@ const createApartment = async (payload: IApartment, files: any) => {
     const admin = await User.findOne({ role: USER_ROLE.admin }).select('_id');
     if (!admin) return;
 
-    await notificationQueue.add('new_notification', {
+    notificationQueue.add('new_notification', {
       receiver: admin._id,
       message: `Approval Request: ${result?.name || 'New Apartment'}`,
       description: `A user has submitted a new apartment for approval. Please review the listing and take the appropriate action.`,

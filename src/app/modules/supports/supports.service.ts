@@ -3,7 +3,7 @@ import { ISupports } from './supports.interface';
 import Supports from './supports.models';
 import QueryBuilder from '../../builder/QueryBuilder';
 import AppError from '../../error/AppError';
-import { uploadManyToS3 } from '../../utils/s3'; 
+import { uploadManyToS3 } from '../../utils/s3';
 import { modeType } from '../notification/notification.interface';
 import { User } from '../user/user.models';
 import { USER_ROLE } from '../user/user.constants';
@@ -40,7 +40,7 @@ const createSupports = async (payload: ISupports, files: any) => {
     model_type: modeType.Supports,
   };
 
-  await notificationQueue.add('new_notification', adminNotification);
+  notificationQueue.add('new_notification', adminNotification);
 
   return result;
 };
