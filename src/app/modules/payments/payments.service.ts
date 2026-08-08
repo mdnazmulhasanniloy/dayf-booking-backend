@@ -296,147 +296,159 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
     await session.commitTransaction();
 
     void (async () => {
-    const admin = await User.findOne({ role: USER_ROLE.admin });
-    const userNotification = {
-      receiver: bookings?.user, // User
-      message: 'Your booking payment was successful!',
-      description: `Your payment for booking ID #${bookings?.bookingCode} has been successfully processed. Thank you for choosing us!`,
-      refference: payment?._id,
-      model_type: modeType?.payments,
-    };
-    const authorNotification = {
-      receiver: bookings?.author,
-      message: 'A new booking payment has been received!',
-      description: `User ${(payment?.user as IUser)?.name} has completed payment for booking ID #${bookings?.id} in your property.`,
-      refference: payment?._id,
-      model_type: modeType?.payments,
-    };
-    const adminNotification = {
-      receiver: admin?._id, // System Admin
-      message: 'A new booking payment has been processed!',
-      description: `Payment with ID ${bookings?.id} for a hotel/apartment booking has been successfully processed.`,
-      refference: payment?._id,
-      model_type: modeType?.payments,
-    };
-
-    await notificationQueue.add('new_notification', userNotification);
-    await notificationQueue.add('new_notification', authorNotification);
-    await notificationQueue.add('new_notification', adminNotification);
-
-    if (admin?.email) {
-      const paymentAdminEmailPath = path.join(
-        __dirname,
-        '../../../../public/view/payment/payment_success_for_admin.html',
-      );
-
-      const html = fs
-        .readFileSync(paymentAdminEmailPath, 'utf8')
-        .replace('{{paymentId}}', payment?.id)
-        .replace('{{bookingId}}', `${bookings?.bookingCode}`)
-        .replace('{{apartmentName}}', (bookings?.reference as IApartment)?.name)
-        .replace('{{amount}}', payment?.amount?.toString())
-        .replace('{{currency}}', payment?.currency?.toUpperCase())
-        .replace('{{transitionId}}', `${payment?.tranId}`)
-        .replace('{{paymentMethod}}', `${payment?.paymentGateway}`)
-        .replace('{{paymentDate}}', formatPaymentDate(payment?.paidAt))
-        .replace('{{userName}}', (payment?.user as IUser)?.name);
-
-      const adminPaymentAlertMail = {
-        email: admin?.email,
-        subject: 'New Booking Payment Received',
-        html: html,
+      const admin = await User.findOne({ role: USER_ROLE.admin });
+      const userNotification = {
+        receiver: bookings?.user, // User
+        message: 'Your booking payment was successful!',
+        description: `Your payment for booking ID #${bookings?.bookingCode} has been successfully processed. Thank you for choosing us!`,
+        refference: payment?._id,
+        model_type: modeType?.payments,
       };
-      await sendMailQueue.add('new_mail', adminPaymentAlertMail);
-    }
+      const authorNotification = {
+        receiver: bookings?.author,
+        message: 'A new booking payment has been received!',
+        description: `User ${(payment?.user as IUser)?.name} has completed payment for booking ID #${bookings?.id} in your property.`,
+        refference: payment?._id,
+        model_type: modeType?.payments,
+      };
+      const adminNotification = {
+        receiver: admin?._id, // System Admin
+        message: 'A new booking payment has been processed!',
+        description: `Payment with ID ${bookings?.id} for a hotel/apartment booking has been successfully processed.`,
+        refference: payment?._id,
+        model_type: modeType?.payments,
+      };
 
-    if ((payment?.user as IUser)?.email) {
-      const paymentUserEmailPath = path.join(
-        __dirname,
-        '../../../../public/view/payment/payment_success_for_user.html',
-      );
-      const bookingUserEmailPath = path.join(
-        __dirname,
-        '../../../../public/view/booking/booking_confirm_for_user.html',
-      );
-      const html = fs
-        .readFileSync(paymentUserEmailPath, 'utf8')
-        .replace('{{hostName}}', (payment?.author as IUser)?.name)
-        .replace('{{paymentId}}', payment?.id)
-        .replace('{{bookingId}}', `${bookings?.bookingCode}`)
-        .replace('{{apartmentName}}', (bookings?.reference as IApartment)?.name)
-        .replace('{{amount}}', payment?.amount?.toString())
-        .replace('{{currency}}', payment?.currency?.toUpperCase())
-        .replace('{{transitionId}}', `${payment?.tranId}`)
-        .replace('{{paymentMethod}}', `${payment?.paymentGateway}`)
-        .replace('{{paymentDate}}', formatPaymentDate(payment?.paidAt))
-        .replace('{{userName}}', (payment?.user as IUser)?.name)
-        .replace(
-          '{{receiptUrl}}',
-          `${config?.server_url}/payments/receipt/${paymentId}`,
+      notificationQueue.add('new_notification', userNotification);
+      notificationQueue.add('new_notification', authorNotification);
+      notificationQueue.add('new_notification', adminNotification);
+
+      if (admin?.email) {
+        const paymentAdminEmailPath = path.join(
+          __dirname,
+          '../../../../public/view/payment/payment_success_for_admin.html',
         );
 
-      const bookingConfirmHtml = fs
-        .readFileSync(bookingUserEmailPath, 'utf8')
-        .replace('{{userName}}', (payment?.user as IUser)?.name)
-        .replace('{{bookingId}}', `${bookings?.bookingCode}`)
-        .replace('{{apartmentName}}', (bookings?.reference as IApartment)?.name)
-        .replace('{{checkIn}}', moment(bookings?.startDate).format('ll'))
-        .replace('{{checkOut}}', moment(bookings?.endDate).format('ll'))
-        .replace('{{guests}}', `${bookings?.guest?.toString() ?? ''}`)
-        .replace('{{amount}}', payment?.amount?.toString())
-        .replace('{{currency}}', payment?.currency?.toUpperCase());
+        const html = fs
+          .readFileSync(paymentAdminEmailPath, 'utf8')
+          .replace('{{paymentId}}', payment?.id)
+          .replace('{{bookingId}}', `${bookings?.bookingCode}`)
+          .replace(
+            '{{apartmentName}}',
+            (bookings?.reference as IApartment)?.name,
+          )
+          .replace('{{amount}}', payment?.amount?.toString())
+          .replace('{{currency}}', payment?.currency?.toUpperCase())
+          .replace('{{transitionId}}', `${payment?.tranId}`)
+          .replace('{{paymentMethod}}', `${payment?.paymentGateway}`)
+          .replace('{{paymentDate}}', formatPaymentDate(payment?.paidAt))
+          .replace('{{userName}}', (payment?.user as IUser)?.name);
 
-      const userBookingConfirmAlertMail = {
-        email: (bookings?.user as IUser)?.email,
-        subject: 'Your Booking Is Confirmed',
-        html: bookingConfirmHtml,
-      };
-      const userPaymentAlertMail = {
-        email: (bookings?.user as IUser)?.email,
-        subject: 'Payment Confirmation and Receipt',
-        html: html,
-        attachments: [await createReceiptAttachment(payment, bookings)],
-      };
-      await sendMailQueue.add('new_mail', userBookingConfirmAlertMail);
-      await sendMailQueue.add('new_mail', userPaymentAlertMail);
-    }
+        const adminPaymentAlertMail = {
+          email: admin?.email,
+          subject: 'New Booking Payment Received',
+          html: html,
+        };
+        await sendMailQueue.add('new_mail', adminPaymentAlertMail);
+      }
 
-    if (payment?.author) {
-      const BookingConfirmEmailPath = path.join(
-        __dirname,
-        '../../../../public/view/booking/booking_confirmation_for_hotelOwner.html',
-      );
+      if ((payment?.user as IUser)?.email) {
+        const paymentUserEmailPath = path.join(
+          __dirname,
+          '../../../../public/view/payment/payment_success_for_user.html',
+        );
+        const bookingUserEmailPath = path.join(
+          __dirname,
+          '../../../../public/view/booking/booking_confirm_for_user.html',
+        );
+        const html = fs
+          .readFileSync(paymentUserEmailPath, 'utf8')
+          .replace('{{hostName}}', (payment?.author as IUser)?.name)
+          .replace('{{paymentId}}', payment?.id)
+          .replace('{{bookingId}}', `${bookings?.bookingCode}`)
+          .replace(
+            '{{apartmentName}}',
+            (bookings?.reference as IApartment)?.name,
+          )
+          .replace('{{amount}}', payment?.amount?.toString())
+          .replace('{{currency}}', payment?.currency?.toUpperCase())
+          .replace('{{transitionId}}', `${payment?.tranId}`)
+          .replace('{{paymentMethod}}', `${payment?.paymentGateway}`)
+          .replace('{{paymentDate}}', formatPaymentDate(payment?.paidAt))
+          .replace('{{userName}}', (payment?.user as IUser)?.name)
+          .replace(
+            '{{receiptUrl}}',
+            `${config?.server_url}/payments/receipt/${paymentId}`,
+          );
 
-      const html = fs
-        .readFileSync(BookingConfirmEmailPath, 'utf8')
-        .replace('{{hostName}}', (payment?.author as IUser)?.name)
-        .replace('{{bookingId}}', `${bookings?.bookingCode}`)
-        .replace('{{apartmentName}}', (bookings?.reference as IApartment)?.name)
-        .replace('{{checkIn}}', moment(bookings?.startDate).format('ll'))
-        .replace('{{checkOut}}', moment(bookings?.endDate).format('ll'))
-        .replace('{{guests}}', `${bookings?.guest}`)
-        .replace('{{amount}}', Number(bookings?.remainingAmount)?.toString())
-        .replace('{{currency}}', payment?.currency?.toUpperCase())
-        .replace('{{userName}}', (payment?.user as IUser)?.name);
+        const bookingConfirmHtml = fs
+          .readFileSync(bookingUserEmailPath, 'utf8')
+          .replace('{{userName}}', (payment?.user as IUser)?.name)
+          .replace('{{bookingId}}', `${bookings?.bookingCode}`)
+          .replace(
+            '{{apartmentName}}',
+            (bookings?.reference as IApartment)?.name,
+          )
+          .replace('{{checkIn}}', moment(bookings?.startDate).format('ll'))
+          .replace('{{checkOut}}', moment(bookings?.endDate).format('ll'))
+          .replace('{{guests}}', `${bookings?.guest?.toString() ?? ''}`)
+          .replace('{{amount}}', payment?.amount?.toString())
+          .replace('{{currency}}', payment?.currency?.toUpperCase());
 
-      const authorBookingAlertMail = {
-        email: admin?.email,
-        subject: 'New Booking Confirmed for Your Property',
-        html: html,
-      };
-      await sendMailQueue.add('new_mail', authorBookingAlertMail);
-    }
+        const userBookingConfirmAlertMail = {
+          email: (bookings?.user as IUser)?.email,
+          subject: 'Your Booking Is Confirmed',
+          html: bookingConfirmHtml,
+        };
+        const userPaymentAlertMail = {
+          email: (bookings?.user as IUser)?.email,
+          subject: 'Payment Confirmation and Receipt',
+          html: html,
+          attachments: [await createReceiptAttachment(payment, bookings)],
+        };
+        await sendMailQueue.add('new_mail', userBookingConfirmAlertMail);
+        await sendMailQueue.add('new_mail', userPaymentAlertMail);
+      }
 
-    await Promise.all([
-      sendSmsSafely(
-        (bookings.user as IUser)?.phoneNumber,
-        `DAYF: Payment successful for booking ${bookings.bookingCode}. Amount: ${payment.amount} ${payment.currency?.toUpperCase()}. Transaction: ${payment.tranId}.`,
-      ),
-      sendSmsSafely(
-        (bookings.user as IUser)?.phoneNumber,
-        `DAYF: Your booking ${bookings.bookingCode} is confirmed. Check-in: ${moment(bookings.startDate).format('DD MMM YYYY')}, check-out: ${moment(bookings.endDate).format('DD MMM YYYY')}.`,
-      ),
-    ]);
+      if (payment?.author) {
+        const BookingConfirmEmailPath = path.join(
+          __dirname,
+          '../../../../public/view/booking/booking_confirmation_for_hotelOwner.html',
+        );
+
+        const html = fs
+          .readFileSync(BookingConfirmEmailPath, 'utf8')
+          .replace('{{hostName}}', (payment?.author as IUser)?.name)
+          .replace('{{bookingId}}', `${bookings?.bookingCode}`)
+          .replace(
+            '{{apartmentName}}',
+            (bookings?.reference as IApartment)?.name,
+          )
+          .replace('{{checkIn}}', moment(bookings?.startDate).format('ll'))
+          .replace('{{checkOut}}', moment(bookings?.endDate).format('ll'))
+          .replace('{{guests}}', `${bookings?.guest}`)
+          .replace('{{amount}}', Number(bookings?.remainingAmount)?.toString())
+          .replace('{{currency}}', payment?.currency?.toUpperCase())
+          .replace('{{userName}}', (payment?.user as IUser)?.name);
+
+        const authorBookingAlertMail = {
+          email: admin?.email,
+          subject: 'New Booking Confirmed for Your Property',
+          html: html,
+        };
+        await sendMailQueue.add('new_mail', authorBookingAlertMail);
+      }
+
+      await Promise.all([
+        sendSmsSafely(
+          (bookings.user as IUser)?.phoneNumber,
+          `DAYF: Payment successful for booking ${bookings.bookingCode}. Amount: ${payment.amount} ${payment.currency?.toUpperCase()}. Transaction: ${payment.tranId}.`,
+        ),
+        sendSmsSafely(
+          (bookings.user as IUser)?.phoneNumber,
+          `DAYF: Your booking ${bookings.bookingCode} is confirmed. Check-in: ${moment(bookings.startDate).format('DD MMM YYYY')}, check-out: ${moment(bookings.endDate).format('DD MMM YYYY')}.`,
+        ),
+      ]);
     })().catch(error => {
       console.error('Stripe post-payment task failed:', error);
     });
@@ -640,7 +652,7 @@ const processChargilyConfirmPayment = async (
       role: USER_ROLE.admin,
     });
 
-    await notificationQueue.add('new_notification', {
+    notificationQueue.add('new_notification', {
       receiver: (bookings.user as IUser)?._id,
       message: 'Your booking payment was successful!',
       description: `Your payment for booking #${bookings?.bookingCode} has been successfully processed.`,
@@ -648,7 +660,7 @@ const processChargilyConfirmPayment = async (
       model_type: modeType.payments,
     });
 
-    await notificationQueue.add('new_notification', {
+    notificationQueue.add('new_notification', {
       receiver: (bookings.author as IUser)?._id,
       message: 'A new booking payment has been received!',
       description: `User ${(payment.user as IUser).name} has completed payment for booking #${bookings?.bookingCode}.`,
@@ -656,7 +668,7 @@ const processChargilyConfirmPayment = async (
       model_type: modeType.payments,
     });
 
-    await notificationQueue.add('new_notification', {
+    notificationQueue.add('new_notification', {
       receiver: admin?._id,
       message: 'A new booking payment has been processed!',
       description: `Booking payment #${bookings?.bookingCode} has been processed successfully.`,
