@@ -38,5 +38,5 @@ router.delete(
 router.get('/availability/:apartmentId', calenderController.getAvailability);
 router.get('/:id', calenderController.getCalenderById);
 router.get('/', calenderController.getAllCalender);
-
+   
 export const calenderRoutes = router;
