@@ -12,6 +12,7 @@ import Bookings from '../bookings/bookings.models';
 import pickQuery from '../../utils/pickQuery';
 import Property from '../property/property.models';
 import Apartment from '../apartment/apartment.models';
+import { APARTMENT_STATUS } from '../apartment/apartment.constants';
 
 const createRoomTypes = async (payload: IRoomTypes, files: any) => {
   const session = await startSession();
@@ -606,10 +607,10 @@ const globalSearch = async (query: Record<string, any>) => {
       const idArray =
         bookedApartments[0]?.ids?.map((id: string) => new Types.ObjectId(id)) ||
         [];
-      console.log(idArray);
       pipeline.push({
         $match: {
           _id: { $nin: idArray },
+          status: APARTMENT_STATUS.approved,
         },
       });
     }
