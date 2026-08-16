@@ -1,28 +1,28 @@
-import jwt, { JwtPayload, Secret } from "jsonwebtoken";
-import httpStatus from "http-status";
-import AppError from "../../error/AppError";
+import jwt, { JwtPayload, Secret } from 'jsonwebtoken';
+import httpStatus from 'http-status';
+import AppError from '../../error/AppError';
 import {
   IJwtPayload,
   TChangePassword,
   TLogin,
   TResetPassword,
-} from "./auth.interface";
-import config from "../../config";
-import { createToken, getLocationFromIP, verifyToken } from "./auth.utils";
-import { generateOtp } from "../../utils/otpGenerator";
-import moment from "moment";
-import { sendEmail } from "../../utils/mailSender";
-import bcrypt from "bcrypt";
-import { IUser } from "../user/user.interface";
-import { User } from "../user/user.models";
-import path from "path";
-import fs from "fs";
-import { REGISTER_WITH, USER_ROLE } from "../user/user.constants";
-import { DecodedIdToken } from "firebase-admin/lib/auth/token-verifier";
-import firebaseAdmin from "../../utils/firebase";
-import { sendMailQueue } from "../../redis";
-import { Request } from "express";
-import { UAParser } from "ua-parser-js";
+} from './auth.interface';
+import config from '../../config';
+import { createToken, getLocationFromIP, verifyToken } from './auth.utils';
+import { generateOtp } from '../../utils/otpGenerator';
+import moment from 'moment';
+import { sendEmail } from '../../utils/mailSender';
+import bcrypt from 'bcrypt';
+import { IUser } from '../user/user.interface';
+import { User } from '../user/user.models';
+import path from 'path';
+import fs from 'fs';
+import { REGISTER_WITH, USER_ROLE } from '../user/user.constants';
+import { DecodedIdToken } from 'firebase-admin/lib/auth/token-verifier';
+import firebaseAdmin from '../../utils/firebase';
+import { sendMailQueue } from '../../redis';
+import { Request } from 'express';
+import { UAParser } from 'ua-parser-js';
 
 const runPostLoginTasks = async (
   user: IUser,
@@ -36,8 +36,8 @@ const runPostLoginTasks = async (
       firebaseAdmin.messaging().send({
         token: fcmToken,
         notification: {
-          title: "Login Successful",
-          body: "You have successfully logged in.",
+          title: 'Login Successful',
+          body: 'You have successfully logged in.',
         },
       }),
       User.findByIdAndUpdate(user._id, { fcmToken }),
@@ -47,40 +47,40 @@ const runPostLoginTasks = async (
   notificationTasks.push(
     (async () => {
       const ip =
-        req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() ||
+        req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() ||
         req.socket.remoteAddress ||
-        "";
-      const parser = new UAParser(req.headers["user-agent"]);
+        '';
+      const parser = new UAParser(req.headers['user-agent']);
       const result = parser.getResult();
       const geo = await getLocationFromIP(ip);
-      const device = result.device.model || "Desktop";
+      const device = result.device.model || 'Desktop';
       const loginAlertPath = path.join(
         __dirname,
-        "../../../../public/view/auth/login_alert.html",
+        '../../../../public/view/auth/login_alert.html',
       );
       const html = fs
-        .readFileSync(loginAlertPath, "utf8")
-        .replace("{{userName}}", user.name)
-        .replace("{{deviceName}}", device)
+        .readFileSync(loginAlertPath, 'utf8')
+        .replace('{{userName}}', user.name)
+        .replace('{{deviceName}}', device)
         .replace(
-          "{{location}}",
-          `${geo?.city || "Unknown"}, ${geo?.country_name || "Unknown"}`,
+          '{{location}}',
+          `${geo?.city || 'Unknown'}, ${geo?.country_name || 'Unknown'}`,
         )
-        .replace("{{ipAddress}}", ip)
-        .replace("{{loginTime}}", moment().format("lll"));
+        .replace('{{ipAddress}}', ip)
+        .replace('{{loginTime}}', moment().format('lll'));
 
-       sendMailQueue.add("new_mail", {
+      sendMailQueue.add('new_mail', {
         email: user.email,
-        subject: "New Login to Your Dayf Account",
+        subject: 'New Login to Your Dayf Account',
         html,
       });
     })(),
   );
 
   const results = await Promise.allSettled(notificationTasks);
-  results.forEach((result) => {
-    if (result.status === "rejected") {
-      console.error("Post-login task failed:", result.reason);
+  results.forEach(result => {
+    if (result.status === 'rejected') {
+      console.error('Post-login task failed:', result.reason);
     }
   });
 };
@@ -91,11 +91,11 @@ const login = async (payload: TLogin, req: Request) => {
     payload.email = payload?.email?.trim().toLowerCase();
     const user: IUser | null = await User.isUserExist(payload?.email);
     if (!user) {
-      throw new AppError(httpStatus.NOT_FOUND, "User not found");
+      throw new AppError(httpStatus.NOT_FOUND, 'User not found');
     }
 
     if (user?.isDeleted) {
-      throw new AppError(httpStatus.FORBIDDEN, "This user is deleted");
+      throw new AppError(httpStatus.FORBIDDEN, 'This user is deleted');
     }
 
     if (user?.registerWith !== REGISTER_WITH.credentials) {
@@ -106,11 +106,11 @@ const login = async (payload: TLogin, req: Request) => {
     }
 
     if (!(await User.isPasswordMatched(payload.password, user.password))) {
-      throw new AppError(httpStatus.BAD_REQUEST, "Password does not match");
+      throw new AppError(httpStatus.BAD_REQUEST, 'Password does not match');
     }
 
     if (!user?.verification?.status) {
-      throw new AppError(httpStatus.FORBIDDEN, "User account is not verified");
+      throw new AppError(httpStatus.FORBIDDEN, 'User account is not verified');
     }
 
     const jwtPayload: { userId: string; role: string } = {
@@ -141,7 +141,7 @@ const login = async (payload: TLogin, req: Request) => {
     console.log(error);
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      error?.message ?? "User Login Failed.",
+      error?.message ?? 'User Login Failed.',
     );
   }
 };
@@ -154,11 +154,11 @@ const registerWithGoogle = async (payload: any, req: Request) => {
       .auth()
       .verifyIdToken(payload?.token); // Verify the token
     if (!decodedToken)
-      throw new AppError(httpStatus.BAD_REQUEST, "Invalid token");
+      throw new AppError(httpStatus.BAD_REQUEST, 'Invalid token');
     if (!decodedToken?.email_verified) {
       throw new AppError(
         httpStatus?.BAD_REQUEST,
-        "your mail not verified from google",
+        'your mail not verified from google',
       );
     }
 
@@ -173,7 +173,7 @@ const registerWithGoogle = async (payload: any, req: Request) => {
       }
 
       if (existingUser?.isDeleted) {
-        throw new AppError(httpStatus.FORBIDDEN, "This user is deleted");
+        throw new AppError(httpStatus.FORBIDDEN, 'This user is deleted');
       }
 
       const jwtPayload: { userId: string; role: string } = {
@@ -203,13 +203,13 @@ const registerWithGoogle = async (payload: any, req: Request) => {
     }
 
     if (
-      payload?.device === "mobile" &&
-      payload?.action === "login" &&
+      payload?.device === 'mobile' &&
+      payload?.action === 'login' &&
       !payload?.role
     ) {
       throw new AppError(
         httpStatus?.BAD_REQUEST,
-        "You are not a registered user. Please register first.",
+        'You are not a registered user. Please register first.',
       );
     }
 
@@ -229,7 +229,7 @@ const registerWithGoogle = async (payload: any, req: Request) => {
     if (!user) {
       throw new AppError(
         httpStatus.INTERNAL_SERVER_ERROR,
-        "Failed to create user",
+        'Failed to create user',
       );
     }
 
@@ -258,7 +258,7 @@ const registerWithGoogle = async (payload: any, req: Request) => {
       refreshToken,
     };
   } catch (error: any) {
-    console.error("Error in registerWithGoogle:", error);
+    console.error('Error in registerWithGoogle:', error);
     throw new AppError(httpStatus.BAD_REQUEST, error.message);
   }
 };
@@ -271,11 +271,11 @@ const registerWithFacebook = async (payload: any, req: Request) => {
 
     console.log(JSON.stringify(decodedToken));
     if (!decodedToken)
-      throw new AppError(httpStatus.BAD_REQUEST, "Invalid token");
+      throw new AppError(httpStatus.BAD_REQUEST, 'Invalid token');
     if (!decodedToken?.email_verified) {
       throw new AppError(
         httpStatus?.BAD_REQUEST,
-        "your mail not verified from google",
+        'your mail not verified from google',
       );
     }
 
@@ -290,7 +290,7 @@ const registerWithFacebook = async (payload: any, req: Request) => {
       }
 
       if (existingUser?.isDeleted) {
-        throw new AppError(httpStatus.FORBIDDEN, "This user is deleted");
+        throw new AppError(httpStatus.FORBIDDEN, 'This user is deleted');
       }
 
       const jwtPayload: { userId: string; role: string } = {
@@ -333,7 +333,7 @@ const registerWithFacebook = async (payload: any, req: Request) => {
     if (!user) {
       throw new AppError(
         httpStatus.INTERNAL_SERVER_ERROR,
-        "Failed to create user",
+        'Failed to create user',
       );
     }
 
@@ -372,16 +372,16 @@ const changePassword = async (
 ) => {
   const user = await User.IsUserExistId(id);
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
   if (!(await User.isPasswordMatched(payload?.oldPassword, user.password))) {
-    throw new AppError(httpStatus.FORBIDDEN, "Old password does not match");
+    throw new AppError(httpStatus.FORBIDDEN, 'Old password does not match');
   }
   if (payload?.newPassword !== payload?.confirmPassword) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "New password and confirm password do not match",
+      'New password and confirm password do not match',
     );
   }
 
@@ -402,31 +402,31 @@ const changePassword = async (
   );
 
   const ip =
-    req.headers["x-forwarded-for"]?.toString().split(",")[0] ||
+    req.headers['x-forwarded-for']?.toString().split(',')[0] ||
     req.socket.remoteAddress ||
-    "";
+    '';
 
-  const parser = new UAParser(req.headers["user-agent"]);
+  const parser = new UAParser(req.headers['user-agent']);
   const dev = parser.getResult();
   const geo = await getLocationFromIP(ip);
-  const device = dev.device.model || "Desktop";
+  const device = dev.device.model || 'Desktop';
   const otpEmailPath = path.join(
     __dirname,
-    "../../../../public/view/auth/password_changed.html",
+    '../../../../public/view/auth/password_changed.html',
   );
   const html = fs
-    .readFileSync(otpEmailPath, "utf8")
-    .replace("{{userName}}", user?.name)
-    .replace("{{deviceName}}", device)
-    .replace("{{ipAddress}}", ip)
-    .replace("{{changeTime}}", moment().format("lll"));
+    .readFileSync(otpEmailPath, 'utf8')
+    .replace('{{userName}}', user?.name)
+    .replace('{{deviceName}}', device)
+    .replace('{{ipAddress}}', ip)
+    .replace('{{changeTime}}', moment().format('lll'));
 
   const loginAlertMail = {
     email: result?.email,
-    subject: "Your Dayf Password Was Changed",
+    subject: 'Your Dayf Password Was Changed',
     html: html,
   };
-  sendMailQueue.add("new_mail", loginAlertMail);
+  sendMailQueue.add('new_mail', loginAlertMail);
   return result;
 };
 
@@ -435,10 +435,10 @@ const forgotPassword = async (email: string) => {
   const user = await User.isUserExist(email);
 
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
   if (user?.isDeleted) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
   const jwtPayload = {
@@ -447,22 +447,22 @@ const forgotPassword = async (email: string) => {
   };
 
   const token = jwt.sign(jwtPayload, config.jwt_access_secret as Secret, {
-    expiresIn: "3m",
+    expiresIn: '3m',
   });
 
   const currentTime = new Date();
   const otp = generateOtp();
-  const expiresAt = moment(currentTime).add(3, "minute");
+  const expiresAt = moment(currentTime).add(3, 'minute');
 
   await User.findByIdAndUpdate(user?._id, {
     needsPasswordChange: true,
-    "verification.otp": otp,
-    "verification.expiresAt": expiresAt,
+    'verification.otp': otp,
+    'verification.expiresAt': expiresAt,
   });
 
   const otpEmailPath = path.join(
     __dirname,
-    "../../../../public/view/forgot_pass_mail.html",
+    '../../../../public/view/forgot_pass_mail.html',
   );
 
   // await sendEmail(
@@ -471,14 +471,14 @@ const forgotPassword = async (email: string) => {
   //   fs.readFileSync(otpEmailPath, "utf8").replace("{{otp}}", otp),
   // );
 
-  const html = fs.readFileSync(otpEmailPath, "utf8").replace("{{otp}}", otp);
+  const html = fs.readFileSync(otpEmailPath, 'utf8').replace('{{otp}}', otp);
 
   const forgetPassAlertMail = {
-    email: email,
-    subject: "Your Dayf Password Reset Code",
+    email: user?.email,
+    subject: 'Your dayf booking Password Reset Code',
     html: html,
   };
-  sendMailQueue.add("new_mail", forgetPassAlertMail);
+  sendMailQueue.add('new_mail', forgetPassAlertMail);
 
   return { email, token };
 };
@@ -494,30 +494,30 @@ const resetPassword = async (token: string, payload: TResetPassword) => {
   } catch (err) {
     throw new AppError(
       httpStatus.UNAUTHORIZED,
-      "Session has expired. Please try again",
+      'Session has expired. Please try again',
     );
   }
 
   const user: IUser | null = await User.findById(decode?.userId).select(
-    "isDeleted verification",
+    'isDeleted verification',
   );
 
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
   if (new Date() > user?.verification?.expiresAt) {
-    throw new AppError(httpStatus.FORBIDDEN, "Session has expired");
+    throw new AppError(httpStatus.FORBIDDEN, 'Session has expired');
   }
 
   if (!user?.verification?.status) {
-    throw new AppError(httpStatus.FORBIDDEN, "OTP is not verified yet");
+    throw new AppError(httpStatus.FORBIDDEN, 'OTP is not verified yet');
   }
 
   if (payload?.newPassword !== payload?.confirmPassword) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "New password and confirm password do not match",
+      'New password and confirm password do not match',
     );
   }
 
@@ -546,12 +546,12 @@ const refreshToken = async (token: string) => {
   const user = await User.IsUserExistId(userId);
 
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
   const isDeleted = user?.isDeleted;
 
   if (isDeleted) {
-    throw new AppError(httpStatus.FORBIDDEN, "This user is deleted");
+    throw new AppError(httpStatus.FORBIDDEN, 'This user is deleted');
   }
 
   const jwtPayload: IJwtPayload = {
