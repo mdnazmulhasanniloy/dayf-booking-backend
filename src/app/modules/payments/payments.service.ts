@@ -319,9 +319,9 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
         model_type: modeType?.payments,
       };
 
-      notificationQueue.add("new_notification", userNotification);
-      notificationQueue.add("new_notification", authorNotification);
-      notificationQueue.add("new_notification", adminNotification);
+      await notificationQueue.add("new_notification", userNotification);
+      await notificationQueue.add("new_notification", authorNotification);
+      await notificationQueue.add("new_notification", adminNotification);
 
       if (admin?.email) {
         const paymentAdminEmailPath = path.join(
@@ -349,7 +349,7 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
           subject: "New Booking Payment Received",
           html: html,
         };
-        sendMailQueue.add("new_mail", adminPaymentAlertMail);
+        await sendMailQueue.add("new_mail", adminPaymentAlertMail);
       }
 
       if ((payment?.user as IUser)?.email) {
@@ -406,8 +406,8 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
           html: html,
           attachments: [await createReceiptAttachment(payment, bookings)],
         };
-        sendMailQueue.add("new_mail", userBookingConfirmAlertMail);
-        sendMailQueue.add("new_mail", userPaymentAlertMail);
+        await sendMailQueue.add("new_mail", userBookingConfirmAlertMail);
+        await sendMailQueue.add("new_mail", userPaymentAlertMail);
       }
 
       if (payment?.author) {
@@ -436,7 +436,7 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
           subject: "New Booking Confirmed for Your Property",
           html: html,
         };
-        sendMailQueue.add("new_mail", authorBookingAlertMail);
+        await sendMailQueue.add("new_mail", authorBookingAlertMail);
       }
 
       await Promise.all([
@@ -652,7 +652,7 @@ const processChargilyConfirmPayment = async (
       role: USER_ROLE.admin,
     });
 
-    notificationQueue.add("new_notification", {
+    await notificationQueue.add("new_notification", {
       receiver: (bookings.user as IUser)?._id,
       message: "Your booking payment was successful!",
       description: `Your payment for booking #${bookings?.bookingCode} has been successfully processed.`,
@@ -660,7 +660,7 @@ const processChargilyConfirmPayment = async (
       model_type: modeType.payments,
     });
 
-    notificationQueue.add("new_notification", {
+    await notificationQueue.add("new_notification", {
       receiver: (bookings.author as IUser)?._id,
       message: "A new booking payment has been received!",
       description: `User ${(payment.user as IUser).name} has completed payment for booking #${bookings?.bookingCode}.`,
@@ -668,7 +668,7 @@ const processChargilyConfirmPayment = async (
       model_type: modeType.payments,
     });
 
-    notificationQueue.add("new_notification", {
+    await notificationQueue.add("new_notification", {
       receiver: admin?._id,
       message: "A new booking payment has been processed!",
       description: `Booking payment #${bookings?.bookingCode} has been processed successfully.`,
@@ -698,7 +698,7 @@ const processChargilyConfirmPayment = async (
         subject: "New Booking Payment Received",
         html: html,
       };
-      sendMailQueue.add("new_mail", adminPaymentAlertMail);
+      await sendMailQueue.add("new_mail", adminPaymentAlertMail);
     }
 
     if ((payment?.user as IUser)?.email) {
@@ -749,8 +749,8 @@ const processChargilyConfirmPayment = async (
         html: html,
         attachments: [await createReceiptAttachment(payment, bookings)],
       };
-      sendMailQueue.add("new_mail", userBookingConfirmAlertMail);
-      sendMailQueue.add("new_mail", userPaymentAlertMail);
+      await sendMailQueue.add("new_mail", userBookingConfirmAlertMail);
+      await sendMailQueue.add("new_mail", userPaymentAlertMail);
     }
 
     if (payment?.author) {
@@ -776,7 +776,7 @@ const processChargilyConfirmPayment = async (
         subject: "New Booking Confirmed for Your Property",
         html: html,
       };
-      sendMailQueue.add("new_mail", authorBookingAlertMail);
+      await sendMailQueue.add("new_mail", authorBookingAlertMail);
     }
     // if (admin?.email) {
     //   const paymentAdminEmailPath = path.join(

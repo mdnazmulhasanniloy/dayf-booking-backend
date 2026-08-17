@@ -69,7 +69,7 @@ const runPostLoginTasks = async (
         .replace('{{ipAddress}}', ip)
         .replace('{{loginTime}}', moment().format('lll'));
 
-      sendMailQueue.add('new_mail', {
+      await sendMailQueue.add('new_mail', {
         email: user.email,
         subject: 'New Login to Your Dayf Account',
         html,
@@ -426,7 +426,7 @@ const changePassword = async (
     subject: 'Your Dayf Password Was Changed',
     html: html,
   };
-  sendMailQueue.add('new_mail', loginAlertMail);
+  await sendMailQueue.add('new_mail', loginAlertMail);
   return result;
 };
 
@@ -478,7 +478,7 @@ const forgotPassword = async (email: string) => {
     subject: 'Your dayf booking Password Reset Code',
     html: html,
   };
-  sendMailQueue.add('new_mail', forgetPassAlertMail);
+  await sendMailQueue.add('new_mail', forgetPassAlertMail);
 
   return { email, token };
 };

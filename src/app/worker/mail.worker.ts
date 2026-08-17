@@ -1,6 +1,7 @@
 import { Worker } from 'bullmq';
 import { connection } from '../redis';
 import { sendEmail } from '../utils/mailSender';
+import logger from '../utils/logger';
 
 const mailWorker = new Worker(
   'general_mail',
@@ -41,9 +42,15 @@ const mailWorker = new Worker(
 );
 
 mailWorker.on('completed', job => {
-  console.log(`✅ Mail Send Complete: ${job.id}`);
+  logger.info({ jobId: job.id, queue: job.queueName }, 'Mail job completed');
 });
 
 mailWorker.on('failed', (job, err) => {
-  console.error(`❌ Mail Send failed: ${job?.id}`, err);
+  logger.error({ err, jobId: job?.id, queue: job?.queueName }, 'Mail job failed');
 });
+
+mailWorker.on('error', error => {
+  logger.error({ err: error }, 'Mail worker Redis error');
+});
+
+export default mailWorker;

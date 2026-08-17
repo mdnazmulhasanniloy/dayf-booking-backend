@@ -10,11 +10,10 @@ import app from './app';
 import config from './app/config';
 import initializeSocketIO from './socket';
 import { defaultTask } from './app/utils/defaultTask';
-import './app/worker/mail.worker';
-import './app/worker/notification.worker';
-import firebaseAdmin from './app/utils/firebase';
-//@ts-ignore
-// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unused-vars
+import mailWorker from './app/worker/mail.worker';
+import notificationWorker from './app/worker/notification.worker';
+import { closeRedis, connectRedis } from './app/redis';
+
 const colors = require('colors');
 
 let server: Server;
@@ -59,6 +58,7 @@ async function main() {
 
   // console.log(customer);
   try {
+    await connectRedis();
     await mongoose.connect(config.database_url as string);
     defaultTask();
     server = app.listen(Number(config.port), config.ip as string, () => {
@@ -82,17 +82,37 @@ async function main() {
   }
 }
 main();
-process.on('unhandledRejection', err => {
-  console.log(`😈 unahandledRejection is detected , shutting down ...`, err);
-  if (server) {
-    server.close(() => {
-      process.exit(1);
-    });
-  }
-  process.exit(1);
-});
 
-process.on('uncaughtException', () => {
-  console.log(`😈 uncaughtException is detected , shutting down ...`);
-  process.exit(1);
+let isShuttingDown = false;
+
+const shutdown = async (reason: string, exitCode: number) => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  console.log(`Shutting down: ${reason}`);
+
+  const closeHttpServer = server
+    ? new Promise<void>(resolve => server.close(() => resolve()))
+    : Promise.resolve();
+
+  await Promise.allSettled([
+    closeHttpServer,
+    mailWorker.close(),
+    notificationWorker.close(),
+    closeRedis(),
+    mongoose.disconnect(),
+  ]);
+
+  io.close();
+  process.exit(exitCode);
+};
+
+process.on('SIGTERM', () => void shutdown('SIGTERM', 0));
+process.on('SIGINT', () => void shutdown('SIGINT', 0));
+process.on('unhandledRejection', error => {
+  console.error('Unhandled rejection:', error);
+  void shutdown('unhandledRejection', 1);
+});
+process.on('uncaughtException', error => {
+  console.error('Uncaught exception:', error);
+  void shutdown('uncaughtException', 1);
 });
