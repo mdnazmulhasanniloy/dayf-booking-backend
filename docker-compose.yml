@@ -14,8 +14,8 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
     ports:
-      - '1000:1000'
-      - '1005:1005'
+      - '1000:8000'
+      - '1005:8005'
     logging:
       driver: json-file
       options:

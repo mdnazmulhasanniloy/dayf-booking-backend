@@ -75,6 +75,6 @@ COPY --chown=node:node firebase.json ./firebase.json
 
 USER node
 
-EXPOSE 1000 1005
+EXPOSE 8000 8005
 
 CMD ["node", "dist/server.js"]
