@@ -8,18 +8,30 @@ export const sendEmail = async (
   html: string,
   attachments?: SendMailOptions['attachments'],
 ) => {
+  console.log('SMTP DEBUG', {
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    user: config.nodemailer_host_email,
+  });
+
   try {
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 587,
-      secure: config.NODE_ENV === 'production',
+      secure: false,
       auth: {
         // TODO: replace `user` and `pass` values from <https://forwardemail.net>
         user: config.nodemailer_host_email,
         pass: config.nodemailer_host_pass,
       },
     });
-    await transporter.sendMail({
+
+    await transporter.verify();
+
+    console.log('SMTP VERIFIED');
+
+   const info = await transporter.sendMail({
       from: 'nurmdopu428@gmail.com',
       to,
       subject,
@@ -27,6 +39,8 @@ export const sendEmail = async (
       html,
       attachments,
     });
+
+    console.log('EMAIL SENT:', info.messageId);
   } catch (error) {
     console.error('Email sending failed:', error);
     throw error;
