@@ -2,7 +2,6 @@ node_modules
 logs/
 **/logs/
 .env
-/k8s/secret.yaml
 .vercel
 nn.ts
 package-lock.json

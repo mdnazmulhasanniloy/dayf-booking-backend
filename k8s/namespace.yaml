@@ -1,6 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: dayf-booking
-  labels:
-    app.kubernetes.io/name: dayf-booking
