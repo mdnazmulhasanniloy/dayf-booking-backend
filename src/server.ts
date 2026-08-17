@@ -12,7 +12,8 @@ import initializeSocketIO from './socket';
 import { defaultTask } from './app/utils/defaultTask';
 import mailWorker from './app/worker/mail.worker';
 import notificationWorker from './app/worker/notification.worker';
-import { closeRedis, connectRedis } from './app/redis';
+import { closeRedis, connectRedis, pubClient, subClient } from './app/redis';
+import { createAdapter } from '@socket.io/redis-adapter';
 
 const colors = require('colors');
 
@@ -59,6 +60,7 @@ async function main() {
   // console.log(customer);
   try {
     await connectRedis();
+    io.adapter(createAdapter(pubClient, subClient));
     await mongoose.connect(config.database_url as string);
     defaultTask();
     server = app.listen(Number(config.port), config.ip as string, () => {

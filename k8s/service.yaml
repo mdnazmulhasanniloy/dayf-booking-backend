@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dayf-backend
+  namespace: dayf-booking
+  labels:
+    app.kubernetes.io/name: dayf-backend
+    app.kubernetes.io/part-of: dayf-booking
+spec:
+  type: ClusterIP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  selector:
+    app.kubernetes.io/name: dayf-backend
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+    - name: socket
+      port: 8005
+      targetPort: socket
+      protocol: TCP
