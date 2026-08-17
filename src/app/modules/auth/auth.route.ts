@@ -7,6 +7,7 @@ import { USER_ROLE } from '../user/user.constants';
 import {
   authRateLimiter,
   passwordResetRateLimiter,
+  tokenRateLimiter,
 } from '../../middleware/rateLimiter';
 
 const router = Router();
@@ -32,6 +33,7 @@ router.post(
 
 router.post(
   '/refresh-token',
+  tokenRateLimiter,
   validateRequest(authValidation.refreshTokenValidationSchema),
   authControllers.refreshToken,
 );

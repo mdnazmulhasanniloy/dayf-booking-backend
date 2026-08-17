@@ -5,6 +5,7 @@ import { User } from '../modules/user/user.models';
 import { Notification } from '../modules/notification/notification.model';
 import { getSocketId } from '../../socket';
 import { isValidObjectId } from 'mongoose';
+import logger from '../utils/logger';
 
 const notificationWorker = new Worker(
   'general_notification',
@@ -13,7 +14,6 @@ const notificationWorker = new Worker(
       // Producers currently enqueue the notification directly. Keep support
       // for the older { data: notification } shape as well.
       const payload = job.data?.data ?? job.data;
-      console.log(payload);
       try {
         const rawReceiver = payload?.receiver;
         const receiverId =
@@ -97,9 +97,21 @@ const notificationWorker = new Worker(
 );
 
 notificationWorker.on('completed', job => {
-  console.log(`✅ Job completed: ${job.id}`);
+  logger.info(
+    { jobId: job.id, queue: job.queueName },
+    'Notification job completed',
+  );
 });
 
 notificationWorker.on('failed', (job, err) => {
-  console.error(`❌ Job failed: ${job?.id}`, err);
+  logger.error(
+    { err, jobId: job?.id, queue: job?.queueName },
+    'Notification job failed',
+  );
 });
+
+notificationWorker.on('error', error => {
+  logger.error({ err: error }, 'Notification worker Redis error');
+});
+
+export default notificationWorker;

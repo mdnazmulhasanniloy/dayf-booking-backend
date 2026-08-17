@@ -13,9 +13,14 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
-    expose:
-      - '1000'
-      - '1005'
+    ports:
+      - '1000:1000'
+      - '1005:1005'
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
     depends_on:
       redis:
         condition: service_healthy
@@ -40,7 +45,11 @@ services:
     networks:
       - dayf_booking_net
     healthcheck:
-      test: ['CMD-SHELL', 'redis-cli --no-auth-warning -a "$$REDIS_PASSWORD" ping | grep -q PONG']
+      test:
+        [
+          'CMD-SHELL',
+          'redis-cli --no-auth-warning -a "$$REDIS_PASSWORD" ping | grep -q PONG',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -40,7 +40,7 @@ const createSupports = async (payload: ISupports, files: any) => {
     model_type: modeType.Supports,
   };
 
-  notificationQueue.add('new_notification', adminNotification);
+  await notificationQueue.add('new_notification', adminNotification);
 
   return result;
 };

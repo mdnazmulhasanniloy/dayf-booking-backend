@@ -75,7 +75,7 @@ const approvedApartment = catchAsync(async (req: Request, res: Response) => {
     model_type: modeType.Apartment,
   };
 
-  notificationQueue.add('new_notification', adminNotification);
+  await notificationQueue.add('new_notification', adminNotification);
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -96,7 +96,7 @@ const declinedApartment = catchAsync(async (req: Request, res: Response) => {
     model_type: modeType.Apartment,
   };
 
-  notificationQueue.add('new_notification', adminNotification);
+  await notificationQueue.add('new_notification', adminNotification);
   sendResponse(res, {
     statusCode: 200,
     success: true,

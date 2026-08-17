@@ -11,6 +11,7 @@ import handleCastError from '../error/CastError';
 import AppError from '../error/AppError';
 import { MulterError } from 'multer';
 import handelMulterError from '../error/MulterError';
+import logger from '../utils/logger';
 
 const globalErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
   if (res.headersSent) {
@@ -75,6 +76,18 @@ const globalErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
       },
     ];
   }
+
+  const requestLogger = (req as typeof req & { log?: typeof logger }).log;
+  (requestLogger || logger).error(
+    {
+      err,
+      requestId: req.id,
+      method: req.method,
+      url: req.originalUrl,
+      statusCode,
+    },
+    message,
+  );
 
   //ultimate return
   if (errorSources?.length !== 0) {
