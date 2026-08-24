@@ -32,6 +32,17 @@ const paymentsSchema = new Schema<IPayments>(
       required: true,
     },
 
+    baseAmount: { type: Number },
+
+    baseCurrency: {
+      type: String,
+      enum: ['DZD', 'EUR', 'USD'],
+    },
+
+    gatewayFee: { type: Number, default: 0 },
+
+    customerPaidAmount: { type: Number },
+
     currency: {
       type: String,
       enum: ['DZD', 'EUR', 'USD'],

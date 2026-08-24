@@ -533,7 +533,7 @@ const resetPassword = async (token: string, payload: TResetPassword) => {
       otp: 0,
       status: true,
     },
-  });
+  }).select('-password name email profile phoneNumber createdAt updatedAt');
 
   return result;
 };

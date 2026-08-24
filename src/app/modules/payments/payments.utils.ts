@@ -7,6 +7,7 @@ import { IUser } from '../user/user.interface';
 import { User } from '../user/user.models';
 import { IPayments } from './payments.interface';
 import { convertFromUsd } from '../../builder/exchangerateservice';
+import Payments from './payments.models';
 
 export const buildRedirectUrls = (paymentId: string, redirectType?: string) => {
   const success_url = `${config.server_url}/payments/confirm-payment?sessionId={CHECKOUT_SESSION_ID}&paymentId=${paymentId}&device=${redirectType ?? ''}`;
@@ -127,7 +128,8 @@ export const createChargilyCheckoutUrl = async (
     //@ts-ignore
     buildChargilyRedirectUrls(payment?._id?.toString(), redirectType);
   console.log({ success_url, failed_url, notification_url });
-  const amount = await convertFromUsd(payment?.amount, 'dzd');
+  const baseAmount = payment.baseAmount ?? payment.amount;
+  const amount = await convertFromUsd(baseAmount, 'dzd');
 
   const checkoutSession = await ChargilyService.createCheckout({
     amount,
@@ -136,6 +138,9 @@ export const createChargilyCheckoutUrl = async (
     failure_url: failed_url,
     webhook_endpoint: notification_url,
     customer_id: customerId,
+    // Keep the amount shown by Chargily equal to the booking checkout amount.
+    // Gateway fees are absorbed by the merchant instead of being added later.
+    chargily_pay_fees_allocation: 'merchant',
     metadata: {
       paymentId: payment._id?.toString(),
     },
@@ -147,6 +152,16 @@ export const createChargilyCheckoutUrl = async (
       'Failed to create Chargily checkout session',
     );
   }
+
+  await Payments.findByIdAndUpdate(payment._id, {
+    amount: checkoutSession.amount,
+    currency: checkoutSession.currency.toUpperCase(),
+    baseAmount,
+    baseCurrency: payment.baseCurrency ?? 'USD',
+    gatewayFee: checkoutSession.fees_on_customer ?? 0,
+    customerPaidAmount:
+      checkoutSession.amount + (checkoutSession.fees_on_customer ?? 0),
+  });
 
   return checkoutSession.checkout_url;
 };
