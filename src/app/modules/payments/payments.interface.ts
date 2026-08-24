@@ -20,6 +20,14 @@ export interface IPayments {
 
   amount: number;
 
+  baseAmount?: number;
+
+  baseCurrency?: TCurrency;
+
+  gatewayFee?: number;
+
+  customerPaidAmount?: number;
+
   currency: TCurrency;
 
   status: TPaymentStatus;

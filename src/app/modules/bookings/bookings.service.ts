@@ -224,9 +224,9 @@ const createBookings = async (payload: IBookings) => {
   const totalPrice = days * (referenceItem as IApartment)?.price;
   payload['totalPrice'] = totalPrice;
   const cancellationPolicy = await refundRequestService.getActivePolicy();
-  payload['depositAmount'] = Number(
-    (totalPrice * (cancellationPolicy.depositRate / 100)).toFixed(2),
-  );
+  // Bookings are paid in full. Keep these legacy summary fields consistent
+  // until they can be removed from the schema and downstream reports.
+  payload['depositAmount'] = totalPrice;
   payload.cancellationPolicySnapshot = {
     depositRate: cancellationPolicy.depositRate,
     freeCancellationDays: cancellationPolicy.freeCancellationDays,
@@ -240,9 +240,7 @@ const createBookings = async (payload: IBookings) => {
     hostSuspensionDays: cancellationPolicy.hostSuspensionDays,
     policyText: cancellationPolicy.policyText,
   };
-  payload['remainingAmount'] = Number(
-    (totalPrice - payload.depositAmount).toFixed(2),
-  );
+  payload['remainingAmount'] = 0;
   //@ts-ignore
   payload[author] = referenceItem?.author;
   //@ts-ignore
@@ -332,10 +330,10 @@ const createApartmentBooking = async (payload: IBookings) => {
     // Price
     const totalPrice = apartment.price * totalNights;
     const cancellationPolicy = await refundRequestService.getActivePolicy();
-    const depositAmount = Number(
-      (totalPrice * (cancellationPolicy.depositRate / 100)).toFixed(2),
-    );
-    const remainingAmount = Number((totalPrice - depositAmount).toFixed(2));
+    // Full-payment flow; depositAmount remains only for backwards-compatible
+    // consumers of the booking document.
+    const depositAmount = totalPrice;
+    const remainingAmount = 0;
     //@ts-ignore
     payload.reference = apartment._id;
     //@ts-ignore

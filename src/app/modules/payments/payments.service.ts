@@ -90,16 +90,29 @@ const checkout = async (payload: IPayments): Promise<string> => {
     paymentGateway: payload?.paymentGateway,
   });
 
-  const payment: IPayments =
-    existingPayment ??
-    (await Payments.create({
-      amount: bookings?.depositAmount,
-      author: bookings?.author,
-      user: bookings?.user,
-      bookings: bookings?._id,
-      status: PAYMENT_STATUS.pending,
-      paymentGateway: payload?.paymentGateway,
-    }));
+  const fullAmount = Number(bookings.totalPrice);
+  const payment: IPayments = existingPayment
+    ? ((await Payments.findByIdAndUpdate(
+        existingPayment._id,
+        {
+          amount: fullAmount,
+          currency: "USD",
+          baseAmount: fullAmount,
+          baseCurrency: "USD",
+        },
+        { new: true },
+      )) as IPayments)
+    : (await Payments.create({
+        amount: fullAmount,
+        currency: "USD",
+        baseAmount: fullAmount,
+        baseCurrency: "USD",
+        author: bookings?.author,
+        user: bookings?.user,
+        bookings: bookings?._id,
+        status: PAYMENT_STATUS.pending,
+        paymentGateway: payload?.paymentGateway,
+      }));
 
   if (!payment) {
     throw new AppError(
@@ -551,6 +564,16 @@ const processChargilyConfirmPayment = async (
       throw new AppError(httpStatus.NOT_FOUND, "Payment record not found.");
     }
 
+    if (
+      checkout.currency.toUpperCase() !== payments.currency?.toUpperCase() ||
+      checkout.amount !== payments.amount
+    ) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Chargily checkout amount or currency does not match this payment.",
+      );
+    }
+
     if (payments.status === PAYMENT_STATUS.paid) {
       // Chargily can deliver the same webhook more than once. Acknowledge an
       // already processed payment instead of running the booking flow again.
@@ -584,7 +607,11 @@ const processChargilyConfirmPayment = async (
         status: PAYMENT_STATUS.paid,
         tranId: checkout.invoice_id || checkout.id,
         paymentIntentId: checkout.id,
+        amount: checkout.amount,
         currency: checkout.currency.toUpperCase(),
+        gatewayFee: checkout.fees_on_customer ?? 0,
+        customerPaidAmount:
+          checkout.amount + (checkout.fees_on_customer ?? 0),
         payment_method: checkout.payment_method,
         paymentGateway: "chargily",
         paidAt,
