@@ -13,3 +13,5 @@ export enum BOOKING_STATUS {
   completed = 'completed', // guest checked out
   expired = 'expired', // payment timeout
 }
+
+export const ONLINE_DEPOSIT_RATE = 15;
