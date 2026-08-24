@@ -1,10 +1,7 @@
 services:
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    pull_policy: build
     image: nazmulhasn/dayf-booking-backend:latest
+    pull_policy: always
     container_name: dayf_booking_backend
     restart: unless-stopped
     env_file: .env

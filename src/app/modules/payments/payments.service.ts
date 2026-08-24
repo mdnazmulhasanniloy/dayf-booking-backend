@@ -9,7 +9,10 @@ import { IBookings } from "../bookings/bookings.interface";
 import { isValidObjectId, startSession } from "mongoose";
 import { PAYMENT_STATUS } from "./payments.constants";
 import { User } from "../user/user.models";
-import { BOOKING_STATUS } from "../bookings/bookings.constants";
+import {
+  BOOKING_STATUS,
+  ONLINE_DEPOSIT_RATE,
+} from "../bookings/bookings.constants";
 import { USER_ROLE } from "../user/user.constants";
 import { IUser } from "../user/user.interface";
 import { modeType } from "../notification/notification.interface";
@@ -90,22 +93,37 @@ const checkout = async (payload: IPayments): Promise<string> => {
     paymentGateway: payload?.paymentGateway,
   });
 
-  const fullAmount = Number(bookings.totalPrice);
+  const payableAmount = Number(
+    (bookings.totalPrice * (ONLINE_DEPOSIT_RATE / 100)).toFixed(2),
+  );
+
+  if (
+    bookings.depositAmount !== payableAmount ||
+    bookings.remainingAmount !==
+      Number((bookings.totalPrice - payableAmount).toFixed(2))
+  ) {
+    await Bookings.findByIdAndUpdate(bookings._id, {
+      depositAmount: payableAmount,
+      remainingAmount: Number(
+        (bookings.totalPrice - payableAmount).toFixed(2),
+      ),
+    });
+  }
   const payment: IPayments = existingPayment
     ? ((await Payments.findByIdAndUpdate(
         existingPayment._id,
         {
-          amount: fullAmount,
+          amount: payableAmount,
           currency: "USD",
-          baseAmount: fullAmount,
+          baseAmount: payableAmount,
           baseCurrency: "USD",
         },
         { new: true },
       )) as IPayments)
     : (await Payments.create({
-        amount: fullAmount,
+        amount: payableAmount,
         currency: "USD",
-        baseAmount: fullAmount,
+        baseAmount: payableAmount,
         baseCurrency: "USD",
         author: bookings?.author,
         user: bookings?.user,
