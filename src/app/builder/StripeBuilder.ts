@@ -156,7 +156,7 @@ class StripeServices<T> {
               product_data: {
                 name: product?.name,
               },
-              unit_amount: parseFloat((product?.amount * 100).toFixed(2)),
+              unit_amount: Math.round(product.amount * 100),
             },
             quantity: product?.quantity,
           },

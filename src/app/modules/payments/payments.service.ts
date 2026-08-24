@@ -198,6 +198,16 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
       }
     }
 
+    if (
+      charge.currency.toUpperCase() !== payments.currency?.toUpperCase() ||
+      charge.amount !== Math.round(payments.amount * 100)
+    ) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Stripe charge amount or currency does not match this payment.",
+      );
+    }
+
     if (payments.status === PAYMENT_STATUS.paid) {
       return {
         ...payments.toObject(),
@@ -234,7 +244,7 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
 
     // Create the output object
     const chargeDetails = {
-      amount: charge?.amount,
+      amount: charge.amount / 100,
       currency: charge?.currency,
       status: charge?.status,
       paymentMethod: charge?.payment_method,
@@ -250,7 +260,10 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
         status: PAYMENT_STATUS?.paid,
         paymentIntentId: paymentIntentId,
         tranId: charge?.balance_transaction,
-        currency: charge.currency,
+        amount: charge.amount / 100,
+        currency: charge.currency.toUpperCase(),
+        gatewayFee: 0,
+        customerPaidAmount: charge.amount / 100,
         payment_method: charge?.payment_method_details?.type,
         paymentGateway: "stripe",
         paidAt: paymentDate,

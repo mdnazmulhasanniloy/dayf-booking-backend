@@ -6,7 +6,10 @@ import AppError from '../../error/AppError';
 import { IUser } from '../user/user.interface';
 import { User } from '../user/user.models';
 import { IPayments } from './payments.interface';
-import { convertFromUsd } from '../../builder/exchangerateservice';
+import {
+  convertFromUsd,
+  previewConvertedAmount,
+} from '../../builder/exchangerateservice';
 import Payments from './payments.models';
 
 export const buildRedirectUrls = (paymentId: string, redirectType?: string) => {
@@ -69,19 +72,19 @@ export const createStripeCheckoutUrl = async (
     payment?._id.toString(),
     redirectType,
   );
-  let amount;
-  // console.log(currency?.toLocaleLowerCase());
+  const baseAmount = payment.baseAmount ?? payment.amount;
+  let amount: number;
   switch (currency?.toLowerCase()) {
     case 'usd':
-      amount = await convertFromUsd(payment.amount, 'usd');
+      amount = baseAmount;
       break;
 
     case 'eur':
-      amount = await convertFromUsd(payment.amount, 'eur');
+      amount = await previewConvertedAmount(baseAmount, 'eur');
       break;
 
     case 'dzd':
-      amount = await convertFromUsd(payment.amount, 'dzd');
+      amount = await previewConvertedAmount(baseAmount, 'dzd');
       break;
 
     default:
@@ -105,6 +108,23 @@ export const createStripeCheckoutUrl = async (
       'Failed to create Stripe checkout session',
     );
   }
+
+  const checkoutAmount = (checkoutSession.amount_total ?? 0) / 100;
+  if (!checkoutAmount || !checkoutSession.currency) {
+    throw new AppError(
+      httpStatus.BAD_GATEWAY,
+      'Stripe returned an invalid checkout amount or currency',
+    );
+  }
+
+  await Payments.findByIdAndUpdate(payment._id, {
+    amount: checkoutAmount,
+    currency: checkoutSession.currency.toUpperCase(),
+    baseAmount,
+    baseCurrency: payment.baseCurrency ?? 'USD',
+    gatewayFee: 0,
+    customerPaidAmount: checkoutAmount,
+  });
 
   return checkoutSession.url;
 };
