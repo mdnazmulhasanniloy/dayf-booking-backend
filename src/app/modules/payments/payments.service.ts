@@ -38,7 +38,31 @@ const formatPaymentDate = (value?: Date | string | null) => {
   return Number.isNaN(date.getTime()) ? "" : moment(date).format("lll");
 };
 
+const roundMoney = (value: number) => Number(value.toFixed(2));
+
+const getReceiptAmounts = (payment: any, booking: any) => {
+  const baseDeposit = Number(
+    payment.baseAmount ?? booking?.depositAmount ?? payment.amount ?? 0,
+  );
+  const paidAmount = Number(payment.amount ?? 0);
+  const exchangeRate = baseDeposit > 0 ? paidAmount / baseDeposit : 1;
+  const totalPrice = roundMoney(Number(booking?.totalPrice ?? 0) * exchangeRate);
+
+  return {
+    amount: paidAmount,
+    perNightPrice: roundMoney(
+      Number(booking?.reference?.price ?? 0) * exchangeRate,
+    ),
+    totalPrice,
+    depositAmount: paidAmount,
+    // Derive the due amount from the converted total so rounding never makes
+    // the receipt breakdown disagree with the amount actually paid.
+    remainingAmount: roundMoney(totalPrice - paidAmount),
+  };
+};
+
 const createReceiptAttachment = async (payment: any, booking: any) => {
+  const receiptAmounts = getReceiptAmounts(payment, booking);
   const pdfBuffer = await generateReceiptPdf({
     paymentId: payment.id,
     bookingId: booking?.bookingCode ?? "",
@@ -58,11 +82,7 @@ const createReceiptAttachment = async (payment: any, booking: any) => {
         : 0,
     guestName: payment?.user?.name ?? "Guest",
     guestEmail: payment?.user?.email ?? "",
-    amount: payment.amount,
-    perNightPrice: Number(booking?.reference?.price ?? 0),
-    totalPrice: Number(booking?.totalPrice ?? payment.amount ?? 0),
-    depositAmount: Number(booking?.depositAmount ?? payment.amount ?? 0),
-    remainingAmount: Number(booking?.remainingAmount ?? 0),
+    ...receiptAmounts,
     currency: payment.currency ?? "USD",
     paymentMethod: String(payment.payment_method ?? "card"),
     paymentGateway: payment.paymentGateway ?? "stripe",
@@ -1091,6 +1111,7 @@ const downloadReceipt = async (id: string) => {
   const booking = payment.bookings as IBookings & {
     reference?: IApartment;
   };
+  const receiptAmounts = getReceiptAmounts(payment, booking);
 
   const pdfBuffer = await generateReceiptPdf({
     paymentId: payment.id,
@@ -1111,11 +1132,7 @@ const downloadReceipt = async (id: string) => {
         : 0,
     guestName: (payment.user as any)?.name ?? "Guest",
     guestEmail: (payment.user as any)?.email ?? "",
-    amount: payment.amount,
-    perNightPrice: Number(booking?.reference?.price ?? 0),
-    totalPrice: Number(booking?.totalPrice ?? payment.amount ?? 0),
-    depositAmount: Number(booking?.depositAmount ?? payment.amount ?? 0),
-    remainingAmount: Number(booking?.remainingAmount ?? 0),
+    ...receiptAmounts,
     currency: payment.currency ?? "USD",
     paymentMethod: String(payment.payment_method ?? "card"),
     paymentGateway: payment.paymentGateway ?? "stripe",
