@@ -653,15 +653,15 @@ const completeBooking = async (id: string) => {
 
   const userNotification = {
     receiver: result?.user,
-    message: 'Booking Completion Confirmation',
-    description: `Your booking with ID: ${result._id} has been successfully completed. Thank you for choosing our services. We hope you had a pleasant experience.`,
+    message: 'Your stay is complete',
+    description: `Booking ${result.bookingCode} has been marked as completed. Thank you for choosing DAYF Booking.`,
     refference: result?._id,
     model_type: modeType.Bookings,
   };
   const authorNotification = {
     receiver: result?.author,
-    message: 'Booking Completion Confirmation',
-    description: `A booking at your property with ID: ${result._id} has been marked as completed.`,
+    message: 'Booking completed',
+    description: `Booking ${result.bookingCode} at your property has been marked as completed.`,
     refference: result?._id,
     model_type: modeType.Bookings,
   };

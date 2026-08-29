@@ -34,8 +34,8 @@ const createSupports = async (payload: ISupports, files: any) => {
   const admin = await User.findOne({ role: USER_ROLE.admin });
   const adminNotification = {
     receiver: admin?._id,
-    message: `New support message submitted`,
-    description: `${payload.name} submit a message. subject:${payload?.subject}`,
+    message: 'New support request',
+    description: `${payload.name} submitted a support request${payload.subject ? `: ${payload.subject}` : '.'}`,
     refference: result?._id,
     model_type: modeType.Supports,
   };

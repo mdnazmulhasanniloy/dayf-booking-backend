@@ -363,22 +363,22 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
       const admin = await User.findOne({ role: USER_ROLE.admin });
       const userNotification = {
         receiver: bookings?.user, // User
-        message: "Your booking payment was successful!",
-        description: `Your payment for booking ID #${bookings?.bookingCode} has been successfully processed. Thank you for choosing us!`,
+        message: "Payment successful",
+        description: `Your payment for booking ${bookings?.bookingCode} was processed successfully. Your booking is confirmed.`,
         refference: payment?._id,
         model_type: modeType?.payments,
       };
       const authorNotification = {
         receiver: bookings?.author,
-        message: "A new booking payment has been received!",
-        description: `User ${(payment?.user as IUser)?.name} has completed payment for booking ID #${bookings?.id} in your property.`,
+        message: "New booking payment received",
+        description: `${(payment?.user as IUser)?.name || 'A guest'} completed payment for booking ${bookings?.bookingCode} at your property.`,
         refference: payment?._id,
         model_type: modeType?.payments,
       };
       const adminNotification = {
         receiver: admin?._id, // System Admin
-        message: "A new booking payment has been processed!",
-        description: `Payment with ID ${bookings?.id} for a hotel/apartment booking has been successfully processed.`,
+        message: "Booking payment processed",
+        description: `Payment for booking ${bookings?.bookingCode} was processed successfully.`,
         refference: payment?._id,
         model_type: modeType?.payments,
       };
@@ -732,24 +732,24 @@ const processChargilyConfirmPayment = async (
 
     await notificationQueue.add("new_notification", {
       receiver: (bookings.user as IUser)?._id,
-      message: "Your booking payment was successful!",
-      description: `Your payment for booking #${bookings?.bookingCode} has been successfully processed.`,
+      message: "Payment successful",
+      description: `Your payment for booking ${bookings?.bookingCode} was processed successfully. Your booking is confirmed.`,
       refference: payment._id,
       model_type: modeType.payments,
     });
 
     await notificationQueue.add("new_notification", {
       receiver: (bookings.author as IUser)?._id,
-      message: "A new booking payment has been received!",
-      description: `User ${(payment.user as IUser).name} has completed payment for booking #${bookings?.bookingCode}.`,
+      message: "New booking payment received",
+      description: `${(payment.user as IUser)?.name || 'A guest'} completed payment for booking ${bookings?.bookingCode} at your property.`,
       refference: payment._id,
       model_type: modeType.payments,
     });
 
     await notificationQueue.add("new_notification", {
       receiver: admin?._id,
-      message: "A new booking payment has been processed!",
-      description: `Booking payment #${bookings?.bookingCode} has been processed successfully.`,
+      message: "Booking payment processed",
+      description: `Payment for booking ${bookings?.bookingCode} was processed successfully.`,
       refference: payment._id,
       model_type: modeType.payments,
     });
