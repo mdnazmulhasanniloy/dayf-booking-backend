@@ -36,6 +36,7 @@ const getBookMarkById = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
 const updateBookMark = catchAsync(async (req: Request, res: Response) => {
   const result = await bookMarkService.updateBookMark(req.params.id, req.body);
   sendResponse(res, {

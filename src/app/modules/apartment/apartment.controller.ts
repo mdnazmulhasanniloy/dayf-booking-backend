@@ -67,15 +67,15 @@ const approvedApartment = catchAsync(async (req: Request, res: Response) => {
     status: APARTMENT_STATUS.approved,
   });
 
-  const adminNotification = {
+  const ownerNotification = {
     receiver: result.author,
-    message: `Approval Request: ${result?.name || 'New Apartment'}`,
-    description: `A user has submitted a new apartment for approval. Please review the listing and take the appropriate action.`,
+    message: 'Property approved',
+    description: `Your property, ${result.name || 'the submitted property'}, has been approved and is now available for bookings.`,
     refference: result?._id,
     model_type: modeType.Apartment,
   };
 
-  await notificationQueue.add('new_notification', adminNotification);
+  await notificationQueue.add('new_notification', ownerNotification);
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -88,15 +88,15 @@ const declinedApartment = catchAsync(async (req: Request, res: Response) => {
     status: APARTMENT_STATUS.declined,
   });
 
-  const adminNotification = {
+  const ownerNotification = {
     receiver: result.author,
-    message: `Approval Request: ${result?.name || 'New Apartment'}`,
-    description: `A user has submitted a new apartment for approval. Please review the listing and take the appropriate action.`,
+    message: 'Property approval declined',
+    description: `Your property, ${result.name || 'the submitted property'}, was not approved. Please review the listing details and submit it again after making the necessary updates.`,
     refference: result?._id,
     model_type: modeType.Apartment,
   };
 
-  await notificationQueue.add('new_notification', adminNotification);
+  await notificationQueue.add('new_notification', ownerNotification);
   sendResponse(res, {
     statusCode: 200,
     success: true,

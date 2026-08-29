@@ -54,14 +54,15 @@ const notificationWorker = new Worker(
                 token: user.fcmToken,
 
                 notification: {
-                  title: payload.title,
-                  body: payload.message,
+                  title: payload.message,
+                  body: payload.description || payload.message,
                 },
 
                 data: {
                   notificationId: saved._id.toString(),
                   receiver: receiverId,
                   message: String(payload.message ?? ''),
+                  description: String(payload.description ?? ''),
                   model_type: String(payload.model_type ?? ''),
                   refference: String(payload.refference ?? ''),
                 },

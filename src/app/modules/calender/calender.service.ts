@@ -49,11 +49,7 @@ const updateCalender = async (id: string, payload: Partial<ICalender>) => {
 };
 
 const deleteCalender = async (id: string) => {
-  const result = await Calender.findByIdAndUpdate(
-    id,
-    { isDeleted: true },
-    { new: true },
-  );
+  const result = await Calender.findByIdAndDelete(id);
   if (!result) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Failed to delete calender');
   }

@@ -52,8 +52,8 @@ const createApartment = async (payload: IApartment, files: any) => {
 
     await notificationQueue.add('new_notification', {
       receiver: admin._id,
-      message: `Approval Request: ${result?.name || 'New Apartment'}`,
-      description: `A user has submitted a new apartment for approval. Please review the listing and take the appropriate action.`,
+      message: 'New property awaiting approval',
+      description: `${result.name || 'A new property'} has been submitted and is ready for your review.`,
       refference: result._id,
       model_type: modeType.Apartment,
     });
