@@ -6,8 +6,8 @@ export interface IContents {
   _id?: string;
   createdBy: ObjectId;
   aboutUs?: string;
-  commotionForRooms?: Number;
-  commotionForApartment?: Number;
+  commissionForRooms?: Number;
+  commissionForApartment?: Number;
   termsAndConditions?: string;
   topSectionImage: { key: string; url: string }[];
   whyChooseUsSectionImage: { key: string; url: string }[];

@@ -19,11 +19,11 @@ const contentsSchema = new Schema<IContents>(
       type: String,
       default: null,
     },
-    commotionForApartment: {
+    commissionForApartment: {
       type: Number,
       default: 8,
     },
-    commotionForRooms: {
+    commissionForRooms: {
       type: Number,
       default: 10,
     },

@@ -14,4 +14,4 @@ export enum BOOKING_STATUS {
   expired = 'expired', // payment timeout
 }
 
-export const ONLINE_DEPOSIT_RATE = 15;
+ 
