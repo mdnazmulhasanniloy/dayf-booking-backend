@@ -1,41 +1,39 @@
-import { IApartment } from "./../apartment/apartment.interface";
-import httpStatus from "http-status";
-import { IPayments } from "./payments.interface";
-import Payments from "./payments.models";
-import QueryBuilder from "../../builder/QueryBuilder";
-import AppError from "../../error/AppError";
-import Bookings from "../bookings/bookings.models";
-import { IBookings } from "../bookings/bookings.interface";
-import { isValidObjectId, startSession } from "mongoose";
-import { PAYMENT_STATUS } from "./payments.constants";
-import { User } from "../user/user.models";
-import {
-  BOOKING_STATUS,
-  ONLINE_DEPOSIT_RATE,
-} from "../bookings/bookings.constants";
-import { USER_ROLE } from "../user/user.constants";
-import { IUser } from "../user/user.interface";
-import { modeType } from "../notification/notification.interface";
-import StripeService from "../../builder/StripeBuilder";
-import { Response } from "express";
-import moment from "moment";
-import { notificationQueue, sendMailQueue } from "../../redis";
-import ChargilyService from "../../builder/Chargily";
+import { IApartment } from './../apartment/apartment.interface';
+import httpStatus from 'http-status';
+import { IPayments } from './payments.interface';
+import Payments from './payments.models';
+import QueryBuilder from '../../builder/QueryBuilder';
+import AppError from '../../error/AppError';
+import Bookings from '../bookings/bookings.models';
+import { IBookings } from '../bookings/bookings.interface';
+import { isValidObjectId, startSession } from 'mongoose';
+import { PAYMENT_STATUS } from './payments.constants';
+import { User } from '../user/user.models';
+import { BOOKING_STATUS } from '../bookings/bookings.constants';
+import { USER_ROLE } from '../user/user.constants';
+import { IUser } from '../user/user.interface';
+import { modeType } from '../notification/notification.interface';
+import StripeService from '../../builder/StripeBuilder';
+import { Response } from 'express';
+import moment from 'moment';
+import { notificationQueue, sendMailQueue } from '../../redis';
+import ChargilyService from '../../builder/Chargily';
 import {
   createChargilyCheckoutUrl,
   createStripeCheckoutUrl,
-} from "./payments.utils";
-import Calender from "../calender/calender.models";
-import path from "path";
-import fs from "fs";
-import config from "../../config";
-import { generateReceiptPdf } from "../../utils/generateReceiptPdf";
-import { sendSmsSafely } from "../../utils/smsSender";
+} from './payments.utils';
+import Calender from '../calender/calender.models';
+import path from 'path';
+import fs from 'fs';
+import config from '../../config';
+import { generateReceiptPdf } from '../../utils/generateReceiptPdf';
+import { sendSmsSafely } from '../../utils/smsSender';
+import Contents from '../contents/contents.models';
 
 const formatPaymentDate = (value?: Date | string | null) => {
-  if (!value) return "";
+  if (!value) return '';
   const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? "" : moment(date).format("lll");
+  return Number.isNaN(date.getTime()) ? '' : moment(date).format('lll');
 };
 
 const roundMoney = (value: number) => Number(value.toFixed(2));
@@ -46,7 +44,9 @@ const getReceiptAmounts = (payment: any, booking: any) => {
   );
   const paidAmount = Number(payment.amount ?? 0);
   const exchangeRate = baseDeposit > 0 ? paidAmount / baseDeposit : 1;
-  const totalPrice = roundMoney(Number(booking?.totalPrice ?? 0) * exchangeRate);
+  const totalPrice = roundMoney(
+    Number(booking?.totalPrice ?? 0) * exchangeRate,
+  );
 
   return {
     amount: paidAmount,
@@ -65,45 +65,45 @@ const createReceiptAttachment = async (payment: any, booking: any) => {
   const receiptAmounts = getReceiptAmounts(payment, booking);
   const pdfBuffer = await generateReceiptPdf({
     paymentId: payment.id,
-    bookingId: booking?.bookingCode ?? "",
-    apartmentName: booking?.reference?.name ?? "Apartment",
+    bookingId: booking?.bookingCode ?? '',
+    apartmentName: booking?.reference?.name ?? 'Apartment',
     checkIn: booking?.startDate
-      ? new Date(booking.startDate).toLocaleDateString("en-GB")
-      : "",
+      ? new Date(booking.startDate).toLocaleDateString('en-GB')
+      : '',
     checkOut: booking?.endDate
-      ? new Date(booking.endDate).toLocaleDateString("en-GB")
-      : "",
+      ? new Date(booking.endDate).toLocaleDateString('en-GB')
+      : '',
     durationNights:
       booking?.startDate && booking?.endDate
         ? Math.max(
-            moment(booking.endDate).diff(moment(booking.startDate), "days"),
+            moment(booking.endDate).diff(moment(booking.startDate), 'days'),
             0,
           )
         : 0,
-    guestName: payment?.user?.name ?? "Guest",
-    guestEmail: payment?.user?.email ?? "",
+    guestName: payment?.user?.name ?? 'Guest',
+    guestEmail: payment?.user?.email ?? '',
     ...receiptAmounts,
-    currency: payment.currency ?? "USD",
-    paymentMethod: String(payment.payment_method ?? "card"),
-    paymentGateway: payment.paymentGateway ?? "stripe",
+    currency: payment.currency ?? 'USD',
+    paymentMethod: String(payment.payment_method ?? 'card'),
+    paymentGateway: payment.paymentGateway ?? 'stripe',
     paymentDate: formatPaymentDate(payment.paidAt),
     hostName: payment?.author?.name,
   });
 
   return {
     filename: `receipt-${payment.id}.pdf`,
-    contentBase64: pdfBuffer.toString("base64"),
-    contentType: "application/pdf",
+    contentBase64: pdfBuffer.toString('base64'),
+    contentType: 'application/pdf',
   };
 };
 
 const checkout = async (payload: IPayments): Promise<string> => {
   const bookings: IBookings | null = await Bookings?.findById(
     payload?.bookings,
-  ).populate([{ path: "reference" }]);
+  ).populate([{ path: 'reference' }]);
 
   if (!bookings) {
-    throw new AppError(httpStatus.NOT_FOUND, "Booking Not Found!");
+    throw new AppError(httpStatus.NOT_FOUND, 'Booking Not Found!');
   }
 
   const existingPayment: IPayments | null = await Payments.findOne({
@@ -112,9 +112,14 @@ const checkout = async (payload: IPayments): Promise<string> => {
     user: payload?.user,
     paymentGateway: payload?.paymentGateway,
   });
-
+  const depositRate = await Contents.findOne({
+    key: 'commissionForApartment',
+  }).lean();
   const payableAmount = Number(
-    (bookings.totalPrice * (ONLINE_DEPOSIT_RATE / 100)).toFixed(2),
+    (
+      bookings.totalPrice *
+      (Number(depositRate?.commissionForApartment) ?? 15 / 100)
+    ).toFixed(2),
   );
 
   if (
@@ -124,9 +129,7 @@ const checkout = async (payload: IPayments): Promise<string> => {
   ) {
     await Bookings.findByIdAndUpdate(bookings._id, {
       depositAmount: payableAmount,
-      remainingAmount: Number(
-        (bookings.totalPrice - payableAmount).toFixed(2),
-      ),
+      remainingAmount: Number((bookings.totalPrice - payableAmount).toFixed(2)),
     });
   }
   const payment: IPayments = existingPayment
@@ -134,39 +137,39 @@ const checkout = async (payload: IPayments): Promise<string> => {
         existingPayment._id,
         {
           amount: payableAmount,
-          currency: "USD",
+          currency: 'USD',
           baseAmount: payableAmount,
-          baseCurrency: "USD",
+          baseCurrency: 'USD',
         },
         { new: true },
       )) as IPayments)
-    : (await Payments.create({
+    : await Payments.create({
         amount: payableAmount,
-        currency: "USD",
+        currency: 'USD',
         baseAmount: payableAmount,
-        baseCurrency: "USD",
+        baseCurrency: 'USD',
         author: bookings?.author,
         user: bookings?.user,
         bookings: bookings?._id,
         status: PAYMENT_STATUS.pending,
         paymentGateway: payload?.paymentGateway,
-      }));
+      });
 
   if (!payment) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Failed to create payment record",
+      'Failed to create payment record',
     );
   }
 
   switch (payload.paymentGateway) {
-    case "stripe":
+    case 'stripe':
       return createStripeCheckoutUrl(
         payment,
         payload?.redirectType,
-        payload?.currency?.toLocaleLowerCase() ?? "usd",
+        payload?.currency?.toLocaleLowerCase() ?? 'usd',
       );
-    case "chargily":
+    case 'chargily':
       return createChargilyCheckoutUrl(
         payment,
         payload?.redirectType,
@@ -175,7 +178,7 @@ const checkout = async (payload: IPayments): Promise<string> => {
     default:
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "Invalid Payment gateway selected",
+        'Invalid Payment gateway selected',
       );
   }
 };
@@ -193,16 +196,16 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
       status: PAYMENT_STATUS.failed,
     });
 
-    if (device === "website") {
+    if (device === 'website') {
       throw res.redirect(
         `${config.client_Url}/booking/failed?message=${encodeURIComponent(
-          "Payment session is not completed",
+          'Payment session is not completed',
         )}&paymentId=${paymentId}`,
       );
     } else {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "Payment session is not completed",
+        'Payment session is not completed',
       );
     }
   }
@@ -212,27 +215,27 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
       paymentIntent.latest_charge as string,
     );
     if (charge?.refunded) {
-      if (device === "website") {
+      if (device === 'website') {
         throw res.redirect(
           `${config.client_Url}/booking/failed?message=${encodeURIComponent(
-            "Payment has been refunded",
+            'Payment has been refunded',
           )}&paymentId=${paymentId}`,
         );
       } else {
-        throw new AppError(httpStatus.BAD_REQUEST, "Payment has been refunded");
+        throw new AppError(httpStatus.BAD_REQUEST, 'Payment has been refunded');
       }
     }
     const paymentDate = moment.unix(charge.created).toDate();
     const payments = await Payments.findById(paymentId);
     if (!payments) {
-      if (device === "website") {
+      if (device === 'website') {
         throw res.redirect(
           `${config.client_Url}/booking/failed?message=${encodeURIComponent(
-            "Payment record not found.",
+            'Payment record not found.',
           )}&paymentId=${paymentId}`,
         );
       } else {
-        throw new AppError(httpStatus.BAD_REQUEST, "Payment record not found.");
+        throw new AppError(httpStatus.BAD_REQUEST, 'Payment record not found.');
       }
     }
 
@@ -242,7 +245,7 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
     ) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "Stripe charge amount or currency does not match this payment.",
+        'Stripe charge amount or currency does not match this payment.',
       );
     }
 
@@ -253,29 +256,29 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
         alreadyProcessed: true,
       };
     } else if (payments.status === PAYMENT_STATUS.failed) {
-      if (device === "website") {
+      if (device === 'website') {
         throw res.redirect(
           `${config.client_Url}/booking/failed?message=${encodeURIComponent(
-            "This payment has already failed. Please create a new payment and try again.",
+            'This payment has already failed. Please create a new payment and try again.',
           )}&paymentId=${paymentId}`,
         );
       } else {
         throw new AppError(
           httpStatus.BAD_REQUEST,
-          "This payment has already failed. Please create a new payment and try again.",
+          'This payment has already failed. Please create a new payment and try again.',
         );
       }
     } else if (payments.status === PAYMENT_STATUS.refunded) {
-      if (device === "website") {
+      if (device === 'website') {
         throw res.redirect(
           `${config.client_Url}/booking/failed?message=${encodeURIComponent(
-            "This payment has already been refunded.",
+            'This payment has already been refunded.',
           )}&paymentId=${paymentId}`,
         );
       } else {
         throw new AppError(
           httpStatus.BAD_REQUEST,
-          "This payment has already been refunded.",
+          'This payment has already been refunded.',
         );
       }
     }
@@ -303,24 +306,24 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
         gatewayFee: 0,
         customerPaidAmount: charge.amount / 100,
         payment_method: charge?.payment_method_details?.type,
-        paymentGateway: "stripe",
+        paymentGateway: 'stripe',
         paidAt: paymentDate,
       },
       { new: true, session },
     ).populate([
-      { path: "user", select: "name _id email phoneNumber profile " },
-      { path: "author", select: "name _id email phoneNumber profile" },
+      { path: 'user', select: 'name _id email phoneNumber profile ' },
+      { path: 'author', select: 'name _id email phoneNumber profile' },
     ]);
 
     if (!payment) {
-      if (device === "website") {
+      if (device === 'website') {
         throw res.redirect(
           `${config.client_Url}/booking/failed?message=${encodeURIComponent(
-            "Payment Not Found!",
+            'Payment Not Found!',
           )}&paymentId=${paymentId}`,
         );
       } else {
-        throw new AppError(httpStatus.BAD_REQUEST, "Payment Not Found!");
+        throw new AppError(httpStatus.BAD_REQUEST, 'Payment Not Found!');
       }
     }
     const bookings = await Bookings.findByIdAndUpdate(
@@ -334,13 +337,13 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
       },
       { new: true, session },
     ).populate([
-      { path: "reference" },
-      { path: "author", select: "name email phoneNumber profile" },
-      { path: "user", select: "name email phoneNumber profile" },
+      { path: 'reference' },
+      { path: 'author', select: 'name email phoneNumber profile' },
+      { path: 'user', select: 'name email phoneNumber profile' },
     ]);
 
     if (!bookings) {
-      throw new AppError(httpStatus.NOT_FOUND, "Booking not found for payment");
+      throw new AppError(httpStatus.NOT_FOUND, 'Booking not found for payment');
     }
 
     await Calender.updateMany(
@@ -363,144 +366,144 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
       const admin = await User.findOne({ role: USER_ROLE.admin });
       const userNotification = {
         receiver: bookings?.user, // User
-        message: "Payment successful",
+        message: 'Payment successful',
         description: `Your payment for booking ${bookings?.bookingCode} was processed successfully. Your booking is confirmed.`,
         refference: payment?._id,
         model_type: modeType?.payments,
       };
       const authorNotification = {
         receiver: bookings?.author,
-        message: "New booking payment received",
+        message: 'New booking payment received',
         description: `${(payment?.user as IUser)?.name || 'A guest'} completed payment for booking ${bookings?.bookingCode} at your property.`,
         refference: payment?._id,
         model_type: modeType?.payments,
       };
       const adminNotification = {
         receiver: admin?._id, // System Admin
-        message: "Booking payment processed",
+        message: 'Booking payment processed',
         description: `Payment for booking ${bookings?.bookingCode} was processed successfully.`,
         refference: payment?._id,
         model_type: modeType?.payments,
       };
 
-      await notificationQueue.add("new_notification", userNotification);
-      await notificationQueue.add("new_notification", authorNotification);
-      await notificationQueue.add("new_notification", adminNotification);
+      await notificationQueue.add('new_notification', userNotification);
+      await notificationQueue.add('new_notification', authorNotification);
+      await notificationQueue.add('new_notification', adminNotification);
 
       if (admin?.email) {
         const paymentAdminEmailPath = path.join(
           __dirname,
-          "../../../../public/view/payment/payment_success_for_admin.html",
+          '../../../../public/view/payment/payment_success_for_admin.html',
         );
 
         const html = fs
-          .readFileSync(paymentAdminEmailPath, "utf8")
-          .replace("{{paymentId}}", payment?.id)
-          .replace("{{bookingId}}", `${bookings?.bookingCode}`)
+          .readFileSync(paymentAdminEmailPath, 'utf8')
+          .replace('{{paymentId}}', payment?.id)
+          .replace('{{bookingId}}', `${bookings?.bookingCode}`)
           .replace(
-            "{{apartmentName}}",
+            '{{apartmentName}}',
             (bookings?.reference as IApartment)?.name,
           )
-          .replace("{{amount}}", payment?.amount?.toString())
-          .replace("{{currency}}", payment?.currency?.toUpperCase())
-          .replace("{{transitionId}}", `${payment?.tranId}`)
-          .replace("{{paymentMethod}}", `${payment?.paymentGateway}`)
-          .replace("{{paymentDate}}", formatPaymentDate(payment?.paidAt))
-          .replace("{{userName}}", (payment?.user as IUser)?.name);
+          .replace('{{amount}}', payment?.amount?.toString())
+          .replace('{{currency}}', payment?.currency?.toUpperCase())
+          .replace('{{transitionId}}', `${payment?.tranId}`)
+          .replace('{{paymentMethod}}', `${payment?.paymentGateway}`)
+          .replace('{{paymentDate}}', formatPaymentDate(payment?.paidAt))
+          .replace('{{userName}}', (payment?.user as IUser)?.name);
 
         const adminPaymentAlertMail = {
           email: admin?.email,
-          subject: "New Booking Payment Received",
+          subject: 'New Booking Payment Received',
           html: html,
         };
-        await sendMailQueue.add("new_mail", adminPaymentAlertMail);
+        await sendMailQueue.add('new_mail', adminPaymentAlertMail);
       }
 
       if ((payment?.user as IUser)?.email) {
         const paymentUserEmailPath = path.join(
           __dirname,
-          "../../../../public/view/payment/payment_success_for_user.html",
+          '../../../../public/view/payment/payment_success_for_user.html',
         );
         const bookingUserEmailPath = path.join(
           __dirname,
-          "../../../../public/view/booking/booking_confirm_for_user.html",
+          '../../../../public/view/booking/booking_confirm_for_user.html',
         );
         const html = fs
-          .readFileSync(paymentUserEmailPath, "utf8")
-          .replace("{{hostName}}", (payment?.author as IUser)?.name)
-          .replace("{{paymentId}}", payment?.id)
-          .replace("{{bookingId}}", `${bookings?.bookingCode}`)
+          .readFileSync(paymentUserEmailPath, 'utf8')
+          .replace('{{hostName}}', (payment?.author as IUser)?.name)
+          .replace('{{paymentId}}', payment?.id)
+          .replace('{{bookingId}}', `${bookings?.bookingCode}`)
           .replace(
-            "{{apartmentName}}",
+            '{{apartmentName}}',
             (bookings?.reference as IApartment)?.name,
           )
-          .replace("{{amount}}", payment?.amount?.toString())
-          .replace("{{currency}}", payment?.currency?.toUpperCase())
-          .replace("{{transitionId}}", `${payment?.tranId}`)
-          .replace("{{paymentMethod}}", `${payment?.paymentGateway}`)
-          .replace("{{paymentDate}}", formatPaymentDate(payment?.paidAt))
-          .replace("{{userName}}", (payment?.user as IUser)?.name)
+          .replace('{{amount}}', payment?.amount?.toString())
+          .replace('{{currency}}', payment?.currency?.toUpperCase())
+          .replace('{{transitionId}}', `${payment?.tranId}`)
+          .replace('{{paymentMethod}}', `${payment?.paymentGateway}`)
+          .replace('{{paymentDate}}', formatPaymentDate(payment?.paidAt))
+          .replace('{{userName}}', (payment?.user as IUser)?.name)
           .replace(
-            "{{receiptUrl}}",
+            '{{receiptUrl}}',
             `${config?.server_url}/payments/receipt/${paymentId}`,
           );
 
         const bookingConfirmHtml = fs
-          .readFileSync(bookingUserEmailPath, "utf8")
-          .replace("{{userName}}", (payment?.user as IUser)?.name)
-          .replace("{{bookingId}}", `${bookings?.bookingCode}`)
+          .readFileSync(bookingUserEmailPath, 'utf8')
+          .replace('{{userName}}', (payment?.user as IUser)?.name)
+          .replace('{{bookingId}}', `${bookings?.bookingCode}`)
           .replace(
-            "{{apartmentName}}",
+            '{{apartmentName}}',
             (bookings?.reference as IApartment)?.name,
           )
-          .replace("{{checkIn}}", moment(bookings?.startDate).format("ll"))
-          .replace("{{checkOut}}", moment(bookings?.endDate).format("ll"))
-          .replace("{{guests}}", `${bookings?.guest?.toString() ?? ""}`)
-          .replace("{{amount}}", payment?.amount?.toString())
-          .replace("{{currency}}", payment?.currency?.toUpperCase());
+          .replace('{{checkIn}}', moment(bookings?.startDate).format('ll'))
+          .replace('{{checkOut}}', moment(bookings?.endDate).format('ll'))
+          .replace('{{guests}}', `${bookings?.guest?.toString() ?? ''}`)
+          .replace('{{amount}}', payment?.amount?.toString())
+          .replace('{{currency}}', payment?.currency?.toUpperCase());
 
         const userBookingConfirmAlertMail = {
           email: (bookings?.user as IUser)?.email,
-          subject: "Your Booking Is Confirmed",
+          subject: 'Your Booking Is Confirmed',
           html: bookingConfirmHtml,
         };
         const userPaymentAlertMail = {
           email: (bookings?.user as IUser)?.email,
-          subject: "Payment Confirmation and Receipt",
+          subject: 'Payment Confirmation and Receipt',
           html: html,
           attachments: [await createReceiptAttachment(payment, bookings)],
         };
-        await sendMailQueue.add("new_mail", userBookingConfirmAlertMail);
-        await sendMailQueue.add("new_mail", userPaymentAlertMail);
+        await sendMailQueue.add('new_mail', userBookingConfirmAlertMail);
+        await sendMailQueue.add('new_mail', userPaymentAlertMail);
       }
 
       if (payment?.author) {
         const BookingConfirmEmailPath = path.join(
           __dirname,
-          "../../../../public/view/booking/booking_confirmation_for_hotelOwner.html",
+          '../../../../public/view/booking/booking_confirmation_for_hotelOwner.html',
         );
 
         const html = fs
-          .readFileSync(BookingConfirmEmailPath, "utf8")
-          .replace("{{hostName}}", (payment?.author as IUser)?.name)
-          .replace("{{bookingId}}", `${bookings?.bookingCode}`)
+          .readFileSync(BookingConfirmEmailPath, 'utf8')
+          .replace('{{hostName}}', (payment?.author as IUser)?.name)
+          .replace('{{bookingId}}', `${bookings?.bookingCode}`)
           .replace(
-            "{{apartmentName}}",
+            '{{apartmentName}}',
             (bookings?.reference as IApartment)?.name,
           )
-          .replace("{{checkIn}}", moment(bookings?.startDate).format("ll"))
-          .replace("{{checkOut}}", moment(bookings?.endDate).format("ll"))
-          .replace("{{guests}}", `${bookings?.guest}`)
-          .replace("{{amount}}", Number(bookings?.remainingAmount)?.toString())
-          .replace("{{currency}}", payment?.currency?.toUpperCase())
-          .replace("{{userName}}", (payment?.user as IUser)?.name);
+          .replace('{{checkIn}}', moment(bookings?.startDate).format('ll'))
+          .replace('{{checkOut}}', moment(bookings?.endDate).format('ll'))
+          .replace('{{guests}}', `${bookings?.guest}`)
+          .replace('{{amount}}', Number(bookings?.remainingAmount)?.toString())
+          .replace('{{currency}}', payment?.currency?.toUpperCase())
+          .replace('{{userName}}', (payment?.user as IUser)?.name);
 
         const authorBookingAlertMail = {
           email: admin?.email,
-          subject: "New Booking Confirmed for Your Property",
+          subject: 'New Booking Confirmed for Your Property',
           html: html,
         };
-        await sendMailQueue.add("new_mail", authorBookingAlertMail);
+        await sendMailQueue.add('new_mail', authorBookingAlertMail);
       }
 
       await Promise.all([
@@ -510,11 +513,11 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
         ),
         sendSmsSafely(
           (bookings.user as IUser)?.phoneNumber,
-          `DAYF: Your booking ${bookings.bookingCode} is confirmed. Check-in: ${moment(bookings.startDate).format("DD MMM YYYY")}, check-out: ${moment(bookings.endDate).format("DD MMM YYYY")}.`,
+          `DAYF: Your booking ${bookings.bookingCode} is confirmed. Check-in: ${moment(bookings.startDate).format('DD MMM YYYY')}, check-out: ${moment(bookings.endDate).format('DD MMM YYYY')}.`,
         ),
       ]);
-    })().catch((error) => {
-      console.error("Stripe post-payment task failed:", error);
+    })().catch(error => {
+      console.error('Stripe post-payment task failed:', error);
     });
 
     return { ...payment.toObject(), device, chargeDetails };
@@ -526,9 +529,9 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
       try {
         await StripeService.refund(paymentIntentId);
       } catch (refundError: any) {
-        console.error("Error processing refund:", refundError.message);
+        console.error('Error processing refund:', refundError.message);
 
-        if (device === "website") {
+        if (device === 'website') {
           throw res.redirect(
             `${config.client_Url}/booking/failed?message=${encodeURIComponent(
               `Error processing refund:'${refundError.message}`,
@@ -542,16 +545,16 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
         }
       }
     }
-    if (device === "website") {
+    if (device === 'website') {
       throw res.redirect(
         `${config.client_Url}/booking/failed?message=${encodeURIComponent(
-          error.message || "Server internal error",
+          error.message || 'Server internal error',
         )}&paymentId=${paymentId}`,
       );
     } else {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        error.message || "Server internal error",
+        error.message || 'Server internal error',
       );
     }
   } finally {
@@ -567,10 +570,10 @@ const processChargilyConfirmPayment = async (
   retryCount = 0,
 ): Promise<any> => {
   if (!payload?.data?.id) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid Chargily payload");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Invalid Chargily payload');
   }
   if (!isValidObjectId(paymentId)) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid payment id");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Invalid payment id');
   }
   const checkoutId = payload.data.id;
 
@@ -580,7 +583,7 @@ const processChargilyConfirmPayment = async (
   if (!verification?.checkout) {
     throw new AppError(
       httpStatus.BAD_GATEWAY,
-      "Unable to verify Chargily payment",
+      'Unable to verify Chargily payment',
     );
   }
 
@@ -588,7 +591,7 @@ const processChargilyConfirmPayment = async (
   if (metadataPaymentId && metadataPaymentId.toString() !== paymentId) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Chargily checkout does not match this payment",
+      'Chargily checkout does not match this payment',
     );
   }
 
@@ -612,7 +615,7 @@ const processChargilyConfirmPayment = async (
     const payments = await Payments.findById(paymentId).session(session);
 
     if (!payments) {
-      throw new AppError(httpStatus.NOT_FOUND, "Payment record not found.");
+      throw new AppError(httpStatus.NOT_FOUND, 'Payment record not found.');
     }
 
     if (
@@ -621,7 +624,7 @@ const processChargilyConfirmPayment = async (
     ) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "Chargily checkout amount or currency does not match this payment.",
+        'Chargily checkout amount or currency does not match this payment.',
       );
     }
 
@@ -639,14 +642,14 @@ const processChargilyConfirmPayment = async (
     if (payments.status === PAYMENT_STATUS.failed) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "This payment has already failed.",
+        'This payment has already failed.',
       );
     }
 
     if (payments.status === PAYMENT_STATUS.refunded) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "This payment has already been refunded.",
+        'This payment has already been refunded.',
       );
     }
 
@@ -661,26 +664,25 @@ const processChargilyConfirmPayment = async (
         amount: checkout.amount,
         currency: checkout.currency.toUpperCase(),
         gatewayFee: checkout.fees_on_customer ?? 0,
-        customerPaidAmount:
-          checkout.amount + (checkout.fees_on_customer ?? 0),
+        customerPaidAmount: checkout.amount + (checkout.fees_on_customer ?? 0),
         payment_method: checkout.payment_method,
-        paymentGateway: "chargily",
+        paymentGateway: 'chargily',
         paidAt,
       },
       { new: true, session },
     ).populate([
       {
-        path: "user",
-        select: "name _id email phoneNumber profile",
+        path: 'user',
+        select: 'name _id email phoneNumber profile',
       },
       {
-        path: "author",
-        select: "name _id email phoneNumber profile",
+        path: 'author',
+        select: 'name _id email phoneNumber profile',
       },
     ]);
 
     if (!payment) {
-      throw new AppError(httpStatus.NOT_FOUND, "Payment not found.");
+      throw new AppError(httpStatus.NOT_FOUND, 'Payment not found.');
     }
 
     const bookings = await Bookings.findByIdAndUpdate(
@@ -691,7 +693,7 @@ const processChargilyConfirmPayment = async (
         tranId: payment.tranId,
         currency: checkout.currency.toUpperCase(),
         $unset: {
-          expireAt: "",
+          expireAt: '',
         },
       },
       {
@@ -699,13 +701,13 @@ const processChargilyConfirmPayment = async (
         session,
       },
     ).populate([
-      { path: "reference" },
-      { path: "author", select: "name email phoneNumber profile" },
-      { path: "user", select: "name email phoneNumber profile" },
+      { path: 'reference' },
+      { path: 'author', select: 'name email phoneNumber profile' },
+      { path: 'user', select: 'name email phoneNumber profile' },
     ]);
 
     if (!bookings) {
-      throw new AppError(httpStatus.NOT_FOUND, "Booking not found for payment");
+      throw new AppError(httpStatus.NOT_FOUND, 'Booking not found for payment');
     }
 
     await Calender.updateMany(
@@ -714,7 +716,7 @@ const processChargilyConfirmPayment = async (
       },
       {
         $unset: {
-          expireAt: "",
+          expireAt: '',
         },
       },
       {
@@ -730,25 +732,25 @@ const processChargilyConfirmPayment = async (
       role: USER_ROLE.admin,
     });
 
-    await notificationQueue.add("new_notification", {
+    await notificationQueue.add('new_notification', {
       receiver: (bookings.user as IUser)?._id,
-      message: "Payment successful",
+      message: 'Payment successful',
       description: `Your payment for booking ${bookings?.bookingCode} was processed successfully. Your booking is confirmed.`,
       refference: payment._id,
       model_type: modeType.payments,
     });
 
-    await notificationQueue.add("new_notification", {
+    await notificationQueue.add('new_notification', {
       receiver: (bookings.author as IUser)?._id,
-      message: "New booking payment received",
+      message: 'New booking payment received',
       description: `${(payment.user as IUser)?.name || 'A guest'} completed payment for booking ${bookings?.bookingCode} at your property.`,
       refference: payment._id,
       model_type: modeType.payments,
     });
 
-    await notificationQueue.add("new_notification", {
+    await notificationQueue.add('new_notification', {
       receiver: admin?._id,
-      message: "Booking payment processed",
+      message: 'Booking payment processed',
       description: `Payment for booking ${bookings?.bookingCode} was processed successfully.`,
       refference: payment._id,
       model_type: modeType.payments,
@@ -756,105 +758,105 @@ const processChargilyConfirmPayment = async (
     if (admin?.email) {
       const paymentAdminEmailPath = path.join(
         __dirname,
-        "../../../../public/view/payment/payment_success_for_admin.html",
+        '../../../../public/view/payment/payment_success_for_admin.html',
       );
 
       const html = fs
-        .readFileSync(paymentAdminEmailPath, "utf8")
-        .replace("{{paymentId}}", payment?.id)
-        .replace("{{bookingId}}", `${bookings?.bookingCode}`)
-        .replace("{{apartmentName}}", (bookings?.reference as IApartment)?.name)
-        .replace("{{amount}}", payment?.amount?.toString())
-        .replace("{{currency}}", payment?.currency?.toUpperCase())
-        .replace("{{transitionId}}", `${payment?.tranId}`)
-        .replace("{{paymentMethod}}", `${payment?.paymentGateway}`)
-        .replace("{{paymentDate}}", formatPaymentDate(payment?.paidAt))
-        .replace("{{userName}}", (payment?.user as IUser)?.name);
+        .readFileSync(paymentAdminEmailPath, 'utf8')
+        .replace('{{paymentId}}', payment?.id)
+        .replace('{{bookingId}}', `${bookings?.bookingCode}`)
+        .replace('{{apartmentName}}', (bookings?.reference as IApartment)?.name)
+        .replace('{{amount}}', payment?.amount?.toString())
+        .replace('{{currency}}', payment?.currency?.toUpperCase())
+        .replace('{{transitionId}}', `${payment?.tranId}`)
+        .replace('{{paymentMethod}}', `${payment?.paymentGateway}`)
+        .replace('{{paymentDate}}', formatPaymentDate(payment?.paidAt))
+        .replace('{{userName}}', (payment?.user as IUser)?.name);
 
       const adminPaymentAlertMail = {
         email: admin?.email,
-        subject: "New Booking Payment Received",
+        subject: 'New Booking Payment Received',
         html: html,
       };
-      await sendMailQueue.add("new_mail", adminPaymentAlertMail);
+      await sendMailQueue.add('new_mail', adminPaymentAlertMail);
     }
 
     if ((payment?.user as IUser)?.email) {
       const paymentUserEmailPath = path.join(
         __dirname,
-        "../../../../public/view/payment/payment_success_for_user.html",
+        '../../../../public/view/payment/payment_success_for_user.html',
       );
       const bookingUserEmailPath = path.join(
         __dirname,
-        "../../../../public/view/booking/booking_confirm_for_user.html",
+        '../../../../public/view/booking/booking_confirm_for_user.html',
       );
       const html = fs
-        .readFileSync(paymentUserEmailPath, "utf8")
-        .replace("{{hostName}}", (payment?.author as IUser)?.name)
-        .replace("{{paymentId}}", payment?.id)
-        .replace("{{bookingId}}", `${bookings?.bookingCode}`)
-        .replace("{{apartmentName}}", (bookings?.reference as IApartment)?.name)
-        .replace("{{amount}}", payment?.amount?.toString())
-        .replace("{{currency}}", payment?.currency?.toUpperCase())
-        .replace("{{transitionId}}", `${payment?.tranId}`)
-        .replace("{{paymentMethod}}", `${payment?.paymentGateway}`)
-        .replace("{{paymentDate}}", formatPaymentDate(payment?.paidAt))
-        .replace("{{userName}}", (payment?.user as IUser)?.name)
+        .readFileSync(paymentUserEmailPath, 'utf8')
+        .replace('{{hostName}}', (payment?.author as IUser)?.name)
+        .replace('{{paymentId}}', payment?.id)
+        .replace('{{bookingId}}', `${bookings?.bookingCode}`)
+        .replace('{{apartmentName}}', (bookings?.reference as IApartment)?.name)
+        .replace('{{amount}}', payment?.amount?.toString())
+        .replace('{{currency}}', payment?.currency?.toUpperCase())
+        .replace('{{transitionId}}', `${payment?.tranId}`)
+        .replace('{{paymentMethod}}', `${payment?.paymentGateway}`)
+        .replace('{{paymentDate}}', formatPaymentDate(payment?.paidAt))
+        .replace('{{userName}}', (payment?.user as IUser)?.name)
         .replace(
-          "{{receiptUrl}}",
+          '{{receiptUrl}}',
           `${config?.server_url}/payments/receipt/${paymentId}`,
         );
 
       const bookingConfirmHtml = fs
-        .readFileSync(bookingUserEmailPath, "utf8")
-        .replace("{{userName}}", (payment?.user as IUser)?.name)
-        .replace("{{bookingId}}", `${bookings?.bookingCode}`)
-        .replace("{{apartmentName}}", (bookings?.reference as IApartment)?.name)
-        .replace("{{checkIn}}", moment(bookings?.startDate).format("ll"))
-        .replace("{{checkOut}}", moment(bookings?.endDate).format("ll"))
-        .replace("{{guests}}", `${bookings?.guest?.toString() ?? ""}`)
-        .replace("{{amount}}", payment?.amount?.toString())
-        .replace("{{currency}}", payment?.currency?.toUpperCase());
+        .readFileSync(bookingUserEmailPath, 'utf8')
+        .replace('{{userName}}', (payment?.user as IUser)?.name)
+        .replace('{{bookingId}}', `${bookings?.bookingCode}`)
+        .replace('{{apartmentName}}', (bookings?.reference as IApartment)?.name)
+        .replace('{{checkIn}}', moment(bookings?.startDate).format('ll'))
+        .replace('{{checkOut}}', moment(bookings?.endDate).format('ll'))
+        .replace('{{guests}}', `${bookings?.guest?.toString() ?? ''}`)
+        .replace('{{amount}}', payment?.amount?.toString())
+        .replace('{{currency}}', payment?.currency?.toUpperCase());
 
       const userBookingConfirmAlertMail = {
         email: (bookings?.user as IUser)?.email,
-        subject: "Your Booking Is Confirmed",
+        subject: 'Your Booking Is Confirmed',
         html: bookingConfirmHtml,
       };
       const userPaymentAlertMail = {
         email: (bookings?.user as IUser)?.email,
-        subject: "Payment Confirmation and Receipt",
+        subject: 'Payment Confirmation and Receipt',
         html: html,
         attachments: [await createReceiptAttachment(payment, bookings)],
       };
-      await sendMailQueue.add("new_mail", userBookingConfirmAlertMail);
-      await sendMailQueue.add("new_mail", userPaymentAlertMail);
+      await sendMailQueue.add('new_mail', userBookingConfirmAlertMail);
+      await sendMailQueue.add('new_mail', userPaymentAlertMail);
     }
 
     if (payment?.author) {
       const BookingConfirmEmailPath = path.join(
         __dirname,
-        "../../../../public/view/booking/booking_confirmation_for_hotelOwner.html",
+        '../../../../public/view/booking/booking_confirmation_for_hotelOwner.html',
       );
 
       const html = fs
-        .readFileSync(BookingConfirmEmailPath, "utf8")
-        .replace("{{hostName}}", (payment?.author as IUser)?.name)
-        .replace("{{bookingId}}", `${bookings?.bookingCode}`)
-        .replace("{{apartmentName}}", (bookings?.reference as IApartment)?.name)
-        .replace("{{checkIn}}", moment(bookings?.startDate).format("ll"))
-        .replace("{{checkOut}}", moment(bookings?.endDate).format("ll"))
-        .replace("{{guests}}", `${bookings?.guest}`)
-        .replace("{{amount}}", Number(bookings?.remainingAmount)?.toString())
-        .replace("{{currency}}", payment?.currency?.toUpperCase())
-        .replace("{{userName}}", (payment?.user as IUser)?.name);
+        .readFileSync(BookingConfirmEmailPath, 'utf8')
+        .replace('{{hostName}}', (payment?.author as IUser)?.name)
+        .replace('{{bookingId}}', `${bookings?.bookingCode}`)
+        .replace('{{apartmentName}}', (bookings?.reference as IApartment)?.name)
+        .replace('{{checkIn}}', moment(bookings?.startDate).format('ll'))
+        .replace('{{checkOut}}', moment(bookings?.endDate).format('ll'))
+        .replace('{{guests}}', `${bookings?.guest}`)
+        .replace('{{amount}}', Number(bookings?.remainingAmount)?.toString())
+        .replace('{{currency}}', payment?.currency?.toUpperCase())
+        .replace('{{userName}}', (payment?.user as IUser)?.name);
 
       const authorBookingAlertMail = {
         email: admin?.email,
-        subject: "New Booking Confirmed for Your Property",
+        subject: 'New Booking Confirmed for Your Property',
         html: html,
       };
-      await sendMailQueue.add("new_mail", authorBookingAlertMail);
+      await sendMailQueue.add('new_mail', authorBookingAlertMail);
     }
     // if (admin?.email) {
     //   const paymentAdminEmailPath = path.join(
@@ -966,7 +968,7 @@ const processChargilyConfirmPayment = async (
       ),
       sendSmsSafely(
         (bookings.user as IUser)?.phoneNumber,
-        `DAYF: Your booking ${bookings.bookingCode} is confirmed. Check-in: ${moment(bookings.startDate).format("DD MMM YYYY")}, check-out: ${moment(bookings.endDate).format("DD MMM YYYY")}.`,
+        `DAYF: Your booking ${bookings.bookingCode} is confirmed. Check-in: ${moment(bookings.startDate).format('DD MMM YYYY')}, check-out: ${moment(bookings.endDate).format('DD MMM YYYY')}.`,
       ),
     ]);
 
@@ -986,7 +988,7 @@ const processChargilyConfirmPayment = async (
       status: PAYMENT_STATUS.paid,
     });
     if (completedPayment) {
-      console.error("Post-payment task failed after commit:", error);
+      console.error('Post-payment task failed after commit:', error);
       return {
         payment: completedPayment,
         checkout: verification.checkout,
@@ -996,13 +998,13 @@ const processChargilyConfirmPayment = async (
 
     const isTransientTransactionError =
       error?.code === 112 ||
-      error?.codeName === "WriteConflict" ||
-      error?.errorLabels?.includes?.("TransientTransactionError") ||
-      error?.hasErrorLabel?.("TransientTransactionError");
+      error?.codeName === 'WriteConflict' ||
+      error?.errorLabels?.includes?.('TransientTransactionError') ||
+      error?.hasErrorLabel?.('TransientTransactionError');
 
     if (isTransientTransactionError && retryCount < 3) {
       const retryDelayMs = 100 * 2 ** retryCount + Math.random() * 100;
-      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      await new Promise(resolve => setTimeout(resolve, retryDelayMs));
       return processChargilyConfirmPayment(payload, paymentId, retryCount + 1);
     }
 
@@ -1035,9 +1037,9 @@ const chargilyConfirmPayment = async (
 };
 
 const getAllPayments = async (query: Record<string, any>) => {
-  query["isDeleted"] = false;
+  query['isDeleted'] = false;
   const paymentsModel = new QueryBuilder(Payments.find(), query)
-    .search([""])
+    .search([''])
     .filter()
     .paginate()
     .sort()
@@ -1054,16 +1056,16 @@ const getAllPayments = async (query: Record<string, any>) => {
 
 const getPaymentsById = async (id: string) => {
   if (!isValidObjectId(id)) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid payment id");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Invalid payment id');
   }
 
   const result = await Payments.findById(id).populate([
-    { path: "bookings", populate: { path: "reference" } },
-    { path: "user", select: "name email phoneNumber profile" },
-    { path: "author", select: "name email phoneNumber profile" },
+    { path: 'bookings', populate: { path: 'reference' } },
+    { path: 'user', select: 'name email phoneNumber profile' },
+    { path: 'author', select: 'name email phoneNumber profile' },
   ]);
   if (!result || result?.isDeleted) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Payments not found!");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Payments not found!');
   }
   return result;
 };
@@ -1071,7 +1073,7 @@ const getPaymentsById = async (id: string) => {
 const updatePayments = async (id: string, payload: Partial<IPayments>) => {
   const result = await Payments.findByIdAndUpdate(id, payload, { new: true });
   if (!result) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Failed to update Payments");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Failed to update Payments');
   }
   return result;
 };
@@ -1083,28 +1085,28 @@ const deletePayments = async (id: string) => {
     { new: true },
   );
   if (!result) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Failed to delete payments");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Failed to delete payments');
   }
   return result;
 };
 
 const downloadReceipt = async (id: string) => {
   if (!isValidObjectId(id)) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid payment id");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Invalid payment id');
   }
 
   const payment = await Payments.findById(id).populate([
-    { path: "user" },
-    { path: "author" },
-    { path: "bookings", populate: [{ path: "reference" }] },
+    { path: 'user' },
+    { path: 'author' },
+    { path: 'bookings', populate: [{ path: 'reference' }] },
   ]);
   if (!payment) {
-    throw new AppError(httpStatus.NOT_FOUND, "Payment not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Payment not found');
   }
-  if (payment.status !== "paid") {
+  if (payment.status !== 'paid') {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Receipt is only available for paid payments",
+      'Receipt is only available for paid payments',
     );
   }
 
@@ -1115,27 +1117,27 @@ const downloadReceipt = async (id: string) => {
 
   const pdfBuffer = await generateReceiptPdf({
     paymentId: payment.id,
-    bookingId: booking?.bookingCode ?? "",
-    apartmentName: booking?.reference?.name ?? "Apartment",
+    bookingId: booking?.bookingCode ?? '',
+    apartmentName: booking?.reference?.name ?? 'Apartment',
     checkIn: booking?.startDate
-      ? new Date(booking.startDate).toLocaleDateString("en-GB")
-      : "",
+      ? new Date(booking.startDate).toLocaleDateString('en-GB')
+      : '',
     checkOut: booking?.endDate
-      ? new Date(booking.endDate).toLocaleDateString("en-GB")
-      : "",
+      ? new Date(booking.endDate).toLocaleDateString('en-GB')
+      : '',
     durationNights:
       booking?.startDate && booking?.endDate
         ? Math.max(
-            moment(booking.endDate).diff(moment(booking.startDate), "days"),
+            moment(booking.endDate).diff(moment(booking.startDate), 'days'),
             0,
           )
         : 0,
-    guestName: (payment.user as any)?.name ?? "Guest",
-    guestEmail: (payment.user as any)?.email ?? "",
+    guestName: (payment.user as any)?.name ?? 'Guest',
+    guestEmail: (payment.user as any)?.email ?? '',
     ...receiptAmounts,
-    currency: payment.currency ?? "USD",
-    paymentMethod: String(payment.payment_method ?? "card"),
-    paymentGateway: payment.paymentGateway ?? "stripe",
+    currency: payment.currency ?? 'USD',
+    paymentMethod: String(payment.payment_method ?? 'card'),
+    paymentGateway: payment.paymentGateway ?? 'stripe',
     paymentDate: formatPaymentDate(payment.paidAt),
     hostName: (payment?.author as IUser)?.name,
   });
