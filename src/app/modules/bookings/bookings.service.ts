@@ -7,11 +7,7 @@ import { startSession, Types } from 'mongoose';
 import pickQuery from '../../utils/pickQuery';
 import { paginationHelper } from '../../helpers/pagination.helpers';
 import moment from 'moment';
-import {
-  BOOKING_STATUS,
-  ONLINE_DEPOSIT_RATE,
-  PAYMENT_STATUS,
-} from './bookings.constants';
+import { BOOKING_STATUS, PAYMENT_STATUS } from './bookings.constants';
 import { modeType } from '../notification/notification.interface';
 import { IApartment } from '../apartment/apartment.interface';
 import { IRoomTypes } from '../roomTypes/roomTypes.interface';
@@ -22,6 +18,7 @@ import { getDateRange } from '../calender/calender.utils';
 import { CALENDAR_BLOCK_TYPE } from '../calender/calender.interface';
 import { refundRequestService } from '../refundRequest/refundRequest.service';
 import { APARTMENT_STATUS } from '../apartment/apartment.constants';
+import Contents from '../contents/contents.models';
 
 // const createBookings = async (payload: IBookings) => {
 //   let referenceItem: IRoomTypes | IApartment | null = null;
@@ -228,17 +225,21 @@ const createBookings = async (payload: IBookings) => {
   const totalPrice = days * (referenceItem as IApartment)?.price;
   payload['totalPrice'] = totalPrice;
   const cancellationPolicy = await refundRequestService.getActivePolicy();
+
+  const depositRate = await Contents.findOne({
+    key: 'commissionForApartment',
+  }).lean();
   payload['depositAmount'] = Number(
-    (totalPrice * (ONLINE_DEPOSIT_RATE / 100)).toFixed(2),
+    (
+      totalPrice * (Number(depositRate?.commissionForApartment) ?? 15 / 100)
+    ).toFixed(2),
   );
   payload.cancellationPolicySnapshot = {
-    depositRate: ONLINE_DEPOSIT_RATE,
+    depositRate: Number(depositRate?.commissionForApartment) ?? 15,
     freeCancellationDays: cancellationPolicy.freeCancellationDays,
     refundProcessingHours: cancellationPolicy.refundProcessingHours,
-    creditDelayMinBusinessDays:
-      cancellationPolicy.creditDelayMinBusinessDays,
-    creditDelayMaxBusinessDays:
-      cancellationPolicy.creditDelayMaxBusinessDays,
+    creditDelayMinBusinessDays: cancellationPolicy.creditDelayMinBusinessDays,
+    creditDelayMaxBusinessDays: cancellationPolicy.creditDelayMaxBusinessDays,
     listingBoostDays: cancellationPolicy.listingBoostDays,
     noShowReportWindowHours: cancellationPolicy.noShowReportWindowHours,
     hostSuspensionDays: cancellationPolicy.hostSuspensionDays,
@@ -266,10 +267,9 @@ const createApartmentBooking = async (payload: IBookings) => {
 
   try {
     session.startTransaction();
- 
 
     const startDateUTC = moment(payload.startDate).utc().startOf('day');
-    const endDateUTC = moment(payload.endDate).utc().startOf('day');
+    const endDateUTC = moment(payload.endDate).utc().endOf('day');
 
     const apartment = await Apartment.findById(payload.reference)
       .populate('author')
@@ -336,8 +336,14 @@ const createApartmentBooking = async (payload: IBookings) => {
     // Price
     const totalPrice = apartment.price * totalNights;
     const cancellationPolicy = await refundRequestService.getActivePolicy();
+    const depositRate = await Contents.findOne({
+      key: 'commissionForApartment',
+    }).lean();
     const depositAmount = Number(
-      (totalPrice * (ONLINE_DEPOSIT_RATE / 100)).toFixed(2),
+      (
+        totalPrice *
+        (Number(depositRate?.commissionForApartment ?? 15) / 100)
+      ).toFixed(2),
     );
     const remainingAmount = Number((totalPrice - depositAmount).toFixed(2));
     //@ts-ignore
@@ -349,13 +355,11 @@ const createApartmentBooking = async (payload: IBookings) => {
     payload.depositAmount = depositAmount;
     payload.remainingAmount = remainingAmount;
     payload.cancellationPolicySnapshot = {
-      depositRate: ONLINE_DEPOSIT_RATE,
+      depositRate: Number(depositRate?.commissionForApartment) ?? 15,
       freeCancellationDays: cancellationPolicy.freeCancellationDays,
       refundProcessingHours: cancellationPolicy.refundProcessingHours,
-      creditDelayMinBusinessDays:
-        cancellationPolicy.creditDelayMinBusinessDays,
-      creditDelayMaxBusinessDays:
-        cancellationPolicy.creditDelayMaxBusinessDays,
+      creditDelayMinBusinessDays: cancellationPolicy.creditDelayMinBusinessDays,
+      creditDelayMaxBusinessDays: cancellationPolicy.creditDelayMaxBusinessDays,
       listingBoostDays: cancellationPolicy.listingBoostDays,
       noShowReportWindowHours: cancellationPolicy.noShowReportWindowHours,
       hostSuspensionDays: cancellationPolicy.hostSuspensionDays,
