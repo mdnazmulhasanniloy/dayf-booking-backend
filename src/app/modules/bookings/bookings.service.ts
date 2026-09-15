@@ -19,6 +19,7 @@ import { CALENDAR_BLOCK_TYPE } from '../calender/calender.interface';
 import { refundRequestService } from '../refundRequest/refundRequest.service';
 import { APARTMENT_STATUS } from '../apartment/apartment.constants';
 import Contents from '../contents/contents.models';
+import { getValidPercentage } from '../contents/contents.utils';
 
 // const createBookings = async (payload: IBookings) => {
 //   let referenceItem: IRoomTypes | IApartment | null = null;
@@ -136,9 +137,7 @@ import Contents from '../contents/contents.models';
 const createBookings = async (payload: IBookings) => {
   let referenceItem: IRoomTypes | IApartment | null = null;
   const startDateUTC = moment(payload.startDate).utc();
-  const endDateUTC = moment(payload.endDate).utc();
-  // const dateRange = getDateRange(startDateUTC, endDateUTC);
-  // const expireAt = new Date(Date.now() + 5 * 60 * 1000);
+  const endDateUTC = moment(payload.endDate).utc(); 
   switch (payload.modelType) {
     case BOOKING_MODEL_TYPE.Rooms:
       referenceItem = await RoomTypes.findById(payload.reference);
@@ -229,13 +228,14 @@ const createBookings = async (payload: IBookings) => {
   const depositRate = await Contents.findOne({
     key: 'commissionForApartment',
   }).lean();
+  const effectiveDepositRate = getValidPercentage(
+    depositRate?.commissionForApartment,
+  );
   payload['depositAmount'] = Number(
-    (
-      totalPrice * (Number(depositRate?.commissionForApartment) ?? 15 / 100)
-    ).toFixed(2),
+    (totalPrice * (effectiveDepositRate / 100)).toFixed(2),
   );
   payload.cancellationPolicySnapshot = {
-    depositRate: Number(depositRate?.commissionForApartment) ?? 15,
+    depositRate: effectiveDepositRate,
     freeCancellationDays: cancellationPolicy.freeCancellationDays,
     refundProcessingHours: cancellationPolicy.refundProcessingHours,
     creditDelayMinBusinessDays: cancellationPolicy.creditDelayMinBusinessDays,
@@ -339,11 +339,11 @@ const createApartmentBooking = async (payload: IBookings) => {
     const depositRate = await Contents.findOne({
       key: 'commissionForApartment',
     }).lean();
+    const effectiveDepositRate = getValidPercentage(
+      depositRate?.commissionForApartment,
+    );
     const depositAmount = Number(
-      (
-        totalPrice *
-        (Number(depositRate?.commissionForApartment ?? 15) / 100)
-      ).toFixed(2),
+      (totalPrice * (effectiveDepositRate / 100)).toFixed(2),
     );
     const remainingAmount = Number((totalPrice - depositAmount).toFixed(2));
     //@ts-ignore
@@ -355,7 +355,7 @@ const createApartmentBooking = async (payload: IBookings) => {
     payload.depositAmount = depositAmount;
     payload.remainingAmount = remainingAmount;
     payload.cancellationPolicySnapshot = {
-      depositRate: Number(depositRate?.commissionForApartment) ?? 15,
+      depositRate: effectiveDepositRate,
       freeCancellationDays: cancellationPolicy.freeCancellationDays,
       refundProcessingHours: cancellationPolicy.refundProcessingHours,
       creditDelayMinBusinessDays: cancellationPolicy.creditDelayMinBusinessDays,
