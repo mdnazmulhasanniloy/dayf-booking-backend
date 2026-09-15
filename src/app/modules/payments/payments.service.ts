@@ -29,6 +29,7 @@ import config from '../../config';
 import { generateReceiptPdf } from '../../utils/generateReceiptPdf';
 import { sendSmsSafely } from '../../utils/smsSender';
 import Contents from '../contents/contents.models';
+import { getValidPercentage } from '../contents/contents.utils';
 
 const formatPaymentDate = (value?: Date | string | null) => {
   if (!value) return '';
@@ -115,11 +116,11 @@ const checkout = async (payload: IPayments): Promise<string> => {
   const depositRate = await Contents.findOne({
     key: 'commissionForApartment',
   }).lean();
+  const effectiveDepositRate = getValidPercentage(
+    depositRate?.commissionForApartment,
+  );
   const payableAmount = Number(
-    (
-      bookings.totalPrice *
-      (Number(depositRate?.commissionForApartment) ?? 15 / 100)
-    ).toFixed(2),
+    (bookings.totalPrice * (effectiveDepositRate / 100)).toFixed(2),
   );
 
   if (
