@@ -14,6 +14,7 @@ import { notificationQueue } from '../../redis';
 import Calender from '../calender/calender.models';
 import { BOOKING_MODEL_TYPE } from '../bookings/bookings.interface';
 import moment from 'moment';
+import { parseSearchPolygon } from '../roomTypes/roomTypes.search';
 
 const createApartment = async (payload: IApartment, files: any) => {
   const author: IUser | null = await User.findById(payload?.author);
@@ -71,6 +72,7 @@ const getAllApartment = async (query: Record<string, any>) => {
     searchTerm,
     latitude,
     longitude,
+    polygon,
     facilities,
     priceRange, //10-100
     ratingsFilter,
@@ -103,8 +105,14 @@ const getAllApartment = async (query: Record<string, any>) => {
   // Initialize the aggregation pipeline
   const pipeline: any[] = [];
 
-  // If latitude and longitude are provided, add $geoNear to the aggregation pipeline
-  if (latitude && longitude) {
+  // A supplied boundary takes precedence over the radius search.
+  if (polygon !== undefined && polygon !== null && polygon !== '') {
+    pipeline.push({
+      $match: {
+        location: { $geoWithin: { $geometry: parseSearchPolygon(polygon) } },
+      },
+    });
+  } else if (latitude && longitude) {
     pipeline.push({
       $geoNear: {
         near: {
