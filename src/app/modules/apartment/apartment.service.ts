@@ -65,15 +65,13 @@ const createApartment = async (payload: IApartment, files: any) => {
   return result;
 };
 
-const getAllApartment = async (query: Record<string, any>) => {
-  console.log(query);
+const getAllApartment = async (query: Record<string, any>, payload?: any) => {
   const { filters, pagination } = await pickQuery(query);
 
   const {
     searchTerm,
     latitude,
     longitude,
-    polygon,
     facilities,
     priceRange, //10-100
     ratingsFilter,
@@ -107,10 +105,12 @@ const getAllApartment = async (query: Record<string, any>) => {
   const pipeline: any[] = [];
 
   // A supplied boundary takes precedence over the radius search.
-  if (polygon !== undefined && polygon !== null && polygon !== '') {
+  if (payload?.polygon) {
+    console.log('-------------------------------------->>>>', payload?.polygon);
     pipeline.push({
       $match: {
-        location: { $geoWithin: { $geometry: parseSearchPolygon(polygon) } },
+        // location: { $geoWithin: { $geometry: parseSearchPolygon(polygon) } },
+        location: { $geoWithin: { $geometry: payload?.polygon } },
       },
     });
   } else if (latitude && longitude) {
