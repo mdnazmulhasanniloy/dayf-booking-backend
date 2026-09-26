@@ -1,5 +1,5 @@
 import httpStatus from 'http-status';
-import ChargilyService from '../../builder/Chargily';
+import ChargilyService, { ChargilyApiError } from '../../builder/Chargily';
 import StripeService from '../../builder/StripeBuilder';
 import config from '../../config';
 import AppError from '../../error/AppError';
@@ -46,10 +46,20 @@ export const getOrCreateChargilyCustomerId = async (
 ): Promise<string> => {
   if (user?.chargilyCustomerId) return user.chargilyCustomerId;
 
-  // NOTE: name/email were swapped in the original code (name: user.email, email: user.name)
   const customer = await ChargilyService.createCustomer({
     name: user?.name,
-    email: user?.email,
+    email: user?.email?.trim(),
+  }).catch((error: unknown) => {
+    // Email is optional. Retry only this explicit provider rejection, never
+    // network failures or other errors that might hide a successful creation.
+    if (
+      error instanceof ChargilyApiError &&
+      error.status === 422 &&
+      error.message === 'The email belongs to an unauthorized email provider.'
+    ) {
+      return ChargilyService.createCustomer({ name: user?.name });
+    }
+    throw error;
   });
   await User.findByIdAndUpdate(
     user?._id,
