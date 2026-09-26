@@ -13,6 +13,7 @@ import pickQuery from '../../utils/pickQuery';
 import Property from '../property/property.models';
 import Apartment from '../apartment/apartment.models';
 import { APARTMENT_STATUS } from '../apartment/apartment.constants';
+import { parseSearchPolygon } from './roomTypes.search';
 
 const createRoomTypes = async (payload: IRoomTypes, files: any) => {
   const session = await startSession();
@@ -330,10 +331,17 @@ const globalSearch = async (query: Record<string, any>) => {
     latitude,
     longitude,
     searchType,
+    polygon,
   } = filters;
   const pipeline: any[] = [];
 
-  if (latitude && longitude) {
+  if (polygon !== undefined && polygon !== null && polygon !== '') {
+    pipeline.push({
+      $match: {
+        location: { $geoWithin: { $geometry: parseSearchPolygon(polygon) } },
+      },
+    });
+  } else if (latitude && longitude) {
     pipeline.push({
       $geoNear: {
         near: {

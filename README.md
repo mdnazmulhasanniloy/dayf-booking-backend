@@ -17,6 +17,35 @@ A scalable backend API for hotel and apartment booking platforms, built with Nod
 
 ---
 
+## Search apartments inside a city boundary
+
+Use `GET /property-types/global-search` (under the API base URL) with
+`searchType=Apartment` and `polygon` containing a JSON array of
+`[longitude, latitude]` pairs. The frontend supplies the city boundary; the
+backend does not convert a city name into a polygon.
+
+```js
+const params = new URLSearchParams({
+  searchType: 'Apartment',
+  polygon: JSON.stringify([
+    [3.0, 36.7],
+    [3.2, 36.7],
+    [3.2, 36.85],
+    [3.0, 36.85],
+  ]),
+  page: '1',
+  limit: '10',
+});
+fetch(`${API_BASE_URL}/property-types/global-search?${params}`);
+```
+
+Send 3–500 numeric coordinate pairs forming a simple boundary without crossing
+edges. Closing the ring by repeating the first point is optional. Invalid input
+returns HTTP 400. Polygon search overrides the existing five-mile latitude /
+longitude radius; date, capacity, and pagination filters continue to apply.
+It also supports `searchType=Property` using room-type locations.
+Results retain the existing `{ meta, data }` response within the API envelope.
+
 ## Features
 
 - User authentication (JWT, Google, Facebook)
