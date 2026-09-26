@@ -66,6 +66,7 @@ const createApartment = async (payload: IApartment, files: any) => {
 };
 
 const getAllApartment = async (query: Record<string, any>) => {
+  console.log(query);
   const { filters, pagination } = await pickQuery(query);
 
   const {
