@@ -58,9 +58,7 @@ const queueApartmentStatusEmail = async (
         ? apartment.createdAt.toLocaleDateString('en-GB')
         : new Date().toLocaleDateString('en-GB'),
       listingUrl: clientUrl ? `${clientUrl}/apartment/${apartmentId}` : '#',
-      editListingUrl: clientUrl
-        ? `${clientUrl}/apartment/${apartmentId}`
-        : '#',
+      editListingUrl: clientUrl ? `${clientUrl}/apartment/${apartmentId}` : '#',
       rejectionReason:
         'Please review the listing details and submit it again after making the necessary updates.',
     },
@@ -87,7 +85,7 @@ const createApartment = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getAllApartment = catchAsync(async (req: Request, res: Response) => {
-  const result = await apartmentService.getAllApartment(req.query);
+  const result = await apartmentService.getAllApartment(req.query, req.body);
   sendResponse(res, {
     statusCode: 200,
     success: true,
