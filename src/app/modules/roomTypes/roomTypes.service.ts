@@ -589,6 +589,18 @@ const globalSearch = async (query: Record<string, any>) => {
       data,
     };
   } else if (searchType === 'Apartment') {
+    if (filters.status) {
+      pipeline.push({ $match: { status: filters.status } });
+    }
+    if (filters.guests) {
+      pipeline.push({
+        $match: { maxGuests: { $gte: Number(filters.guests) } },
+      });
+    }
+    if (filters.priceRange) {
+      const [low, high] = filters.priceRange.split('-').map(Number);
+      pipeline.push({ $match: { price: { $gte: low, $lte: high } } });
+    }
     if (startDate && endDate) {
       const bookedApartments = await Bookings.aggregate([
         {
@@ -602,7 +614,7 @@ const globalSearch = async (query: Record<string, any>) => {
         {
           $group: {
             _id: null,
-            ids: { $push: { $toString: '$reference' } },
+            ids: { $addToSet: '$reference' },
           },
         },
         {
@@ -612,9 +624,7 @@ const globalSearch = async (query: Record<string, any>) => {
           },
         },
       ]);
-      const idArray =
-        bookedApartments[0]?.ids?.map((id: string) => new Types.ObjectId(id)) ||
-        [];
+      const idArray = bookedApartments[0]?.ids || [];
       pipeline.push({
         $match: {
           _id: { $nin: idArray },

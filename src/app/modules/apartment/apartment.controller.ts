@@ -85,7 +85,7 @@ const createApartment = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getAllApartment = catchAsync(async (req: Request, res: Response) => {
-  const result = await apartmentService.getAllApartment(req.query, req.body);
+  const result = await apartmentService.getAllApartment(req.query);
   sendResponse(res, {
     statusCode: 200,
     success: true,
