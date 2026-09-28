@@ -88,6 +88,10 @@ const apartmentSchema = new Schema<IApartment>(
       required: true,
       trim: true,
     },
+    reason: {
+      type: String,
+      trim: true,
+    },
 
     facilities: [
       {

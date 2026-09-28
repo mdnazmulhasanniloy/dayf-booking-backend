@@ -154,6 +154,7 @@ const approvedApartment = catchAsync(async (req: Request, res: Response) => {
 const declinedApartment = catchAsync(async (req: Request, res: Response) => {
   const result = await apartmentService.updateApartment(req.params.id, {
     status: APARTMENT_STATUS.declined,
+    reason:req.body.reason
   });
 
   const ownerNotification = {
