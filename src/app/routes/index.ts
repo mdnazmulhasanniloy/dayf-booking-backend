@@ -1,3 +1,4 @@
+import { apartmentDraftRoutes } from '../modules/apartmentDraft/apartmentDraft.route';
 import { Router } from 'express';
 import { otpRoutes } from '../modules/otp/otp.routes';
 import { userRoutes } from '../modules/user/user.route';
@@ -26,6 +27,7 @@ import { refundRequestRoutes } from '../modules/refundRequest/refundRequest.rout
 
 const router = Router();
 const moduleRoutes = [
+  { path: '/apartment-drafts', route: apartmentDraftRoutes },
   {
     path: '/users',
     route: userRoutes,

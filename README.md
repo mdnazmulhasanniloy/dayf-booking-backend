@@ -48,6 +48,43 @@ Results retain the existing `{ meta, data }` response within the API envelope.
 
 ## Features
 
+### Apartment drafts
+
+All draft endpoints require a hotel-owner bearer token and only access that
+owner's drafts. Drafts use a separate collection and are excluded from public
+apartment searches, detail pages, and booking lookup.
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| POST | `/api/v1/apartment-drafts` | Save an empty or partial draft |
+| GET | `/api/v1/apartment-drafts?page=1&limit=10` | List own drafts |
+| GET | `/api/v1/apartment-drafts/:id` | Resume a draft |
+| PATCH | `/api/v1/apartment-drafts/:id` | Save changed fields |
+| DELETE | `/api/v1/apartment-drafts/:id` | Delete own draft |
+| POST | `/api/v1/apartment-drafts/:id/submit` | Validate and submit for approval |
+
+Create/update accept apartment fields directly as JSON, e.g.
+`{"name":"My apartment","price":80}`. They also accept multipart form data
+with a JSON `data` field, up to 10 `images`, and one `banner` file. Missing
+fields are preserved on PATCH; supplied arrays and nested objects replace
+their previous values. Send `images: []` to clear the draft's image references.
+Existing uploaded objects are retained in storage when references or drafts
+are deleted; no shared image objects are deleted by these endpoints.
+
+Draft responses contain apartment fields directly, e.g.
+`{ _id, author, name, price, images, location, createdAt, updatedAt }`, inside
+the standard response's `data`. The list uses `data: { meta, data: [...] }`.
+The draft schema mirrors apartment fields, with optional listing details for
+partial saves. Supplied values are type-checked and validated. Legacy nested
+draft data is flattened on reads and migrated to top-level fields on edit.
+Client-supplied ownership, approval, rating, boost, and deletion fields are
+ignored. Incomplete data is allowed until submit. Submit validates against
+the full Apartment schema, creates a `pending` apartment, and removes the
+draft in one MongoDB transaction (requires a replica set or sharded cluster).
+Validation failure keeps the draft. The submit response contains the new
+apartment, whose ID differs from the draft ID. Concurrent/repeated submits
+cannot create multiple apartments from one draft; a consumed draft returns 404.
+
 - User authentication (JWT, Google, Facebook)
 - Hotel/apartment property and room management
 - Booking and payment processing (Stripe integration)

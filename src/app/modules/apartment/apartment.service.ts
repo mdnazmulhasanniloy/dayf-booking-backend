@@ -193,7 +193,7 @@ const getAllApartment = async (query: Record<string, any>) => {
             modelType: BOOKING_MODEL_TYPE.Apartment,
             date: {
               $gte: moment(startDate).utc().startOf('day').toDate(),
-              $lte: moment(endDate).utc().endOf('day').toDate(),
+              $lt: moment.utc(endDate).startOf('day').toDate(),
             },
           },
         },

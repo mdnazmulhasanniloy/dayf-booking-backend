@@ -42,8 +42,8 @@ import { getValidPercentage } from '../contents/contents.utils';
 //             modelType: BOOKING_MODEL_TYPE.Rooms,
 //             reference: new Types.ObjectId((referenceItem as IRoomTypes)?._id),
 //             isDeleted: false,
-//             startDate: { $lte: endDateUTC },
-//             endDate: { $gte: startDateUTC },
+//             startDate: { $lt: endDateUTC.toDate() },
+//             endDate: { $gt: startDateUTC.toDate() },
 //           },
 //         },
 //         {
@@ -136,8 +136,20 @@ import { getValidPercentage } from '../contents/contents.utils';
 
 const createBookings = async (payload: IBookings) => {
   let referenceItem: IRoomTypes | IApartment | null = null;
-  const startDateUTC = moment(payload.startDate).utc();
-  const endDateUTC = moment(payload.endDate).utc(); 
+  const startDateUTC = moment.utc(payload.startDate).startOf('day');
+  const endDateUTC = moment.utc(payload.endDate).startOf('day');
+  if (
+    !startDateUTC.isValid() ||
+    !endDateUTC.isValid() ||
+    !endDateUTC.isAfter(startDateUTC)
+  ) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Checkout date must be after check-in date',
+    );
+  }
+  payload.startDate = startDateUTC.toDate();
+  payload.endDate = endDateUTC.toDate();
   switch (payload.modelType) {
     case BOOKING_MODEL_TYPE.Rooms:
       referenceItem = await RoomTypes.findById(payload.reference);
@@ -152,8 +164,8 @@ const createBookings = async (payload: IBookings) => {
             modelType: BOOKING_MODEL_TYPE.Rooms,
             reference: new Types.ObjectId((referenceItem as IRoomTypes)?._id),
             isDeleted: false,
-            startDate: { $lte: endDateUTC },
-            endDate: { $gte: startDateUTC },
+            startDate: { $lt: endDateUTC.toDate() },
+            endDate: { $gt: startDateUTC.toDate() },
           },
         },
         {
@@ -194,7 +206,7 @@ const createBookings = async (payload: IBookings) => {
         reference: payload.reference,
         date: {
           $gte: startDateUTC?.toDate(),
-          $lte: endDateUTC?.toDate(),
+          $lt: endDateUTC?.toDate(),
         },
       });
 
@@ -269,7 +281,19 @@ const createApartmentBooking = async (payload: IBookings) => {
     session.startTransaction();
 
     const startDateUTC = moment(payload.startDate).utc().startOf('day');
-    const endDateUTC = moment(payload.endDate).utc().endOf('day');
+    const endDateUTC = moment.utc(payload.endDate).startOf('day');
+    if (
+      !startDateUTC.isValid() ||
+      !endDateUTC.isValid() ||
+      !endDateUTC.isAfter(startDateUTC)
+    ) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'Checkout date must be after check-in date',
+      );
+    }
+    payload.startDate = startDateUTC.toDate();
+    payload.endDate = endDateUTC.toDate();
 
     const apartment = await Apartment.findById(payload.reference)
       .populate('author')
@@ -374,10 +398,7 @@ const createApartmentBooking = async (payload: IBookings) => {
     });
 
     // Checkout date বাদ
-    const dateRange = getDateRange(
-      startDateUTC.toDate(),
-      endDateUTC.clone().subtract(1, 'day').toDate(),
-    );
+    const dateRange = getDateRange(startDateUTC.toDate(), endDateUTC.toDate());
 
     const calendarPayload = dateRange.map(date => ({
       reference: apartment._id,
