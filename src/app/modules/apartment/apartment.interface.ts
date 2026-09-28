@@ -9,6 +9,7 @@ export interface IApartment {
   author: ObjectId | IUser;
   images: IImage[];
   banner: string;
+  reason?: string;
   price: number;
   name: string;
   shortDescription: string;
