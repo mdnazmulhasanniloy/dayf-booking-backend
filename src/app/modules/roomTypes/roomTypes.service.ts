@@ -139,8 +139,8 @@ const getAllRoomTypes = async (query: Record<string, any>) => {
         $match: {
           modelType: BOOKING_MODEL_TYPE.Rooms,
           isDeleted: false,
-          startDate: { $lte: moment(endDate).utc().toDate() },
-          endDate: { $gte: moment(startDate).utc().toDate() },
+          startDate: { $lt: moment.utc(endDate).startOf('day').toDate() },
+          endDate: { $gt: moment.utc(startDate).startOf('day').toDate() },
         },
       },
       {
@@ -367,8 +367,8 @@ const globalSearch = async (query: Record<string, any>) => {
           $match: {
             modelType: BOOKING_MODEL_TYPE.Rooms,
             isDeleted: false,
-            startDate: { $lte: moment(endDate).utc().toDate() },
-            endDate: { $gte: moment(startDate).utc().toDate() },
+            startDate: { $lt: moment.utc(endDate).startOf('day').toDate() },
+            endDate: { $gt: moment.utc(startDate).startOf('day').toDate() },
           },
         },
         {
@@ -607,8 +607,8 @@ const globalSearch = async (query: Record<string, any>) => {
           $match: {
             modelType: BOOKING_MODEL_TYPE.Apartment,
             isDeleted: false,
-            startDate: { $lte: moment(endDate).utc().toDate() }, // booking start <= searchEndDate
-            endDate: { $gte: moment(startDate).utc().toDate() }, // booking end >= searchStartDate
+            startDate: { $lt: moment.utc(endDate).startOf('day').toDate() }, // booking start < checkout
+            endDate: { $gt: moment.utc(startDate).startOf('day').toDate() }, // booking end > check-in
           },
         },
         {
