@@ -13,6 +13,8 @@ import { modeType } from '../notification/notification.interface';
 import { notificationQueue } from '../../redis';
 import Calender from '../calender/calender.models';
 import { BOOKING_MODEL_TYPE } from '../bookings/bookings.interface';
+import { BOOKING_STATUS } from '../bookings/bookings.constants';
+import Bookings from '../bookings/bookings.models';
 import moment from 'moment';
 import { parseSearchPolygon } from '../roomTypes/roomTypes.search';
 
@@ -434,6 +436,21 @@ const updateApartment = async (
 };
 
 const deleteApartment = async (id: string) => {
+  const hasActiveOrUpcomingBooking = await Bookings.exists({
+    modelType: BOOKING_MODEL_TYPE.Apartment,
+    reference: id,
+    isDeleted: false,
+    status: { $in: [BOOKING_STATUS.pending, BOOKING_STATUS.confirmed] },
+    endDate: { $gt: new Date() },
+  });
+
+  if (hasActiveOrUpcomingBooking) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      'Cannot delete apartment because it has active or upcoming bookings.',
+    );
+  }
+
   const result = await Apartment.findByIdAndUpdate(
     id,
     { isDeleted: true },
