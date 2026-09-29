@@ -460,7 +460,7 @@ const deleteApartment = async (id: string) => {
     throw new AppError(httpStatus.BAD_REQUEST, 'Failed to delete apartment');
   }
   return result;
-};
+}; 
 
 export const apartmentService = {
   createApartment,
