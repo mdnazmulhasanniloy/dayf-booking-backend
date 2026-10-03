@@ -9,8 +9,6 @@ const mailWorker = new Worker(
     if (job.name === 'new_mail') {
       const data = job.data;
 
-      const payload = data?.data;
-
       try {
         const attachments = Array.isArray(data?.attachments)
           ? data.attachments.map(
@@ -46,7 +44,10 @@ mailWorker.on('completed', job => {
 });
 
 mailWorker.on('failed', (job, err) => {
-  logger.error({ err, jobId: job?.id, queue: job?.queueName }, 'Mail job failed');
+  logger.error(
+    { err, jobId: job?.id, queue: job?.queueName },
+    'Mail job failed',
+  );
 });
 
 mailWorker.on('error', error => {
