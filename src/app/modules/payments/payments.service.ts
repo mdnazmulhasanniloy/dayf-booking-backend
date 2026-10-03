@@ -476,8 +476,8 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
         };
         await sendMailQueue.add('new_mail', userBookingConfirmAlertMail);
         await sendMailQueue.add('new_mail', userPaymentAlertMail);
-      }
-
+      } 
+      
       if (payment?.author) {
         const BookingConfirmEmailPath = path.join(
           __dirname,
@@ -500,7 +500,7 @@ const confirmPayment = async (query: Record<string, any>, res: Response) => {
           .replace('{{userName}}', (payment?.user as IUser)?.name);
 
         const authorBookingAlertMail = {
-          email: admin?.email,
+          email: (payment?.author as IUser)?.email,
           subject: 'New Booking Confirmed for Your Property',
           html: html,
         };

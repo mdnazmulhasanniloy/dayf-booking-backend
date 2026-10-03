@@ -19,7 +19,7 @@ import {
   CANCELLATION_TYPE,
   REFUND_REQUEST_STATUS,
 } from './refundRequest.constants';
-import { sendSmsSafely } from '../../utils/smsSender';
+import { sendSms, sendSmsSafely } from '../../utils/smsSender';
 
 const DEFAULT_POLICY: ICancellationPolicy = {
   name: 'DAYF Standard Policy',
@@ -435,6 +435,14 @@ const createHostCancellationAction = async (
   const boostEligible =
     isNoShow && hoursAfterCheckIn >= 0 && hoursAfterCheckIn <= noShowWindow;
   const suspicious = !isNoShow && hoursAfterCheckIn >= 0;
+  const suspendedUntil = isNoShow
+    ? undefined
+    : moment()
+        .add(
+          bookingPolicy.hostSuspensionDays ?? policy.hostSuspensionDays,
+          'days',
+        )
+        .toDate();
   const isEligible = !isNoShow;
   const status = isNoShow
     ? REFUND_REQUEST_STATUS.notEligible
@@ -509,14 +517,12 @@ const createHostCancellationAction = async (
       await Calender.deleteMany({ bookingId: booking._id }, { session });
 
       if (!isNoShow) {
-        const suspensionDays =
-          bookingPolicy.hostSuspensionDays ?? policy.hostSuspensionDays;
         await User.updateOne(
           { _id: bookingHostId },
           {
             $set: {
               status: 'suspended',
-              suspendedUntil: moment().add(suspensionDays, 'days').toDate(),
+              suspendedUntil,
               suspensionReason: 'host_cancellation_after_confirmation',
             },
             $push: {
@@ -562,6 +568,9 @@ const createHostCancellationAction = async (
     : suspicious
       ? 'Host cancellation was reported after check-in. Refund is blocked until admin validation.'
       : 'Host cancellation recorded. The guest deposit requires a full manual refund.';
+  const hostMessage = suspendedUntil
+    ? `Your DAYF host account is suspended until ${suspendedUntil.toISOString()} as a cancellation penalty for cancelling confirmed booking ${booking.bookingCode}.`
+    : actionMessage;
 
   const admins = await User.find({
     role: {
@@ -578,8 +587,8 @@ const createHostCancellationAction = async (
     ),
     queueNotification(
       host?._id ?? booking.author,
-      isNoShow ? 'No-show report received' : 'Host cancellation recorded',
-      actionMessage,
+      isNoShow ? 'No-show report received' : 'Host account suspended',
+      hostMessage,
       request._id,
     ),
     queueEmail(
@@ -599,21 +608,23 @@ const createHostCancellationAction = async (
         ? `DAYF: Booking ${booking.bookingCode} was marked as no-show.`
         : `DAYF: Booking ${booking.bookingCode} was cancelled by the host.`,
     ),
-    sendSmsSafely(
-      host?.phoneNumber,
-      isNoShow
-        ? `DAYF: No-show report for booking ${booking.bookingCode} was recorded.`
-        : `DAYF: Your cancellation of booking ${booking.bookingCode} was recorded.`,
-    ),
+    isNoShow
+      ? sendSmsSafely(
+          host?.phoneNumber,
+          `DAYF: No-show report for booking ${booking.bookingCode} was recorded.`,
+        )
+      : sendSms(host?.phoneNumber, hostMessage).catch(error => {
+          console.error('Host suspension SMS delivery failed:', error);
+        }),
     queueEmail(
       host?.email,
       isNoShow
         ? 'Your DAYF No-Show Report Was Recorded'
-        : 'Your DAYF Host Cancellation Was Recorded',
+        : 'Your DAYF Host Account Has Been Suspended',
       emailLayout(
-        isNoShow ? 'No-show report received' : 'Host cancellation recorded',
+        isNoShow ? 'No-show report received' : 'Host account suspended',
         `<p>Booking <strong>${escapeHtml(booking.bookingCode)}</strong></p>
-         <p>${escapeHtml(actionMessage)}</p>`,
+         <p>${escapeHtml(hostMessage)}</p>`,
       ),
     ),
     ...admins.flatMap(admin => [
