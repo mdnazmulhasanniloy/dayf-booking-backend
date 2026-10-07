@@ -20,10 +20,13 @@ const getHotelOwnerDashboard = async (
 ) => {
   const incomeYear = query.year || moment().year();
   //========================== Income aggregate ==========================\\
-  const earningData = await Payments.aggregate([
+  const earningData = await Bookings.aggregate([
     {
       $match: {
-        status: PAYMENT_STATUS.paid,
+        $or: [
+          { paymentStatus: BOOKING_STATUS.completed },
+          { paymentStatus: BOOKING_STATUS.confirmed },
+        ],
         isDeleted: false,
         author: new Types.ObjectId(authorId),
       },
@@ -32,7 +35,7 @@ const getHotelOwnerDashboard = async (
       $facet: {
         totalEarnings: [
           {
-            $group: { _id: null, total: { $sum: '$hotelOwnerAmount' } },
+            $group: { _id: null, total: { $sum: '$remainingAmount' } },
           },
         ],
         toDayEarnings: [
@@ -45,7 +48,7 @@ const getHotelOwnerDashboard = async (
             },
           },
           {
-            $group: { _id: null, total: { $sum: '$hotelOwnerAmount' } },
+            $group: { _id: null, total: { $sum: '$remainingAmount' } },
           },
         ],
         thisMonthEarnings: [
@@ -58,7 +61,7 @@ const getHotelOwnerDashboard = async (
             },
           },
           {
-            $group: { _id: null, total: { $sum: '$hotelOwnerAmount' } },
+            $group: { _id: null, total: { $sum: '$remainingAmount' } },
           },
         ],
         monthlyIncome: [
@@ -73,7 +76,7 @@ const getHotelOwnerDashboard = async (
           {
             $group: {
               _id: { month: { $month: '$createdAt' } },
-              income: { $sum: '$hotelOwnerAmount' },
+              income: { $sum: '$remainingAmount' },
             },
           },
           { $sort: { '_id.month': 1 } },
