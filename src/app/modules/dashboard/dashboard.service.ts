@@ -23,10 +23,8 @@ const getHotelOwnerDashboard = async (
   const earningData = await Bookings.aggregate([
     {
       $match: {
-        $or: [
-          { paymentStatus: BOOKING_STATUS.completed },
-          { paymentStatus: BOOKING_STATUS.confirmed },
-        ],
+        paymentStatus: PAYMENT_STATUS.paid,
+        status: { $in: [BOOKING_STATUS.confirmed, BOOKING_STATUS.completed] },
         isDeleted: false,
         author: new Types.ObjectId(authorId),
       },
@@ -235,7 +233,7 @@ const getHotelOwnerDashboard = async (
     },
   ]).then(data => data[0]);
 
-  const myProperties = await Property.countDocuments({
+  const myProperties = await Apartment.countDocuments({
     author: new Types.ObjectId(authorId),
     isDeleted: false,
   });
