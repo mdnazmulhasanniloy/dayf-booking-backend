@@ -18,11 +18,31 @@ app.use(requestLogger);
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
 app.set('views', 'public/ejs');
-app.use(express.json({ limit: '500mb' }));
+const captureRawBody = (
+  req: Request,
+  _res: Response,
+  buf: Buffer,
+  encoding: BufferEncoding,
+) => {
+  if (buf?.length) {
+    req.rawBody = buf.toString(encoding || 'utf8');
+  }
+};
+
+app.use(
+  express.json({
+    limit: '500mb',
+    verify: captureRawBody,
+  }),
+);
 app.use(express.urlencoded({ limit: '500mb', extended: true }));
 
 //parsers
-app.use(express.json());
+app.use(
+  express.json({
+    verify: captureRawBody,
+  }),
+);
 app.use(cookieParser());
 // app.use(
 //   cors({
