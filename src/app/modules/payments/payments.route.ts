@@ -1,12 +1,17 @@
 import { Router } from 'express';
 import { paymentsController } from './payments.controller';
 import auth from '../../middleware/auth';
+import verifyChargilyWebhook from '../../middleware/verifyChargilyWebhook';
 import { USER_ROLE } from '../user/user.constants';
 
 const router = Router();
 router.post('/checkout', auth(USER_ROLE.user), paymentsController.checkout);
 router.get('/confirm-payment', paymentsController.confirmPayment);
-router.post('/chargily', paymentsController.chargilyConfirmPayment);
+router.post(
+  '/chargily',
+  verifyChargilyWebhook,
+  paymentsController.chargilyConfirmPayment,
+);
 router.get('/receipt/:paymentId', paymentsController.downloadReceipt);
 
 // router.patch('/:id', paymentsController.updatePayments);
