@@ -16,7 +16,17 @@ router.patch(
   bookingsController.completeBooking,
 );
 // router.patch('/:id', bookingsController.updateBookings);
-router.delete('/:id', bookingsController.deleteBookings);
+router.delete(
+  '/:id',
+  auth(
+    USER_ROLE.user,
+    USER_ROLE.hotel_owner,
+    USER_ROLE.admin,
+    USER_ROLE.sub_admin,
+    USER_ROLE.super_admin,
+  ),
+  bookingsController.deleteBookings,
+);
 router.get(
   '/my-bookings',
   auth(USER_ROLE.user),
